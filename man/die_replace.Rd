@@ -2,16 +2,38 @@
 % Please edit documentation in R/terrestrial_sim_functions.R
 \name{die_replace}
 \alias{die_replace}
-\title{Title}
+\title{Death and replacement}
 \usage{
 die_replace(X, prob_death, seed_rain)
 }
 \arguments{
-\item{seed_rain}{}
+\item{X}{Lattice with \eqn{M} rows and \eqn{J} columns and species ids (\eqn{1,2,...,S})
+in each cell.}
+
+\item{prob_death}{A vector of length \eqn{S} with the probability a given individual dies in
+a given time step for each of \eqn{S} species, or a single probability for fixed death rates
+across species.}
+
+\item{seed_rain}{\eqn{M} x \eqn{J} x \eqn{S} array with the seed rain falling into each cell of
+the lattice from each of \eqn{S} species.}
 }
 \value{
-
+New lattice with some adults replaced by seedlings, potentially of a new species.
 }
 \description{
-Title
+This function completes the final stage of the lottery model simulations by sampling
+individuals of each species to die and be replaced by an individual of a new species
+with probability proportional to the amount of seed rain into a given cell from each
+species.
+}
+\examples{
+# define inputs
+X <- matrix(sample(1:3, 16, replace = T), nrow = 4)
+prob_death <- c(0.1, 0.05, 0.2)
+seed_rain_list <- purrr::map(1:3, ~ matrix(rgamma(16, shape = 10), nrow = 4))
+seed_rain <- abind::abind(seed_rain_list[[1]], seed_rain_list[[2]], seed_rain_list[[3]], along = 3)
+
+# simulate one round of death and replacement
+die_replace(X = X, prob_death = prob_death, seed_rain = seed_rain)
+
 }
