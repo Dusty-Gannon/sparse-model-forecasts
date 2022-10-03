@@ -188,9 +188,9 @@ kernel_count <- function(X, r, sp_list){
 
 
 
-#' Fecundity for an individual in a lattice lotter model
+#' Fecundity for an individual in a lattice lottery model
 #'
-#' @param lambda_it Vector of time-varying growth rates, one for each cell in the row of the lattice
+#' @param lambda_it Vector of (potentially) time-varying growth rates, one for each cell in the row of the lattice
 #' @param alpha Matrix of competition coefficients with as many rows and columns as there are species
 #' @param nbrhood Vector of sizes of the neighborhood for each cell in the row
 #' @param n matrix of neighbor counts with as many columns as species and as many rows as columns
@@ -202,6 +202,7 @@ kernel_count <- function(X, r, sp_list){
 #' @export
 #'
 #' @examples
+#'
 fecundity_ll <- function(lambda_it, alpha, nbrhood, n, foc_sp){
   # normalizing constant for neighborhood
   norm_constant <- diag(nbrhood, nrow = length(nbrhood))
@@ -385,16 +386,35 @@ seed_rain_array <- function(F_mat, X, d_max, rate = 1){
 
 
 
-#' Title
+#' Death and replacement
 #'
-#' @param X
-#' @param prob_death
-#' @param seed_rain
+#' This function completes the final stage of the lottery model simulations by sampling
+#' individuals of each species to die and be replaced by an individual of a new species
+#' with probability proportional to the amount of seed rain into a given cell from each
+#' species.
 #'
-#' @return
+#'
+#' @param X Lattice with \eqn{M} rows and \eqn{J} columns and species ids (\eqn{1,2,...,S})
+#' in each cell.
+#' @param prob_death A vector of length \eqn{S} with the probability a given individual dies in
+#' a given time step for each of \eqn{S} species, or a single probability for fixed death rates
+#' across species.
+#' @param seed_rain \eqn{M} x \eqn{J} x \eqn{S} array with the seed rain falling into each cell of
+#' the lattice from each of \eqn{S} species.
+#'
+#' @return New lattice with some adults replaced by seedlings, potentially of a new species.
 #' @export
 #'
 #' @examples
+#' # define inputs
+#' X <- matrix(sample(1:3, 16, replace = T), nrow = 4)
+#' prob_death <- c(0.1, 0.05, 0.2)
+#' seed_rain_list <- purrr::map(1:3, ~ matrix(rgamma(16, shape = 10), nrow = 4))
+#' seed_rain <- abind::abind(seed_rain_list[[1]], seed_rain_list[[2]], seed_rain_list[[3]], along = 3)
+#'
+#' # simulate one round of death and replacement
+#' die_replace(X = X, prob_death = prob_death, seed_rain = seed_rain)
+#'
 die_replace <- function(X, prob_death, seed_rain){
 
   # store some useful variables
@@ -432,7 +452,36 @@ die_replace <- function(X, prob_death, seed_rain){
     p = prob_death
   )
 
-  # Replace with seeds from seed_rain array
+  sp_coords_deaths <- lapply(
+    1:S,
+    FUN = function(x, coords, deaths){
+      coords[[x]][which(deaths[[x]] == 1), ]
+    },
+    coords = sp_coords,
+    deaths = deaths
+  )
+  # make sure each element of sp_coords_deaths is a matrix
+  sp_coords_deaths <- lapply(sp_coords_deaths, matrix, ncol = 2)
+
+  # Replace with seeds from seed_rain array.
+  # first write a function to replace the value of specific cells
+  for(s in 1:S){
+    if(nrow(sp_coords_deaths[[s]]) > 0){
+      replacements <- vector(mode = "double", length = nrow(sp_coords_deaths[[s]]))
+      for(i in 1:length(replacements)){
+        replmnt_i <- sample(
+          1:S,
+          size = 1,
+          prob = seed_rain[sp_coords_deaths[[s]][i,1], sp_coords_deaths[[s]][i,2], ] /
+            sum(seed_rain[sp_coords_deaths[[s]][i,1], sp_coords_deaths[[s]][i,2], ])
+        )
+        # replace the individual
+        X[sp_coords_deaths[[s]][i,1], sp_coords_deaths[[s]][i,2]] <- replmnt_i
+      }
+    }
+  }
+
+  return(X)
 
 
 }
