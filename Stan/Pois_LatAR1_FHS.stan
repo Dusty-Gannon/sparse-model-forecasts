@@ -26,11 +26,11 @@ functions{
 data{
 
   int<lower = 1> N;           // number of observations
-  int<lower = 1> P;           // number of non-shrinking parameters
-  int<lower = 0> S;           // number of competing species
+  int<lower = 1> P0;          // number of non-shrinking parameters
+  int<lower = 0> P;           // number of shrinking parameters
   int<lower = 0> y[N];        // vector of responses
-  matrix[N, P] X_alpha;       // model matrix for unshrunk effects
-  matrix[N, S] X_beta;        // model matrix for competing species
+  matrix[N, P0] X_alpha;      // model matrix for unshrunk effects
+  matrix[N, P] X_beta;        // model matrix for competing species
   real<lower = 0> tau0;       // scale for global shrinkage parameter
   real<lower = 0> slab_scl;   // scale for non-zero coefficients
   real<lower = 0> slab_df;    // degrees of freedom for non-zero coefficients
@@ -47,14 +47,14 @@ transformed data{
 
 parameters{
 
-  vector[P] alpha_std;                 // unshrunk coefficients (self-limitation and intercept)
-  vector[S] beta_std;                  // standardized coefficients for competing species effects
+  vector[P0] alpha_std;                // unshrunk coefficients (self-limitation and intercept)
+  vector[P] beta_std;                  // standardized coefficients for competing species effects
   real<lower = 0, upper = 1> phi;      // autocorrelation parameter
   real<lower = 0> sigma_e;             // sd of random innovations
-  vector[N] gamma_std;                 // standardized latent AR(1) variables
+  vector[N] lambda_std;                // standardized latent AR(1) variables
 
   // parameters for shrinkage priors
-  vector<lower = 0>[S] local_scale;    // non-regularized local scale
+  vector<lower = 0>[P] local_scale;    // non-regularized local scale
   real<lower = 0> c2_std;              // unscaled version of c2
   real<lower = 0> tau_std;             // unscaled version of tau
 
@@ -63,7 +63,7 @@ parameters{
 transformed parameters{
 
   vector[N] eta;               // declare vector of means
-  vector[N] gamma;             // declare vector of latent AR(1) variables
+  vector[N] lambda;            // declare vector of latent AR(1) variables
 
   // scale c2: c2 ~ inv_gamma(half_slab_df, half_slab_df * slab_scl2)
   real c2 = slab_scl2 * c2_std;
@@ -72,20 +72,20 @@ transformed parameters{
   real tau = tau0 * tau_std;
 
   // This calculation follows equation 2.8 in Piironen and Vehtari 2017
-  vector[S] local_scale_tilde =
+  vector[P] local_scale_tilde =
     sqrt(c2 * square(local_scale) ./ (c2 + square(tau) * square(local_scale)));
 
   // scale betas
-  vector[S] beta = tau * local_scale_tilde .* beta_std;
+  vector[P] beta = tau * local_scale_tilde .* beta_std;
 
   // scale alpha
-  vector[P] alpha = alpha_std;
+  vector[P0] alpha = alpha_std;
 
   // scale gamma
-  gamma = (sigma_e)/sqrt(1 - square(phi)) * chol_ar1_corrmat(N, phi) * gamma_std;
+  lambda = (sigma_e)/sqrt(1 - square(phi)) * chol_ar1_corrmat(N, phi) * lambda_std;
 
   // construct linear predictors
-  eta = X_alpha * alpha + X_beta * beta + gamma;
+  eta = X_alpha * alpha + X_beta * beta + lambda;
 }
 
 model{
@@ -93,7 +93,7 @@ model{
   // priors
   alpha_std ~ std_normal();
   beta_std ~ std_normal();
-  gamma_std ~ std_normal();
+  lambda_std ~ std_normal();
   sigma_e ~ normal(0, 3);
 
   tau_std ~ cauchy(0, 1);
