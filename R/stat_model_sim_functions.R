@@ -56,3 +56,30 @@ rdirch <- function(n, theta){
   }
 }
 
+
+
+
+
+
+
+
+#' Calculate tau0 based on Piironen and Vehtari (2017)
+#'
+#' @param m0 Prior guess for number of non-zero effects
+#' @param M Number of coefficients getting shrinkage priors
+#' @param N Number of observations
+#' @param sigma Approximate variance (see Piironen and Vehtari, 2017)
+#'
+#' @return real
+#' @export
+#'
+#' @examples
+#' # for a Poisson regression with 200 observations and 50 candidate covariates
+#' tau0(m0 = 2, M = 50, N = 200, sigma = mean(y)^(-1))
+#'
+tau0 <- function(m0, M, N, sigma){
+  m0/(M-m0) * sigma/sqrt(N)
+}
+
+
+
