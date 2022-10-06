@@ -2,12 +2,12 @@
 % Please edit documentation in R/terrestrial_sim_functions.R
 \name{fecundity_ll}
 \alias{fecundity_ll}
-\title{Fecundity for an individual in a lattice lotter model}
+\title{Fecundity for an individual in a lattice lottery model}
 \usage{
 fecundity_ll(lambda_it, alpha, nbrhood, n, foc_sp)
 }
 \arguments{
-\item{lambda_it}{Vector of time-varying growth rates, one for each cell in the row of the lattice}
+\item{lambda_it}{Vector of (potentially) time-varying growth rates, one for each cell in the row of the lattice}
 
 \item{alpha}{Matrix of competition coefficients with as many rows and columns as there are species}
 
@@ -23,5 +23,8 @@ the time step}
 vector with fecudities for each individual in one row of the lattice
 }
 \description{
-Fecundity for an individual in a lattice lotter model
+Fecundity for an individual in a lattice lottery model
+}
+\examples{
+
 }

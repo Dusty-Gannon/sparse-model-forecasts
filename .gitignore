@@ -49,3 +49,6 @@ Thumbs.db
 *.wmv
 
 .Rproj.user
+
+# Data files
+/Data
