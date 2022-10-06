@@ -7,31 +7,34 @@
 
 # libraries
   library(rstan)
-  # library(parallel)
-  # library(snow)
-  # library(Rmpi)
-  devtools::load_all()
+  library(parallel)
+  library(here)
 
-# number of datasets to simulate
-  sims <- 100
+# just to be extra safe
+  set_here("/pfs/tc1/project/modelscape/analyses/sponges")
+
+# load user-defined functions (teton way, not devtools way)
+  src_files <- list.files(here("R/"), pattern = "*.R", full.names = T)
+  sapply(src_files, source, .GlobalEnv)
+
+
+# lengths of each time series to simulate and fit the model
+  ns <- seq(50, 500, by = 50)
 
 # define parameters
   sim_params <- list(
-    n = 100,           # length of the time series
+    phi = 0.6,
     b = c(1, -1, 0.5), # non-zero effects
     P = 50,            # total number of candidate variables (minus the intercept)
     sigma_e = 0.5      # sd of random innovations
   )
 
 
-# function to simulate the data, fit the model, and report RMSE stats
-  latent_ar1_FHS <- function(sims, sim_params, mod_file, q_cutoff = 0.9, n_test = 30){
-
-    # draws for randomized parameters
-    phi <- runif(1, min = 0.2, max = 1)
+# function to simulate the data, fit the model, and report stats on model fit and predictive performance
+  latent_ar1_FHS <- function(n, sim_params, mod_file, q_cutoff = 0.9, n_test = 30){
 
     # useful variables
-    n_train <- sim_params$n - n_test
+    n_train <- n - n_test
 
     # create latent AR(1) variables
     lambda <- with(sim_params, {
@@ -66,9 +69,9 @@
 
     # split data into training and testing data
     y_train <- y[1:n_test]
-    y_test <- y[(n_test + 1):sim_params$n]
+    y_test <- y[(n_test + 1):n]
     X_train <- X[1:n_test, ]
-    X_test <- X[(n_test + 1):sim_params$n, ]
+    X_test <- X[(n_test + 1):n, ]
 
     # estimate for tau0
     tau0 <- tau0(
@@ -94,7 +97,7 @@
     })
 
     # compile stan model
-    Pois_latar1_FHS <- stan_model("Stan/Pois_LatAR1_FHS.stan")
+    Pois_latar1_FHS <- stan_model(mod_file)
 
     # fit the model
     mfit <- sampling(
@@ -157,14 +160,35 @@
       low = apply(beta_post, 2, quantile, probs = (1 - q_cutoff)/2),
       high = apply(beta_post, 2, quantile, probs = 1 - (1 - q_cutoff)/2)
     )
-    nzs <- sum(qdf$low > 0 | qdf$high < 0)
+    nzs_estim <- sum(qdf$low > 0 | qdf$high < 0)
 
+    # KL-divergence between prior and posterior phi
+    KLD <- kl_divergence(
+      prior_samps = runif(length(phi_post)),
+      post_samps = phi_post
+    )
+
+    return(list(
+      RMSE = RMSE,
+      nzs_true = length(sim_params$b),
+      nzs_estim = nzs_estim,
+      KLD_phi = KLD
+    ))
 
 
   }
 
 
+  # model fits
+  mfits <- parallel::mclapply(
+    ns,
+    latent_ar1_FHS,
+    sim_params = sim_params,
+    mod_file = here("Stan/Pois_LatAR1_FHS.stan")
+  )
 
+  # save the fits
+  saveRDS(mfits, file = here("Data/model_checks/pois_latAR1_FHS.rds"))
 
 
 
