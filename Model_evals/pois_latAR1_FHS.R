@@ -10,8 +10,8 @@
   library(parallel)
   library(here)
 
-# just to be extra safe
-  set_here("/pfs/tc1/project/modelscape/analyses/sponges")
+# # just to be extra safe
+#   set_here("/pfs/tc1/project/modelscape/analyses/sponges")
 
 # load user-defined functions (teton way, not devtools way)
   src_files <- list.files(here("R/"), pattern = "*.R", full.names = T)
