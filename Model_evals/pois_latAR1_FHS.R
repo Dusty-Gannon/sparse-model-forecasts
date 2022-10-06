@@ -68,10 +68,10 @@
     y <- with(sim_params, rpois(n, mu))
 
     # split data into training and testing data
-    y_train <- y[1:n_test]
-    y_test <- y[(n_test + 1):n]
-    X_train <- X[1:n_test, ]
-    X_test <- X[(n_test + 1):n, ]
+    y_train <- y[1:n_train]
+    y_test <- y[(n_train + 1):n]
+    X_train <- X[1:n_train, ]
+    X_test <- X[(n_train + 1):n, ]
 
     # estimate for tau0
     tau0 <- tau0(
@@ -84,7 +84,7 @@
     # data list for model fit
     datlist <- with(sim_params,{
       list(
-        N = n_test,
+        N = n_train,
         P0 = 1,
         P = ncol(X) - 1,
         y = y_train,
@@ -103,8 +103,8 @@
     mfit <- sampling(
       Pois_latar1_FHS,
       data = datlist,
-      chains = 3,
-      iter = 2000,
+      chains = 1,
+      iter = 1000,
       control = list(adapt_delta = 0.99, max_treedepth = 15)
     )
 
@@ -169,6 +169,8 @@
     )
 
     return(list(
+      y_test = y_test,
+      y_hat = y_hat,
       RMSE = RMSE,
       nzs_true = length(sim_params$b),
       nzs_estim = nzs_estim,
