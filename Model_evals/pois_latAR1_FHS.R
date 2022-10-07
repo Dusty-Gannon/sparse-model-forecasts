@@ -8,6 +8,8 @@
 # libraries
   library(rstan)
   library(parallel)
+  library(snow)
+  library(Rmpi)
   library(here)
 
 # # just to be extra safe
@@ -181,9 +183,13 @@
   }
 
 
+# make cluster and run in parallel
+  nProc <- length(ns)
+  cl <- makeCluster(nProc, type = "MPI")
+
   # model fits
-  mfits <- parallel::mclapply(
-    ns,
+  mfits <- clusterApply(cl,
+    x = ns,
     latent_ar1_FHS,
     sim_params = sim_params,
     mod_file = here("Stan/Pois_LatAR1_FHS.stan")
