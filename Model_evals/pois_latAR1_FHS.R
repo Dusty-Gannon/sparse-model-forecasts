@@ -7,9 +7,9 @@
 
 # libraries
   library(rstan)
-  library(parallel)
-  library(snow)
-  library(Rmpi)
+#  library(parallel)
+#  library(snow)
+#  library(Rmpi)
   library(here)
 
 # # just to be extra safe
@@ -105,8 +105,9 @@
     mfit <- sampling(
       Pois_latar1_FHS,
       data = datlist,
-      chains = 1,
-      iter = 1000,
+      chains = 3,
+      iter = 2000,
+      cores = 3,
       control = list(adapt_delta = 0.99, max_treedepth = 15)
     )
 
@@ -183,13 +184,13 @@
   }
 
 
-# make cluster and run in parallel
-  nProc <- length(ns)
-  cl <- makeCluster(nProc, type = "MPI")
+# # make cluster and run in parallel
+#   nProc <- length(ns)
+#   cl <- makeCluster(nProc)
 
   # model fits
-  mfits <- clusterApply(cl,
-    x = ns,
+  mfits <- lapply(
+    ns,
     latent_ar1_FHS,
     sim_params = sim_params,
     mod_file = here("Stan/Pois_LatAR1_FHS.stan")
@@ -197,14 +198,5 @@
 
   # save the fits
   saveRDS(mfits, file = here("Data/model_checks/pois_latAR1_FHS.rds"))
-
-
-
-
-
-
-
-
-
 
 
