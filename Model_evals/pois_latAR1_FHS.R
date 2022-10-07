@@ -184,7 +184,7 @@
 
 
 # make cluster and run in parallel
-  nProc <- length(ns)
+  nProc <- length(ns) + 1
   cl <- makeCluster(nProc, type = "MPI")
 
   # model fits
