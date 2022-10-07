@@ -7,6 +7,7 @@
 
 # libraries
   library(rstan)
+  library(foreach)
 #  library(parallel)
 #  library(snow)
 #  library(Rmpi)
@@ -189,12 +190,12 @@
 #   cl <- makeCluster(nProc)
 
   # model fits
-  mfits <- lapply(
-    ns,
-    latent_ar1_FHS,
-    sim_params = sim_params,
-    mod_file = here("Stan/Pois_LatAR1_FHS.stan")
-  )
+  mfits <- foreach(n = ns, .packages = c('here', 'rstan')) %dopar%
+    latent_ar1_FHS(
+      n = n, 
+      sim_params = sim_params,
+      mod_file = here("Stan/Pois_LatAR1_FHS.stan")
+    )
 
   # save the fits
   saveRDS(mfits, file = here("Data/model_checks/pois_latAR1_FHS.rds"))
