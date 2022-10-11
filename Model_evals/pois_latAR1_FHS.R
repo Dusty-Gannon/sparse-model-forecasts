@@ -7,7 +7,7 @@
 
 # libraries
   library(rstan)
-  library(foreach)
+#  library(foreach)
 #  library(parallel)
 #  library(snow)
 #  library(Rmpi)
@@ -20,9 +20,11 @@
   src_files <- list.files(here("R/"), pattern = "*.R", full.names = T)
   sapply(src_files, source, .GlobalEnv)
 
+# load command-line arguments
+  args <- commandArgs(trailingOnly = T)
 
-# lengths of each time series to simulate and fit the model
-  ns <- seq(50, 500, by = 50)
+## lengths of each time series to simulate and fit the model
+#  ns <- seq(50, 500, by = 50)
 
 # define parameters
   sim_params <- list(
@@ -189,15 +191,29 @@
 #   nProc <- length(ns)
 #   cl <- makeCluster(nProc)
 
-  # model fits
-  mfits <- foreach(n = ns, .packages = c('here', 'rstan')) %dopar%
-    latent_ar1_FHS(
-      n = n, 
-      sim_params = sim_params,
-      mod_file = here("Stan/Pois_LatAR1_FHS.stan")
-    )
+#  # model fits
+#  mfits <- foreach(n = ns, .packages = c('here', 'rstan')) %dopar%
+#    latent_ar1_FHS(
+#      n = n, 
+#      sim_params = sim_params,
+#      mod_file = here("Stan/Pois_LatAR1_FHS.stan")
+#    )
 
-  # save the fits
-  saveRDS(mfits, file = here("Data/model_checks/pois_latAR1_FHS.rds"))
+  # model fit
+  mfit <- latent_ar1_FHS(
+    n = as.numeric(args[1]),
+    sim_params = sim_params,
+    mod_file = here("Stan/Pois_LatAR1_FHS.stan")
+  )
+
+  # save the fit
+  fp <- paste(
+    here("Data/model_checks/"),
+    "pois_latAr1_FHS_n",
+    args[1],
+    ".rds",
+    sep = ""
+  )
+  saveRDS(mfits, file = fp)
 
 
