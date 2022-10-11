@@ -2,12 +2,15 @@
 % Please edit documentation in R/terrestrial_sim_functions.R
 \name{fecundity_ll}
 \alias{fecundity_ll}
-\title{Fecundity for an individual in a lattice lottery model}
+\title{Fecundity for a row in the lattice}
 \usage{
-fecundity_ll(lambda_it, alpha, nbrhood, n, foc_sp)
+fecundity_ll(foc_sp, lambda_t, alpha, nbrhood, n)
 }
 \arguments{
-\item{lambda_it}{Vector of (potentially) time-varying growth rates, one for each cell in the row of the lattice}
+\item{foc_sp}{Vector of species occupying each cell in the row in the lattice at the beginning of
+the time step}
+
+\item{lambda_t}{Vector of (potentially) time-varying growth rates, one for each species}
 
 \item{alpha}{Matrix of competition coefficients with as many rows and columns as there are species}
 
@@ -15,15 +18,12 @@ fecundity_ll(lambda_it, alpha, nbrhood, n, foc_sp)
 
 \item{n}{matrix of neighbor counts with as many columns as species and as many rows as columns
 in the lattice}
-
-\item{foc_sp}{Vector of species occupying each cell in the row in the lattice at the beginning of
-the time step}
 }
 \value{
 vector with fecudities for each individual in one row of the lattice
 }
 \description{
-Fecundity for an individual in a lattice lottery model
+Fecundity for a row in the lattice
 }
 \examples{
 

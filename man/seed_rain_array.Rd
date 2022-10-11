@@ -15,8 +15,8 @@ seed_rain_array(F_mat, X, d_max, rate = 1)
 set as a global parameter and is not species-specific).}
 
 \item{rate}{Exponential rate parameter(s) for each species defining the dispersal kernel. This
-can be a vector of length \eqn{S}, where \eqn{S} is the number of species in the model, or a single value giving
-all species equal dispersal distributions.}
+can be a vector of length \eqn{S}, where \eqn{S} is the number of species in the model, or a scalar,
+giving all species equal dispersal distributions.}
 }
 \value{
 An array with \eqn{S} slices made up of \eqn{M \times J} matrices, where \eqn{M \times J}

@@ -24,7 +24,7 @@
 #' @examples
 #' comp_matrix(3, rho=0.4, alpha=0.01, num_ngs = 1)
 #'
-comp_matrix <- function(n_sp, rho, alpha, num_ngs){
+comp_matrix <- function(n_sp, rho=0, alpha, num_ngs){
   if(rho < 0 | rho > 1){
     stop("rho must be on the unit interval (0,1)")
   }
@@ -36,13 +36,16 @@ comp_matrix <- function(n_sp, rho, alpha, num_ngs){
    if(num_ngs >= 1){
     # pull out top row (focal species)
     tr <- mat[1,]
-    tr[2:(num_ngs+1)] <- tr[2:(num_ngs+1)] * runif(num_ngs, min = 1, max = 3)
+    tr[2:(num_ngs+1)] <- alpha[1] - runif(num_ngs, min = 0, max = alpha[1]/4)
 
     mat[1,] <- tr
 
    }
   return(mat)
 }
+
+
+
 
 
 
@@ -188,30 +191,34 @@ kernel_count <- function(X, r, sp_list){
 
 
 
-#' Fecundity for an individual in a lattice lottery model
+#' Fecundity for a row in the lattice
 #'
-#' @param lambda_it Vector of (potentially) time-varying growth rates, one for each cell in the row of the lattice
+#'
+#' @param foc_sp Vector of species occupying each cell in the row in the lattice at the beginning of
+#' the time step
+#' @param lambda_t Vector of (potentially) time-varying growth rates, one for each species
 #' @param alpha Matrix of competition coefficients with as many rows and columns as there are species
 #' @param nbrhood Vector of sizes of the neighborhood for each cell in the row
 #' @param n matrix of neighbor counts with as many columns as species and as many rows as columns
 #' in the lattice
-#' @param foc_sp Vector of species occupying each cell in the row in the lattice at the beginning of
-#' the time step
 #'
 #' @return vector with fecudities for each individual in one row of the lattice
 #' @export
 #'
 #' @examples
 #'
-fecundity_ll <- function(lambda_it, alpha, nbrhood, n, foc_sp){
+fecundity_ll <- function(foc_sp, lambda_t, alpha, nbrhood, n){
+  # get vector of growth rates for each cell in row i
+  lambda_it <- lambda_t[foc_sp]
+
   # normalizing constant for neighborhood
-  norm_constant <- diag(nbrhood, nrow = length(nbrhood))
+  norm_constant <- solve(diag(nbrhood, nrow = length(nbrhood)))
 
   # pull out row of alpha corresponding to focal ind. sp. id
   alpha_i <- alpha[foc_sp, ]
 
   # get competition vector
-  comp_vec <- 1 + diag((solve(norm_constant) %*% n) %*% t(alpha_i))
+  comp_vec <- 1 + diag(norm_constant %*% n %*% t(alpha_i))
 
   # fecundity model
   return(
@@ -274,8 +281,8 @@ P_d_exp <- function(d, d_max, lambda){
 #' @param d_max Max distance (vertical and horizontal, not diagonal) for dispersal (currently
 #' set as a global parameter and is not species-specific).
 #' @param rate Exponential rate parameter(s) for each species defining the dispersal kernel. This
-#' can be a vector of length \eqn{S}, where \eqn{S} is the number of species in the model, or a single value giving
-#' all species equal dispersal distributions.
+#' can be a vector of length \eqn{S}, where \eqn{S} is the number of species in the model, or a scalar,
+#' giving all species equal dispersal distributions.
 #'
 #' @return An array with \eqn{S} slices made up of \eqn{M \times J} matrices, where \eqn{M \times J}
 #' is the dimension of the lattice.

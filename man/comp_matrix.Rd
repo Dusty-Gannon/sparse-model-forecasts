@@ -4,7 +4,7 @@
 \alias{comp_matrix}
 \title{Build a competition matrix}
 \usage{
-comp_matrix(n_sp, rho, alpha, num_ngs)
+comp_matrix(n_sp, rho = 0, alpha, num_ngs)
 }
 \arguments{
 \item{n_sp}{The number of species/populations competing}
