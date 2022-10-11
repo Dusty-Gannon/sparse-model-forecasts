@@ -1,7 +1,7 @@
 #!/bin/bash -l
 
-#SBATCH --account=commbayes
-#SBATCH --time=10:00:00
+#SBATCH --account=modelscape
+#SBATCH --time=05:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=3
 #SBATCH --cpus-per-task=1
