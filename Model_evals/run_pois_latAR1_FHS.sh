@@ -1,17 +1,17 @@
 #!/bin/bash -l
 
 #SBATCH --account=modelscape
-#SBATCH --time=05:00:00
+#SBATCH --time=24:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=3
 #SBATCH --cpus-per-task=1
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=dgannon@uwyo.edu
-#SBATCH --array=1-10
+#SBATCH --array=1-7
 
 # Set the parameter combination to use and generate names of R scripts and log file
 Rscript=pois_latAR1_FHS.R
-LogFile=pois_latAR1_ntest.log
+LogFile_pref=pois_latAR1_log_n
 
 # Change to the relevant working directory
 cd /project/modelscape/analyses/sponges/Model_evals
@@ -26,5 +26,5 @@ for i in ${SLURM_ARRAY_TASK_ID[@]}; do
 done
 
 
-Rscript $Rscript ${args} > $LogFile
+Rscript $Rscript ${args} > "$LogFile_pref${SLURM_ARRAY_TASK_ID}"
 
