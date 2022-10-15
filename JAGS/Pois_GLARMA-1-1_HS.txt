@@ -1,0 +1,31 @@
+##################################
+# JAGS model
+# Poisson GLARMA(1,1)
+##################################
+
+model {
+
+  # likelihood
+  mu[1] <- y_star[1]
+  z[1] <- 0
+
+  for(i in 2:N){
+
+    z[i] <- phi * (log(y_star[i-1]) - alpha) + theta * log(y_star[i-1]/mu[i-1])
+
+    mu[i] <- exp(alpha + z[i])
+
+  }
+
+  for(i in 2:N){
+    y[i] ~ dpois(mu[i])
+  }
+
+
+  # priors
+  alpha ~ dnorm(0, 0.1)
+  phi ~ dbeta(1, 1)
+  theta ~ dbeta(1, 1)
+
+}
+
