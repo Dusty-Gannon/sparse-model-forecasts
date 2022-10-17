@@ -1,5 +1,12 @@
 # libraries
+library(here)
 library(rstan)
+devtools::load_all()
+
+post_mode <- function(x){
+  id <- which.max(density(x)$y)
+  return(density(x)$x[id])
+}
 
 # simulating from a GLARMA(1,1) process
 
@@ -24,7 +31,7 @@ library(rstan)
   phi <- 0.6
   theta <- 0.5
 
-# model matrix
+  # model matrix
   X <- matrix(
     rnorm(n = n * (length(beta) - 1)),
     nrow = n
@@ -36,28 +43,88 @@ library(rstan)
 
 # initiate the process
   y <- vector(mode = "double", length = n)
+  y_star <- vector(mode = "double", length = n)
   mu <- vector(mode = "double", length = n)
   z <- vector(mode = "double", length = n)
-  y[1] <- rpois(1, lambda = exp(X[, 1] %*% beta))
-  mu[1] <- y[1]
+  y[1] <- rpois(1, lambda = exp(alpha))
+  y_star[1] <- max(y[1], 0.1)
+  mu[1] <- y_star[1]
   z[1] <- 0
 
 # continue the process
 
   for(t in 2:n){
-    # Pearson residual
-    e_tm1 <- (y[t-1] - mu[t-1])/sqrt(mu[t-1])
 
     # arma term
-    z_t <- phi * (z[t-1] + e_tm1) + theta * e_tm1
-    lmu_t <- X[, t] %*% beta + z_t
-
-    # fill in series
-    mu[t] <- exp(lmu_t)
-
+    z_t <- phi * (log(y_star[t-1]) - X[t, ] %*% beta) + theta * log(y_star[t-1]/mu[t-1])
+    mu[t] <- exp(X[t, ] %*% beta + z_t)
     y[t] <- rpois(1, lambda = mu[t])
+    y_star[t] <- max(y[t], 0.1)
 
   }
+
+
+# compute tau0
+  tau_0 <- tau0(
+    m0 = 5,
+    M = length(beta) - length(alpha),
+    N = n,
+    sigma = mean(y)^(-1)
+  )
+
+# compile data to fit model in JAGS
+  datlist <- list(
+    N = n,
+    P0 = length(alpha),
+    P = length(beta) - length(alpha),
+    y = y,
+    y_star = y_star,
+    X_alpha = as.matrix(X[, 1]),
+    X_beta = X[, -1],
+    tau0 = tau_0,
+    slab_scl = 1,
+    slab_df = 10
+  )
+
+  # # initial values
+  # nchains <- 3
+  #
+  # inits <- vector(mode = "list")
+  # for(i in 1:nchains){
+  #   inits[[i]] <- list(
+  #     alpha = rnorm(1),
+  #     phi = runif(1),
+  #     theta = runif(1)
+  #   )
+  # }
+  #
+  # test <- jags.model(
+  #   here("JAGS/Pois_GLARMA-1-1_HS.txt"),
+  #   data = datlist,
+  #   inits = inits,
+  #   n.chains = nchains
+  # )
+  #
+  # update(test, n.iter=5000)
+  # samples <- coda.samples(test, variable.names=c("alpha", "phi", "theta"),
+  #                         n.iter=2000)
+  #
+  # samps_all <- rbind(samples[[1]], samples[[2]], samples[[3]])
+
+
+# fitting with Stan
+  pois_garma11 <- stan_model(here("Stan/Pois_GLARMA-1-1_FHS.stan"))
+  mfit <- sampling(
+    pois_garma11,
+    data = datlist,
+    cores = 3,
+    chains = 3,
+    control = list(adapt_delta = 0.95, max_treedepth = 12)
+  )
+
+
+
+
 
 
 
