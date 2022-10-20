@@ -68,45 +68,61 @@ for(t in 2:n){
 # compile data to fit model in JAGS
 datlist <- list(
   N = n,
+  P0 = length(alpha),
   P = length(beta) - length(alpha),
   y = y,
   y_star = y_star,
   X_alpha = as.matrix(X[, 1]),
   X_beta = X[, -1],
   nu0 = 0.01,
-  nu1 = 5,
-  pi0 = 0.5
+  a = c(1, 4)
 )
 
-# initial values
-nchains <- 3
+# # initial values
+# nchains <- 3
+#
+# inits <- vector(mode = "list")
+# for(i in 1:nchains){
+#   inits[[i]] <- list(
+#     alpha = rnorm(length(alpha)),
+#     beta = rnorm(length(beta) - length(alpha)),
+#     phi = runif(1),
+#     theta = runif(1),
+#     rho = runif(1),
+#     tau_inv = rgamma(1, shape = 3, rate = 1)
+#   )
+# }
+#
+# test <- jags.model(
+#   here("JAGS/Pois_GLARMA-1-1_SpSl.txt"),
+#   data = datlist,
+#   inits = inits,
+#   n.chains = nchains
+# )
+#
+# update(test, n.iter=5000)
+# samples <- coda.samples(test, variable.names=c("alpha", "beta", "phi", "theta", "rho"),
+#                         n.iter=2000)
+#
+# samps_all <- rbind(samples[[1]], samples[[2]], samples[[3]])
 
-inits <- vector(mode = "list")
-for(i in 1:nchains){
-  inits[[i]] <- list(
-    alpha = rnorm(length(alpha)),
-    beta_std = rnorm(length(beta) - length(alpha)),
-    phi = runif(1),
-    theta = runif(1),
-    ind = rbinom(length(beta) - length(alpha), prob = 0.5, size = 1)
+
+# stan model fitting
+  pois_glarma11_spsl <- stan_model(here("Stan/Pois_GLARMA-1-1_SpSl.stan"))
+
+  mfit <- sampling(
+    pois_glarma11_spsl,
+    data = datlist,
+    cores = 3,
+    chains = 3,
+    control = list(adapt_delta = 0.9)
   )
-}
 
-test <- jags.model(
-  here("JAGS/Pois_GLARMA-1-1_SpSl.txt"),
-  data = datlist,
-  inits = inits,
-  n.chains = nchains
-)
+# which variables would get included?
+  rho_post <- rstan::extract(mfit, pars = "rho")$rho
+  post_modes_rho <- apply(rho_post, 2, post_mode)
 
-update(test, n.iter=5000)
-samples <- coda.samples(test, variable.names=c("alpha", "beta", "phi", "theta", "ind"),
-                        n.iter=2000)
-
-samps_all <- rbind(samples[[1]], samples[[2]], samples[[3]])
-
-apply(samps_all[, 2:50], 2, FUN = hist, breaks = 100)
-
+  sum(post_modes_rho > 0.5)
 
 
 

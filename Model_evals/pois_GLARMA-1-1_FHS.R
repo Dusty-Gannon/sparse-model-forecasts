@@ -46,7 +46,7 @@ post_mode <- function(x){
   y_star <- vector(mode = "double", length = n)
   mu <- vector(mode = "double", length = n)
   z <- vector(mode = "double", length = n)
-  y[1] <- rpois(1, lambda = exp(alpha))
+  y[1] <- rpois(1, lambda = exp(X[1, ] %*% beta))
   y_star[1] <- max(y[1], 0.1)
   mu[1] <- y_star[1]
   z[1] <- 0
@@ -56,7 +56,7 @@ post_mode <- function(x){
   for(t in 2:n){
 
     # arma term
-    z_t <- phi * (log(y_star[t-1]) - X[t, ] %*% beta) + theta * log(y_star[t-1]/mu[t-1])
+    z_t <- phi * (log(y_star[t-1]) - X[t-1, ] %*% beta) + theta * log(y_star[t-1]/mu[t-1])
     mu[t] <- exp(X[t, ] %*% beta + z_t)
     y[t] <- rpois(1, lambda = mu[t])
     y_star[t] <- max(y[t], 0.1)
@@ -72,7 +72,7 @@ post_mode <- function(x){
     sigma = mean(y)^(-1)
   )
 
-# compile data to fit model in JAGS
+# compile data to feed into stan
   datlist <- list(
     N = n,
     P0 = length(alpha),
@@ -86,30 +86,6 @@ post_mode <- function(x){
     slab_df = 10
   )
 
-  # # initial values
-  # nchains <- 3
-  #
-  # inits <- vector(mode = "list")
-  # for(i in 1:nchains){
-  #   inits[[i]] <- list(
-  #     alpha = rnorm(1),
-  #     phi = runif(1),
-  #     theta = runif(1)
-  #   )
-  # }
-  #
-  # test <- jags.model(
-  #   here("JAGS/Pois_GLARMA-1-1_HS.txt"),
-  #   data = datlist,
-  #   inits = inits,
-  #   n.chains = nchains
-  # )
-  #
-  # update(test, n.iter=5000)
-  # samples <- coda.samples(test, variable.names=c("alpha", "phi", "theta"),
-  #                         n.iter=2000)
-  #
-  # samps_all <- rbind(samples[[1]], samples[[2]], samples[[3]])
 
 
 # fitting with Stan
