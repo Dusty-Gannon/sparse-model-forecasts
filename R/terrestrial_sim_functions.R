@@ -305,10 +305,10 @@ P_d_exp <- function(d, d_max, lambda){
 #' seed_rain_array(F_mat, X, d_max, rate)
 #'
 #'
-seed_rain_array <- function(F_mat, X, d_max, rate = 1){
+seed_rain_array <- function(F_mat, X, d_max, rate = 1, nsp){
 
   # store some useful values
-  S <- length(unique(as.vector(X))) # number of species
+  S <- nsp                          # number of species
   M <- nrow(X)                      # number of rows in lattice
   J <- ncol(X)                      # number of columns in lattice
 

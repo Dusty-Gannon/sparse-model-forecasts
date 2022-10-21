@@ -7,17 +7,17 @@ devtools::load_all()
 # setup parameters
 
   # lattice size along one margin
-  cells <- 10
+  cells <- 20
 
   # neighborhood size
-  nbrhood_radius <- 1
+  nbrhood_radius <- 2
 
   # time steps
   steps <- 100
 
   # species
-  S <- 1 # number of strong competitors
-  s <- 1 # number weak competitors
+  S <- 2 # number of strong competitors
+  s <- 7 # number weak competitors
   nsp <- S + s + 1
 
   # vector of intra-specific competitive effects
@@ -27,10 +27,22 @@ devtools::load_all()
   A_mat <- comp_matrix(nsp, alpha = alpha, rho = 0.05, num_ngs = S)
 
   # average per-capita fecundity
-  lambda <- rgamma(nsp, shape = 10, rate = 1)
+  lambda <- c(
+    rgamma(S + 1, shape = 50, rate = 1),
+    rgamma(s, shape = 20, rate = 1)
+  )
 
   # probability an individual dies in a given time point for each species
-  Pr_death <- c(0.3, 0.2, 0.1)
+  Pr_death <- c(
+    rep(1, 1 + S),
+    runif(s, min = 0.1, max = 0.5)
+  )
+
+  # dispersal rates for each species
+  disp_rate <- c(
+    runif(S + 1),
+    runif(s, min = 0, max = 3)
+  )
 
   # initialize lattice
   X <- matrix(
@@ -76,7 +88,8 @@ devtools::load_all()
       F_mat = Fecundity,
       X = ts_all[[t]],
       d_max = 3,
-      rate = c(1,0.5,3)
+      rate = disp_rate,
+      nsp = nsp
     )
 
     # kill off and replace some adults with seedlings
@@ -91,19 +104,23 @@ devtools::load_all()
 # get percent cover dataframe
   cover_df <- data.frame(
     t = rep(1:steps, nsp),
-    species = rep(1:nsp, each = steps),
-    cover = c(
-      sapply(ts_all, FUN = function(x){sum(x == 1)}),
-      sapply(ts_all, FUN = function(x){sum(x == 2)}),
-      sapply(ts_all, FUN = function(x){sum(x == 3)})
-    )
+    species = rep(1:nsp, each = steps)
   )
+
+# fill in the cover values
+  cover <- vector(mode = "double")
+  for(i in 1:nsp){
+    cover <- c(
+      cover,
+      sapply(ts_all, function(x){sum(x == i)/(nrow(x) * ncol(x))})
+    )
+  }
+  cover_df$cover <- cover
   cover_df$species <- as.factor(cover_df$species)
 
   ggplot(data = cover_df, aes(x = t, y = cover, color = species))+
     geom_line()+
-    theme_classic()+
-    scale_color_manual(values = c("blue", "red", "black"))
+    theme_classic()
 
 
 
