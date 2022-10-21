@@ -13,7 +13,7 @@ devtools::load_all()
   nbrhood_radius <- 2
 
   # time steps
-  steps <- 100
+  steps <- 200
 
   # species
   S <- 2 # number of strong competitors
@@ -21,15 +21,15 @@ devtools::load_all()
   nsp <- S + s + 1
 
   # vector of intra-specific competitive effects
-  alpha <- runif(nsp, min = 0.2, max = 1)
+  alpha <- rgamma(nsp, shape = 3, rate = 1)
 
   # competition matrix
-  A_mat <- comp_matrix(nsp, alpha = alpha, rho = 0.05, num_ngs = S)
+  A_mat <- comp_matrix(nsp, alpha = alpha, rho = 0.01, num_ngs = S)
 
   # average per-capita fecundity
   lambda <- c(
-    rgamma(S + 1, shape = 50, rate = 1),
-    rgamma(s, shape = 20, rate = 1)
+    rgamma(S + 1, shape = 40, rate = 1),
+    rgamma(s, shape = 10, rate = 1)
   )
 
   # probability an individual dies in a given time point for each species

@@ -38,7 +38,13 @@ comp_matrix <- function(n_sp, rho=0, alpha, num_ngs){
     tr <- mat[1,]
     tr[2:(num_ngs+1)] <- alpha[1] - runif(num_ngs, min = 0, max = alpha[1]/4)
 
+    # make closer to symmetric
+    fc <- mat[, 1]
+    fc[2:(num_ngs+1)] <- alpha[2:(num_ngs + 1)] - runif(num_ngs, min = alpha[2:(num_ngs + 1)]/4, max = alpha[2:(num_ngs + 1)]/3)
+
     mat[1,] <- tr
+    mat[, 1] <- fc
+
 
    }
   return(mat)
