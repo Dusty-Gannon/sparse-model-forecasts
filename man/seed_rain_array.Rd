@@ -4,7 +4,7 @@
 \alias{seed_rain_array}
 \title{Seed rain array}
 \usage{
-seed_rain_array(F_mat, X, d_max, rate = 1)
+seed_rain_array(F_mat, X, d_max, rate = 1, nsp)
 }
 \arguments{
 \item{F_mat}{Matrix of fecundities for each individual in the lattice}

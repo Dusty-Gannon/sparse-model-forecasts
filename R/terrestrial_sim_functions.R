@@ -7,11 +7,11 @@
 #' of competition coefficients \eqn{A}, where
 #' \eqn{A_{ij}} is the competitive effect of species \eqn{j} on \eqn{i}.
 #' \eqn{A_{ij} = \alpha_i (\rho + (1 - \rho) \delta_{ij})}, where \eqn{\delta_{ij}=1} if
-#' \eqn{i=j} and 0 otherwise and \eqn{\alpha_i} is the strength of self regulations for
+#' \eqn{i=j} and 0 otherwise and \eqn{\alpha_i} is the strength of self regulation for
 #' species i.
 #'
-#' @param n_sp The number of species/populations competing
-#' @param rho The strength of interspecific competition relative to intraspecific competion.
+#' @param n_sp The number of species competing
+#' @param rho The strength of interspecific competition relative to intraspecific competition.
 #' \eqn{\rho \in (0,1)}
 #' @param alpha A scalar or vector of length \code{n_sp} with the strength(s) of
 #' intraspecific competition.
@@ -202,18 +202,27 @@ kernel_count <- function(X, r, sp_list){
 #'
 #' @param foc_sp Vector of species occupying each cell in the row in the lattice at the beginning of
 #' the time step
-#' @param lambda_t Vector of (potentially) time-varying growth rates, one for each species
+#' @param lambda_max Vector of max growth rates, maximized when the environment is in a state equal to the
+#' optimum for the given species
+#' @param optims Vector of environmental optima for each species
+#' @param env_t Environmental condition at time t
 #' @param alpha Matrix of competition coefficients with as many rows and columns as there are species
 #' @param nbrhood Vector of sizes of the neighborhood for each cell in the row
 #' @param n matrix of neighbor counts with as many columns as species and as many rows as columns
 #' in the lattice
+#' @param sigma An optional scalar or vector of length \eqn{S} defining how sensitive each species is to
+#' changes in the environment. Default is that \code{sigma = 1}.
 #'
 #' @return vector with fecudities for each individual in one row of the lattice
 #' @export
 #'
 #' @examples
 #'
-fecundity_ll <- function(foc_sp, lambda_t, alpha, nbrhood, n){
+fecundity_ll <- function(foc_sp, lambda_max, optims, env_t, alpha, nbrhood, n, sigma = 1){
+
+  # define growth at time t based on environment
+  lambda_t <- lambda_max * exp(-sigma * (env_t - optims)^2)
+
   # get vector of growth rates for each cell in row i
   lambda_it <- lambda_t[foc_sp]
 

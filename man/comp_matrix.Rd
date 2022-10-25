@@ -7,9 +7,9 @@
 comp_matrix(n_sp, rho = 0, alpha, num_ngs)
 }
 \arguments{
-\item{n_sp}{The number of species/populations competing}
+\item{n_sp}{The number of species competing}
 
-\item{rho}{The strength of interspecific competition relative to intraspecific competion.
+\item{rho}{The strength of interspecific competition relative to intraspecific competition.
 \eqn{\rho \in (0,1)}}
 
 \item{alpha}{A scalar or vector of length \code{n_sp} with the strength(s) of
@@ -26,7 +26,7 @@ where \eqn{N} is the number of species in the system,
 of competition coefficients \eqn{A}, where
 \eqn{A_{ij}} is the competitive effect of species \eqn{j} on \eqn{i}.
 \eqn{A_{ij} = \alpha_i (\rho + (1 - \rho) \delta_{ij})}, where \eqn{\delta_{ij}=1} if
-\eqn{i=j} and 0 otherwise and \eqn{\alpha_i} is the strength of self regulations for
+\eqn{i=j} and 0 otherwise and \eqn{\alpha_i} is the strength of self regulation for
 species i.
 }
 \examples{

@@ -4,13 +4,18 @@
 \alias{fecundity_ll}
 \title{Fecundity for a row in the lattice}
 \usage{
-fecundity_ll(foc_sp, lambda_t, alpha, nbrhood, n)
+fecundity_ll(foc_sp, lambda_max, optims, env_t, alpha, nbrhood, n, sigma = 1)
 }
 \arguments{
 \item{foc_sp}{Vector of species occupying each cell in the row in the lattice at the beginning of
 the time step}
 
-\item{lambda_t}{Vector of (potentially) time-varying growth rates, one for each species}
+\item{lambda_max}{Vector of max growth rates, maximized when the environment is in a state equal to the
+optimum for the given species}
+
+\item{optims}{Vector of environmental optima for each species}
+
+\item{env_t}{Environmental condition at time t}
 
 \item{alpha}{Matrix of competition coefficients with as many rows and columns as there are species}
 
