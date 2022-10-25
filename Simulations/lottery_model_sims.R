@@ -7,7 +7,7 @@ devtools::load_all()
 # setup parameters
 
   # lattice size along one margin
-  cells <- 20
+  cells <- 40
 
   # neighborhood size
   nbrhood_radius <- 2
@@ -17,32 +17,39 @@ devtools::load_all()
 
   # species
   S <- 2 # number of strong competitors
-  s <- 7 # number weak competitors
+  s <- 12 # number weak competitors
   nsp <- S + s + 1
 
   # vector of intra-specific competitive effects
-  alpha <- rgamma(nsp, shape = 3, rate = 1)
+#  alpha <- rgamma(nsp, shape = 3, rate = 1)
+  alpha <- runif(nsp, min = 3, max = 5)
 
   # competition matrix
   A_mat <- comp_matrix(nsp, alpha = alpha, rho = 0.01, num_ngs = S)
 
   # average per-capita fecundity
-  lambda <- c(
-    rgamma(S + 1, shape = 40, rate = 1),
-    rgamma(s, shape = 10, rate = 1)
-  )
+  # lambda <- c(
+  #   rgamma(S + 1, shape = 40, rate = 1),
+  #   rgamma(s, shape = 10, rate = 1)
+  # )
+  lambda_max <- runif(nsp, min = 40, max = 45)
+  sp_optims <- runif(nsp, min = -0.2, max = 0.2)
 
   # probability an individual dies in a given time point for each species
+  # Pr_death <- c(
+  #   rep(1, 1 + S),
+  #   runif(s, min = 0.1, max = 0.5)
+  # )
   Pr_death <- c(
-    rep(1, 1 + S),
-    runif(s, min = 0.1, max = 0.5)
+    rep(0.5, nsp)
   )
 
   # dispersal rates for each species
-  disp_rate <- c(
-    runif(S + 1),
-    runif(s, min = 0, max = 3)
-  )
+  # disp_rate <- c(
+  #   runif(S + 1),
+  #   runif(s, min = 0, max = 3)
+  # )
+  disp_rate <- c(0.8, rep(1, nsp - 1))
 
   # initialize lattice
   X <- matrix(
@@ -58,6 +65,13 @@ devtools::load_all()
   ts_all <- vector(mode = "list", length = steps)
   ts_all[[1]] <- X
 
+  # track environment
+  sigma_env <- 0.1    # variation in the environment
+  phi <- 0.2          # autocorrelation across time steps
+  env <- vector(mode = "double", length = steps)
+  env[1] <- rnorm(1, sd = sigma_env/sqrt(1 - phi^2))
+
+
   # step through the evolution of the community
   for(t in 1:(steps-1)){
 
@@ -70,7 +84,9 @@ devtools::load_all()
       FUN = function(x, lattice, lambda_t, alpha, nbrhood, n){
         fecundity_ll(
           foc_sp = lattice[x, ],
-          lambda_t = lambda_t,
+          lambda_max = lambda_max,
+          optims = sp_optims,
+          env_t = env[t],
           alpha = alpha,
           nbrhood = nbrhood[x, ],
           n = n[x, , ]
@@ -99,6 +115,9 @@ devtools::load_all()
       seed_rain = sr_t
     )
 
+    # change environment for next iteration
+    env[t + 1] <- phi * env[t] + rnorm(1, sd = sigma_env)
+
   }
 
 # get percent cover dataframe
@@ -122,9 +141,15 @@ devtools::load_all()
     geom_line()+
     theme_classic()
 
+# are the strongly competing species negatively correlated?
+  cover_trunc <- cover_df[cover_df$t >= 100, ]
+  cor.test(
+    cover_trunc$cover[cover_trunc$species == 1],
+    cover_trunc$cover[cover_trunc$species == 3]
+  )
 
-
-
+# how many species coexist?
+  sum(cover_df[cover_df$t == steps, ]$cover > 0)
 
 
 
