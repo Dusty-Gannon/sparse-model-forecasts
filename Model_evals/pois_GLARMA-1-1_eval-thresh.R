@@ -1,7 +1,14 @@
 # libraries
 library(here)
 library(rstan)
-devtools::load_all()
+library(parallel)
+
+# # load functions on personal machine
+# devtools::load_all()
+
+# load user-defined functions (teton way, not devtools way)
+src_files <- list.files(here("R/"), pattern = "*.R", full.names = T)
+sapply(src_files, source, .GlobalEnv)
 
 post_mode <- function(x){
   id <- which.max(density(x)$y)
@@ -116,7 +123,6 @@ threshold_eval <- function(stan_mod){
 
     }
 
-    # make y_star a list
 
     # apply the fit to each y_star
     fits_all <- lapply(
@@ -126,4 +132,46 @@ threshold_eval <- function(stan_mod){
       mod = stan_mod
     )
 
+    # extract the posterior modes for each parameter of interest
+    res <- vector(mode = "list")
+    res$phi <- sapply(
+      fits_all,
+      FUN = function(x){
+        phi_post <- rstan::extract(x, pars = "phi")$phi
+        return(post_mode(phi_post))
+      }
+    )
+    res$theta <- sapply(
+      fits_all,
+      FUN = function(x){
+        theta_post <- rstan::extract(x, pars = "theta")$theta
+        return(post_mode(theta_post))
+      }
+    )
+    res$beta <- sapply(
+      fits_all,
+      FUN = function(x){
+        beta_post <- rstan::extract(x, pars = "beta")$beta
+        return(
+          apply(beta_post, 2, post_mode)
+        )
+      }
+    )
+
+    return(res)
 }
+
+
+# use parallel package to repeat the simulations 1000 times
+  cl <- makeCluster(20)
+
+  results <- parLapply(
+    cl = cl,
+    X = 1:10,
+    fun = function(x, stan_mod){
+      threshold_eval(stan_mod)
+    },
+    stan_mod = pois_garma11
+  )
+
+saveRDS(results, file = here("Data/Pois_GLARMA_thresh_eval/results_1000-reps.rds"))
