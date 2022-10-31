@@ -13,7 +13,7 @@ devtools::load_all()
   nbrhood_radius <- 2
 
   # time steps
-  steps <- 200
+  steps <- 300
 
   # species
   S <- 2 # number of strong competitors
@@ -22,17 +22,26 @@ devtools::load_all()
 
   # vector of intra-specific competitive effects
 #  alpha <- rgamma(nsp, shape = 3, rate = 1)
-  alpha <- runif(nsp, min = 3, max = 5)
+  alpha <- c(
+    sort(runif(S+1, min = 3.5, max = 4), decreasing = T),
+    sort(runif(s, min = 4, max = 5), decreasing = T)
+  )
 
   # competition matrix
-  A_mat <- comp_matrix(nsp, alpha = alpha, rho = 0.01, num_ngs = S)
+#  A_mat <- comp_matrix(nsp, alpha = alpha, rho = 0, num_ngs = S)
+  A_mat_S <- comp_matrix(n_sp = (S+1), alpha = alpha[1:(S+1)], rho = 0.8, num_ngs = 0)
+  A_mat <- comp_matrix(nsp, rho = 0.01, alpha = alpha, num_ngs = 0)
+  A_mat[1:(S+1), 1:(S+1)] <- A_mat_S
 
   # average per-capita fecundity
   # lambda <- c(
   #   rgamma(S + 1, shape = 40, rate = 1),
   #   rgamma(s, shape = 10, rate = 1)
   # )
-  lambda_max <- runif(nsp, min = 40, max = 45)
+  lambda_max <- c(
+    sort(runif(S + 1, min = 45, max = 50)),
+    sort(runif(s, min = 10, max = 15))
+  )
   sp_optims <- runif(nsp, min = -0.2, max = 0.2)
 
   # probability an individual dies in a given time point for each species
@@ -41,7 +50,8 @@ devtools::load_all()
   #   runif(s, min = 0.1, max = 0.5)
   # )
   Pr_death <- c(
-    rep(0.5, nsp)
+    rep(1, S + 1),
+    runif(s, min = 0.05, max = 0.2)
   )
 
   # dispersal rates for each species
@@ -49,7 +59,10 @@ devtools::load_all()
   #   runif(S + 1),
   #   runif(s, min = 0, max = 3)
   # )
-  disp_rate <- c(0.8, rep(1, nsp - 1))
+  disp_rate <- c(
+    c(0.1, sort(runif(S, 0.2, 0.3))),
+    sort(runif(s, 0.9, 1.1))
+  )
 
   # initialize lattice
   X <- matrix(
@@ -67,7 +80,7 @@ devtools::load_all()
 
   # track environment
   sigma_env <- 0.1    # variation in the environment
-  phi <- 0.2          # autocorrelation across time steps
+  phi <- 0.1          # autocorrelation across time steps
   env <- vector(mode = "double", length = steps)
   env[1] <- rnorm(1, sd = sigma_env/sqrt(1 - phi^2))
 
