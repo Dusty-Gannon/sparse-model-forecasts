@@ -29,7 +29,12 @@ alpha <- c(
 )
 
 # competition matrix
-A_mat <- comp_matrix(n_sp = nsp, alpha = alpha, rho = c(0.01, 0.6), num_ngs = S)
+A_mat <- comp_matrix(
+  n_sp = nsp,
+  alpha = alpha,
+  rho = c(0.01, 0.6),
+  num_ngs = S, num_regs = 2
+)
 
 # average per-capita fecundity
 # lambda <- c(

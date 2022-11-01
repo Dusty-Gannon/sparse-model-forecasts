@@ -28,10 +28,7 @@ devtools::load_all()
   )
 
   # competition matrix
-#  A_mat <- comp_matrix(nsp, alpha = alpha, rho = 0, num_ngs = S)
-  A_mat_S <- comp_matrix(n_sp = (S+1), alpha = alpha[1:(S+1)], rho = 0.8, num_ngs = 0)
-  A_mat <- comp_matrix(nsp, rho = 0.01, alpha = alpha, num_ngs = 0)
-  A_mat[1:(S+1), 1:(S+1)] <- A_mat_S
+  A_mat <- comp_matrix(n_sp = nsp, alpha = alpha, rho = c(0.01, 0.6), num_ngs = S)
 
   # average per-capita fecundity
   # lambda <- c(

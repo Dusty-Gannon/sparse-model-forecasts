@@ -24,29 +24,36 @@
 #' @examples
 #' comp_matrix(3, rho=0.4, alpha=0.01, num_ngs = 1)
 #'
-comp_matrix <- function(n_sp, rho=0, alpha, num_ngs){
-  if(rho < 0 | rho > 1){
-    stop("rho must be on the unit interval (0,1)")
+comp_matrix <- function(n_sp, rho=c(0,0), alpha, num_ngs, num_regs){
+  if(sum(rho < 0) > 0 | sum(rho > 1) > 0){
+    stop("rho must be on the unit interval [0,1]")
   }
 
+  # set full matrix
   Id <- diag(nrow = n_sp, ncol = n_sp)
   Dalpha <- diag(alpha, nrow = n_sp, ncol = n_sp)
-  mat <- Dalpha%*%(rho + (1-rho)*Id)
+  mat <- Dalpha %*% (rho[1] + (1 - rho[1]) * Id)
 
-   if(num_ngs >= 1){
-    # pull out top row (focal species)
-    tr <- mat[1,]
-    tr[2:(num_ngs+1)] <- alpha[1] - runif(num_ngs, min = 0, max = alpha[1]/4)
+  # define upper core block
+  Id_ng <- diag(nrow = num_ngs + 1, ncol = num_ngs + 1)
+  Dalpha_ng <- diag(alpha[1:(num_ngs + 1)], nrow = num_ngs + 1, ncol = num_ngs + 1)
+  mat_core <- Dalpha_ng %*% (rho[2] + (1 - rho[2]) * Id_ng)
 
-    # make closer to symmetric
-    fc <- mat[, 1]
-    fc[2:(num_ngs+1)] <- alpha[2:(num_ngs + 1)] - runif(num_ngs, min = alpha[2:(num_ngs + 1)]/4, max = alpha[2:(num_ngs + 1)]/3)
+  mat[1:(num_ngs + 1), 1:(num_ngs + 1)] <- mat_core
 
-    mat[1,] <- tr
-    mat[, 1] <- fc
+  # now add some regulating species
+  others <- (num_ngs + 2):n_sp
+  for(i in 2:(num_ngs + 1)){
+    j <- sample(others, num_regs)
+    mat[i, j] <- mat[i, i] * rho[2]
+  }
 
+  # now sprinkle in some more competition
+  for(i in 1:length(others)){
+    j <- sample(others[-i], 2, replace = T)
+    mat[others[i], j] <- mat[others[i], others[i]] * rho[2]
+  }
 
-   }
   return(mat)
 }
 
