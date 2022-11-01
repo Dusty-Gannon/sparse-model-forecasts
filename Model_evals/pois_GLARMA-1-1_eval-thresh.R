@@ -10,10 +10,7 @@ library(parallel)
 src_files <- list.files(here("R/"), pattern = "*.R", full.names = T)
 sapply(src_files, source, .GlobalEnv)
 
-post_mode <- function(x){
-  id <- which.max(density(x)$y)
-  return(density(x)$x[id])
-}
+# function to compute posterior mode
 
 # compile the stan model
   pois_garma11 <- stan_model(here("Stan/Pois_GLARMA-1-1_simple.stan"))
@@ -21,7 +18,9 @@ post_mode <- function(x){
 # function to simulate from a GLARMA(1,1) process and fit the model with
 # 10 different fixed values of c and one random for augmenting the raw data
 
-threshold_eval <- function(stan_mod){
+threshold_eval <- function(X, stan_mod){
+  
+  # handy function for posterior mode
 
   # simulating from a GLARMA(1,1) process
 
@@ -112,7 +111,7 @@ threshold_eval <- function(stan_mod){
       )
 
       # fit mod
-      mfit <- sampling(
+      mfit <- rstan::sampling(
         mod,
         data = datlist,
         cores = 3,
@@ -162,16 +161,29 @@ threshold_eval <- function(stan_mod){
 }
 
 
-# use parallel package to repeat the simulations 1000 times
+# use parallel package to repeat the simulations 500 times
+  reps <- 500
+
   cl <- makeCluster(20)
+  
+  clusterEvalQ(cl, {library(rstan)})
+  clusterEvalQ(cl, {
+    post_mode <- function(x){
+     id <- which.max(density(x)$y)
+     return(density(x)$x[id])
+  }
+  })
 
   results <- parLapply(
     cl = cl,
-    X = 1:10,
-    fun = function(x, stan_mod){
-      threshold_eval(stan_mod)
-    },
+    X = 1:reps,
+    fun = threshold_eval,
     stan_mod = pois_garma11
   )
 
-saveRDS(results, file = here("Data/Pois_GLARMA_thresh_eval/results_1000-reps.rds"))
+  stopCluster(cl)
+
+
+ saveRDS(results, file = here("Data/Pois_GLARMA_thresh_eval/results_test.rds"))
+
+
