@@ -72,6 +72,56 @@ comp_matrix <- function(n_sp, rho=c(0,0), alpha, num_ngs, num_regs){
 
 
 
+#' Create matrix of competition coefficients
+#'
+#' This alternative function to generate a matrix of competition coefficients
+#' first generates a diagonal matrix with the vector \eqn{\vec\alpha} of
+#' intra-specific competition coefficients on the diagonal and \eqn{\rho \alpha_i}
+#' in the \eqn{i^{th}} row of the off-diagonal elements. It then adds \code{num_ngs}
+#' non-generic competitive effects to each row, each one randomly generated using
+#' \eqn{U_i \times \alpha_i}, where \eqn{U_i} is a uniform random variable on the interval
+#' supplied by \code{ng_range} (should be on the unit interval to ensure intra- greater than
+#' inter-specific competion).
+#'
+#' @param n_sp
+#' @param rho
+#' @param alpha
+#' @param num_ngs
+#' @param ng_range
+#'
+#' @return
+#' @export
+#'
+#' @examples
+comp_matrix2 <- function(n_sp, rho, alpha, num_ngs, ng_range = c(0.4, 0.6)){
+  if(sum(rho < 0) > 0 | sum(rho > 1) > 0){
+    stop("rho must be on the unit interval [0,1]")
+  }
+
+  # set full matrix
+  Id <- diag(nrow = n_sp, ncol = n_sp)
+  Dalpha <- diag(alpha, nrow = n_sp, ncol = n_sp)
+  mat <- Dalpha %*% (rho[1] + (1 - rho[1]) * Id)
+
+  # now sprinkle in some more competition
+  for(i in 1:n_sp){
+    col_ids <- (1:n_sp)[-i]
+    ngs <- sample(col_ids, size = num_ngs, replace = F)
+    mat[i, ngs] <- mat[i, i] * runif(num_ngs, min = ng_range[1], max = ng_range[2])
+  }
+
+  return(mat)
+}
+
+
+
+
+
+
+
+
+
+
 
 
 

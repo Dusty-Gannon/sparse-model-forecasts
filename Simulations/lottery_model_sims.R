@@ -10,7 +10,7 @@ devtools::load_all()
   cells <- 40
 
   # neighborhood size
-  nbrhood_radius <- 2
+  nbrhood_radius <- 1
 
   # time steps
   steps <- 300
@@ -57,7 +57,7 @@ devtools::load_all()
   #   runif(s, min = 0, max = 3)
   # )
   disp_rate <- c(
-    c(0.1, sort(runif(S, 0.2, 0.3))),
+    c(0.1, sort(runif(S, 0.12, 0.2))),
     sort(runif(s, 0.9, 1.1))
   )
 
@@ -77,7 +77,7 @@ devtools::load_all()
 
   # track environment
   sigma_env <- 0.1    # variation in the environment
-  phi <- 0.1          # autocorrelation across time steps
+  phi <- 0.8          # autocorrelation across time steps
   env <- vector(mode = "double", length = steps)
   env[1] <- rnorm(1, sd = sigma_env/sqrt(1 - phi^2))
 
@@ -113,7 +113,7 @@ devtools::load_all()
     sr_t <- seed_rain_array(
       F_mat = Fecundity,
       X = ts_all[[t]],
-      d_max = 3,
+      d_max = 5,
       rate = disp_rate,
       nsp = nsp
     )
@@ -155,7 +155,7 @@ devtools::load_all()
   cover_trunc <- cover_df[cover_df$t >= 100, ]
   cor.test(
     cover_trunc$cover[cover_trunc$species == 1],
-    cover_trunc$cover[cover_trunc$species == 3]
+    cover_trunc$cover[cover_trunc$species == 4]
   )
 
 # how many species coexist?

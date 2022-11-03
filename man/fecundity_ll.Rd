@@ -23,6 +23,9 @@ optimum for the given species}
 
 \item{n}{matrix of neighbor counts with as many columns as species and as many rows as columns
 in the lattice}
+
+\item{sigma}{An optional scalar or vector of length \eqn{S} defining how sensitive each species is to
+changes in the environment. Default is that \code{sigma = 1}.}
 }
 \value{
 vector with fecudities for each individual in one row of the lattice
