@@ -23,12 +23,12 @@ devtools::load_all()
   # vector of intra-specific competitive effects
 #  alpha <- rgamma(nsp, shape = 3, rate = 1)
   alpha <- c(
-    sort(runif(S+1, min = 3.5, max = 4), decreasing = T),
-    sort(runif(s, min = 4, max = 5), decreasing = T)
+    sort(runif(S+1, min = 3.8, max = 4)),
+    runif(s, min = 3.8, max = 4)
   )
 
   # competition matrix
-  A_mat <- comp_matrix(n_sp = nsp, alpha = alpha, rho = c(0.01, 0.6), num_ngs = S)
+  A_mat <- comp_matrix(n_sp = nsp, alpha = alpha, rho = c(0, 0.2), num_ngs = S, num_regs = S)
 
   # average per-capita fecundity
   # lambda <- c(

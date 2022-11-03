@@ -34,12 +34,15 @@ comp_matrix <- function(n_sp, rho=c(0,0), alpha, num_ngs, num_regs){
   Dalpha <- diag(alpha, nrow = n_sp, ncol = n_sp)
   mat <- Dalpha %*% (rho[1] + (1 - rho[1]) * Id)
 
-  # define upper core block
-  Id_ng <- diag(nrow = num_ngs + 1, ncol = num_ngs + 1)
-  Dalpha_ng <- diag(alpha[1:(num_ngs + 1)], nrow = num_ngs + 1, ncol = num_ngs + 1)
-  mat_core <- Dalpha_ng %*% (rho[2] + (1 - rho[2]) * Id_ng)
+  # define effects on focal species
+  mat[1, 2:(num_ngs + 1)] <- mat[1, 1] * rho[2]
 
-  mat[1:(num_ngs + 1), 1:(num_ngs + 1)] <- mat_core
+  # alternative approach
+  # Id_ng <- diag(nrow = num_ngs + 1, ncol = num_ngs + 1)
+  # Dalpha_ng <- diag(alpha[1:(num_ngs + 1)], nrow = num_ngs + 1, ncol = num_ngs + 1)
+  # mat_core <- Dalpha_ng %*% (rho[2] + (1 - rho[2]) * Id_ng)
+  #
+  # mat[1:(num_ngs + 1), 1:(num_ngs + 1)] <- mat_core
 
   # now add some regulating species
   others <- (num_ngs + 2):n_sp
@@ -50,8 +53,13 @@ comp_matrix <- function(n_sp, rho=c(0,0), alpha, num_ngs, num_regs){
 
   # now sprinkle in some more competition
   for(i in 1:length(others)){
-    j <- sample(others[-i], 2, replace = T)
-    mat[others[i], j] <- mat[others[i], others[i]] * rho[2]
+    if(i < length(others) - 1){
+      j <- sample(others[-(1:i)], 1)
+      mat[others[i], j] <- mat[others[i], others[i]] * rho[2]
+    }
+    if(i == length(others) - 1){
+      mat[others[i], n_sp] <- mat[others[i], others[i]] * rho[2]
+    }
   }
 
   return(mat)
