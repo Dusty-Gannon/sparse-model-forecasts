@@ -24,7 +24,7 @@
 #' @examples
 #' comp_matrix(3, rho=0.4, alpha=0.01, num_ngs = 1)
 #'
-comp_matrix <- function(n_sp, rho=c(0,0), alpha, num_ngs, num_regs){
+comp_matrix <- function(n_sp, rho = c(0,0), alpha, num_ngs, num_regs){
   if(sum(rho < 0) > 0 | sum(rho > 1) > 0){
     stop("rho must be on the unit interval [0,1]")
   }
@@ -34,15 +34,12 @@ comp_matrix <- function(n_sp, rho=c(0,0), alpha, num_ngs, num_regs){
   Dalpha <- diag(alpha, nrow = n_sp, ncol = n_sp)
   mat <- Dalpha %*% (rho[1] + (1 - rho[1]) * Id)
 
-  # define effects on focal species
-  mat[1, 2:(num_ngs + 1)] <- mat[1, 1] * rho[2]
-
   # alternative approach
-  # Id_ng <- diag(nrow = num_ngs + 1, ncol = num_ngs + 1)
-  # Dalpha_ng <- diag(alpha[1:(num_ngs + 1)], nrow = num_ngs + 1, ncol = num_ngs + 1)
-  # mat_core <- Dalpha_ng %*% (rho[2] + (1 - rho[2]) * Id_ng)
-  #
-  # mat[1:(num_ngs + 1), 1:(num_ngs + 1)] <- mat_core
+  Id_ng <- diag(nrow = num_ngs + 1, ncol = num_ngs + 1)
+  Dalpha_ng <- diag(alpha[1:(num_ngs + 1)], nrow = num_ngs + 1, ncol = num_ngs + 1)
+  mat_core <- Dalpha_ng %*% (rho[2] + (1 - rho[2]) * Id_ng)
+
+  mat[1:(num_ngs + 1), 1:(num_ngs + 1)] <- mat_core
 
   # now add some regulating species
   others <- (num_ngs + 2):n_sp

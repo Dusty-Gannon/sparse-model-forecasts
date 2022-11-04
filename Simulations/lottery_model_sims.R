@@ -10,14 +10,14 @@ devtools::load_all()
   cells <- 40
 
   # neighborhood size
-  nbrhood_radius <- 1
+  nbrhood_radius <- 3
 
   # time steps
   steps <- 300
 
   # species
   S <- 2 # number of strong competitors
-  s <- 12 # number weak competitors
+  s <- 23 # number weak competitors
   nsp <- S + s + 1
 
   # vector of intra-specific competitive effects
@@ -28,7 +28,7 @@ devtools::load_all()
   )
 
   # competition matrix
-  A_mat <- comp_matrix(n_sp = nsp, alpha = alpha, rho = c(0, 0.2), num_ngs = S, num_regs = S)
+  A_mat <- comp_matrix(n_sp = nsp, alpha = alpha, rho = c(0.01, 0.4), num_ngs = S, num_regs = 0)
 
   # average per-capita fecundity
   # lambda <- c(
@@ -36,8 +36,8 @@ devtools::load_all()
   #   rgamma(s, shape = 10, rate = 1)
   # )
   lambda_max <- c(
-    sort(runif(S + 1, min = 45, max = 50)),
-    sort(runif(s, min = 10, max = 15))
+    runif(S + 1, min = 45, max = 50),
+    runif(s, min = 10, max = 15)
   )
   sp_optims <- runif(nsp, min = -0.2, max = 0.2)
 
@@ -57,8 +57,8 @@ devtools::load_all()
   #   runif(s, min = 0, max = 3)
   # )
   disp_rate <- c(
-    c(0.1, sort(runif(S, 0.12, 0.2))),
-    sort(runif(s, 0.9, 1.1))
+    runif(S+1, 0.12, 0.2),
+    runif(s, 0.9, 1.1)
   )
 
   # initialize lattice
@@ -155,7 +155,7 @@ devtools::load_all()
   cover_trunc <- cover_df[cover_df$t >= 100, ]
   cor.test(
     cover_trunc$cover[cover_trunc$species == 1],
-    cover_trunc$cover[cover_trunc$species == 4]
+    cover_trunc$cover[cover_trunc$species == 2]
   )
 
 # how many species coexist?
