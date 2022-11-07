@@ -10,7 +10,7 @@ devtools::load_all()
   cells <- 40
 
   # neighborhood size
-  nbrhood_radius <- 3
+  nbrhood_radius <- 4
 
   # time steps
   steps <- 300
@@ -28,9 +28,11 @@ devtools::load_all()
   )
 
   # competition matrix
-  A_mat <- comp_matrix(n_sp = nsp, alpha = alpha, rho = c(0.01, 0.4), num_ngs = S, num_regs = 0)
+  # A_mat <- comp_matrix(n_sp = nsp, alpha = alpha, rho = c(0.01, 0.4), num_ngs = S, num_regs = 0)
+  A_mat <- comp_matrix2(n_sp = nsp, alpha = alpha, rho = 0, num_ngs = S)
 
-  # average per-capita fecundity
+
+  # max per-capita fecundity
   # lambda <- c(
   #   rgamma(S + 1, shape = 40, rate = 1),
   #   rgamma(s, shape = 10, rate = 1)
@@ -154,8 +156,8 @@ devtools::load_all()
 # are the strongly competing species negatively correlated?
   cover_trunc <- cover_df[cover_df$t >= 100, ]
   cor.test(
-    cover_trunc$cover[cover_trunc$species == 1],
-    cover_trunc$cover[cover_trunc$species == 2]
+    cover_trunc$cover[cover_trunc$species == 2],
+    cover_trunc$cover[cover_trunc$species == 3]
   )
 
 # how many species coexist?

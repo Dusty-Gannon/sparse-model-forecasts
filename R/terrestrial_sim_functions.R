@@ -102,9 +102,13 @@ comp_matrix2 <- function(n_sp, rho, alpha, num_ngs, ng_range = c(0.4, 0.6)){
 
   # now sprinkle in some more competition
   for(i in 1:n_sp){
-    col_ids <- (1:n_sp)[-i]
-    ngs <- sample(col_ids, size = num_ngs, replace = F)
-    mat[i, ngs] <- mat[i, i] * runif(num_ngs, min = ng_range[1], max = ng_range[2])
+    col_ids <- i + c(1:num_ngs)
+    if(max(col_ids) > n_sp){
+      n_over <- max(col_ids) - n_sp
+      over_ids <- length(col_ids):(length(col_ids) - n_over + 1)
+      col_ids[over_ids] <- i - 1:length(over_ids)
+    }
+    mat[i, col_ids] <- mat[i, i] * runif(num_ngs, min = ng_range[1], max = ng_range[2])
   }
 
   return(mat)

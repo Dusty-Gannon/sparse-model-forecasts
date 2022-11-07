@@ -1,14 +1,14 @@
 #!/bin/bash -l
 
 #SBATCH --account=modelscape
-#SBATCH --time=05:00:00
+#SBATCH --time=10:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
+#SBATCH --ntasks-per-node=21
 #SBATCH --cpus-per-task=1
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=dgannon@uwyo.edu
-#SBATCH --job-name=lottery_50s
-#SBATCH --mem=8G
+#SBATCH --job-name=lottery_sim1
+#SBATCH --mem=20G
 
 # Set the parameter combination to use and generate names of R scripts and log file
 Rscript=teton_lottery_model_sims.R
