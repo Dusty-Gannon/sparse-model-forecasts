@@ -1,4 +1,9 @@
-
+/////////////////////////////////////
+// This Stan model fits a Poisson
+// GLARMA(1,1) model with traditional
+// horseshoe priors on the regression
+// coefficients
+/////////////////////////////////////
 
 data{
 
@@ -9,8 +14,7 @@ data{
   vector[N] y_star;            // augmented responses
   matrix[N, P0] X_alpha;       // model matrix for non-shrinking coefficients
   matrix[N, P] X_beta;         // model matrix for shrinking coefficients
-  real<lower = 0> nu0;         // measure of "effectively zero" coefficients
-  real<lower = 0> a[2];        // parameters for hyper-prior variance of non-zero coefficients
+  real<lower = 0> tau0;        // scale of the non-zero effects global shrinkage
 
 }
 
@@ -20,8 +24,8 @@ parameters{
   // sparse regression components
   vector[P0] alpha_std;                 // standardized un-shrunk coefficients
   vector[P] beta_std;                   // standardized shrunk coefficients
-  real<lower = 0> tau2_inv;             // precision for priors of non-zero coefficients
-  vector<lower = 0, upper = 1>[P] rho;  // inclusion probability
+  real<lower = 0> tau;                  // global shrinkage parameter
+  vector<lower = 0>[P] lambda;          // local shrinkage parameters
 
   // time series components
   real<lower = 0, upper = 1> phi;       // AR coefficient
@@ -31,24 +35,15 @@ parameters{
 
 transformed parameters{
 
-  vector[P] ind;              // local shrinkage effects
   vector[P] beta;             // scaled coefficients
   vector[N] mu;               // declare vector of means
   vector[N] z;                // declare vector of ARMA variables
 
-  // turn precision into variance
-  real<lower = 0> tau2 = inv(tau2_inv);
-
   //scale the alphas
   vector[P0] alpha = alpha_std * 5;
 
-  // construct inclusion probabilities
-  for(p in 1:P){
-    ind[p] = (1 - rho[p]) * nu0 + rho[p];
-  }
-
   // scale the betas
-  beta = beta_std .* ind * sqrt(tau2);
+  beta = beta_std .* lambda * tau;
 
   // construct linear predictors
   mu[1] = y_star[1];
@@ -69,8 +64,8 @@ model{
   alpha_std ~ std_normal();
   beta_std ~ std_normal();
 
-  tau2_inv ~ gamma(a[1], a[2]);
-  rho ~ beta(1, 1);
+  tau ~ cauchy(0, tau0);
+  lambda ~ cauchy(0, 1);
 
   // likelihood
   for(i in 1:N){
