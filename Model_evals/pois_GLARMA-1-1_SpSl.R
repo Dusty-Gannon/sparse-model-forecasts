@@ -13,7 +13,7 @@ post_mode <- function(x){
 
 # set parameters
 # time series length
-n <- 300
+n <- 100
 
 # intercept
 alpha <- 1
@@ -47,8 +47,8 @@ y <- vector(mode = "double", length = n)
 y_star <- vector(mode = "double", length = n)
 mu <- vector(mode = "double", length = n)
 z <- vector(mode = "double", length = n)
-y[1] <- rpois(1, lambda = exp(alpha))
-y_star[1] <- max(y[1], 0.1)
+y[1] <- rpois(1, lambda = exp(X[1, ] %*% beta))
+y_star[1] <- max(y[1], 0.5)
 mu[1] <- y_star[1]
 z[1] <- 0
 
@@ -57,7 +57,7 @@ z[1] <- 0
 for(t in 2:n){
 
   # arma term
-  z_t <- phi * (log(y_star[t-1]) - X[t, ] %*% beta) + theta * log(y_star[t-1]/mu[t-1])
+  z_t <- phi * (log(y_star[t-1]) - X[t-1, ] %*% beta) + theta * log(y_star[t-1]/mu[t-1])
   mu[t] <- exp(X[t, ] %*% beta + z_t)
   y[t] <- rpois(1, lambda = mu[t])
   y_star[t] <- max(y[t], 0.1)
@@ -74,7 +74,7 @@ datlist <- list(
   X_alpha = as.matrix(X[, 1]),
   X_beta = X[, -1],
   nu0 = 0.01,
-  nu1 = 5,
+  nu1 = 10,
   pi0 = 0.5
 )
 
@@ -105,7 +105,7 @@ samples <- coda.samples(test, variable.names=c("alpha", "beta", "phi", "theta", 
 
 samps_all <- rbind(samples[[1]], samples[[2]], samples[[3]])
 
-apply(samps_all[, 2:50], 2, FUN = hist, breaks = 100)
+
 
 
 

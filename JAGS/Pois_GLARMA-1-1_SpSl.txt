@@ -1,7 +1,7 @@
-##################################
+############################################
 # JAGS model
-# Poisson GLARMA(1,1)
-##################################
+# Poisson GLARMA(1,1) with Spike-slab priors
+############################################
 
 model {
 
@@ -11,7 +11,7 @@ model {
 
   for(i in 2:N){
 
-    z[i] <- phi * (log(y_star[i-1]) - inprod(X_alpha[i, ], alpha) - inprod(X_beta[i, ], beta)) +
+    z[i] <- phi * (log(y_star[i-1]) - inprod(X_alpha[i-1, ], alpha) - inprod(X_beta[i-1, ], beta)) +
         theta * log(y_star[i-1]/mu[i-1])
 
     mu[i] <- exp(inprod(X_alpha[i, ], alpha) + inprod(X_beta[i, ], beta) + z[i])
@@ -31,8 +31,8 @@ model {
   for(p in 1:P){
     gamma[p] <- (1 - ind[p]) * nu0 + ind[p] * nu1
     beta[p] <- beta_std[p] * gamma[p]
-    beta_std[p] ~ dnorm(0, 1)
     ind[p] ~ dbern(pi0)
+    beta_std[p] ~ dnorm(0, 1)
   }
 
 
