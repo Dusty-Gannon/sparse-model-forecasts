@@ -2,7 +2,7 @@
 library(here)
 library(parallel)
 
-simulate_comp_communities <- function(sim_params){
+simulate_comp_communities <- function(X, sim_params){
 
   # store number of species
   nsp <- sim_params$S + sim_params$s
