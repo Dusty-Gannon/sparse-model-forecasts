@@ -7,7 +7,10 @@
 
 # libraries
   library(rstan)
-  library(parallel)
+#  library(foreach)
+#  library(parallel)
+#  library(snow)
+#  library(Rmpi)
   library(here)
 
 # # just to be extra safe
@@ -17,9 +20,11 @@
   src_files <- list.files(here("R/"), pattern = "*.R", full.names = T)
   sapply(src_files, source, .GlobalEnv)
 
+# load command-line arguments
+  args <- commandArgs(trailingOnly = T)
 
-# lengths of each time series to simulate and fit the model
-  ns <- seq(50, 500, by = 50)
+## lengths of each time series to simulate and fit the model
+#  ns <- seq(50, 500, by = 50)
 
 # define parameters
   sim_params <- list(
@@ -68,10 +73,10 @@
     y <- with(sim_params, rpois(n, mu))
 
     # split data into training and testing data
-    y_train <- y[1:n_test]
-    y_test <- y[(n_test + 1):n]
-    X_train <- X[1:n_test, ]
-    X_test <- X[(n_test + 1):n, ]
+    y_train <- y[1:n_train]
+    y_test <- y[(n_train + 1):n]
+    X_train <- X[1:n_train, ]
+    X_test <- X[(n_train + 1):n, ]
 
     # estimate for tau0
     tau0 <- tau0(
@@ -84,7 +89,7 @@
     # data list for model fit
     datlist <- with(sim_params,{
       list(
-        N = n_test,
+        N = n_train,
         P0 = 1,
         P = ncol(X) - 1,
         y = y_train,
@@ -105,6 +110,7 @@
       data = datlist,
       chains = 3,
       iter = 2000,
+      cores = 3,
       control = list(adapt_delta = 0.99, max_treedepth = 15)
     )
 
@@ -169,6 +175,8 @@
     )
 
     return(list(
+      y_test = y_test,
+      y_hat = y_hat,
       RMSE = RMSE,
       nzs_true = length(sim_params$b),
       nzs_estim = nzs_estim,
@@ -179,24 +187,34 @@
   }
 
 
-  # model fits
-  mfits <- parallel::mclapply(
-    ns,
-    latent_ar1_FHS,
+# # make cluster and run in parallel
+#   nProc <- length(ns)
+#   cl <- makeCluster(nProc)
+
+#  # model fits
+#  mfits <- foreach(n = ns, .packages = c('here', 'rstan')) %dopar%
+#    latent_ar1_FHS(
+#      n = n,
+#      sim_params = sim_params,
+#      mod_file = here("Stan/Pois_LatAR1_FHS.stan")
+#    )
+
+  # model fit
+  mfit <- latent_ar1_FHS(
+    n = as.numeric(args[1]),
     sim_params = sim_params,
     mod_file = here("Stan/Pois_LatAR1_FHS.stan")
   )
 
-  # save the fits
-  saveRDS(mfits, file = here("Data/model_checks/pois_latAR1_FHS.rds"))
-
-
-
-
-
-
-
-
+  # save the fit
+  fp <- paste(
+    here("Data/model_checks/"),
+    "pois_latAr1_FHS_n",
+    args[1],
+    ".rds",
+    sep = ""
+  )
+  saveRDS(mfit, file = fp)
 
 
 

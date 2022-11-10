@@ -323,10 +323,11 @@ kl_divergence <- function(prior_samps, post_samps){
   # create empirical cdf function
   ecdf <- function(x, obs){
     n <- length(obs)
-    purrr::map_dbl(
-      x,
-      ~ mean(obs < .x) + (1/n) * 0.5 * sum(.x == obs)
-    )
+    p <- vector(mode = "double", length = length(x))
+    for(i in 1:length(x)){
+      p[i] <- mean(obs < x[i]) + (1/n) * 0.5 * sum(x[i] == obs)
+    }
+    return(p)
   }
 
   # create piecewise linear functions based on Perez-Cruz (2008)
@@ -353,14 +354,14 @@ kl_divergence <- function(prior_samps, post_samps){
     }
 
     # write the piecewise linear function
-    pwl_func <- function(x, lookup = pwlines){
+    pwl_func <- function(x, lookup = pwlines, s = samps2){
 
       if(x < x_0){
         return(0)
       } else if(x > x_np1){
         return(1)
       } else{
-        index <- min(which(x < samps2))
+        index <- min(which(x < s))
         return(
           lookup[[index]][1] * x + lookup[[index]][2]
         )
@@ -369,10 +370,8 @@ kl_divergence <- function(prior_samps, post_samps){
     }
 
     # now return Pc function
-    purrr::map_dbl(
-      x,
-      ~ pwl_func(.x)
-    )
+    pc <- sapply(x, FUN = pwl_func)
+    return(unname(pc))
 
   }
 

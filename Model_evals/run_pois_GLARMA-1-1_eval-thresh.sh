@@ -1,30 +1,23 @@
 #!/bin/bash -l
 
 #SBATCH --account=modelscape
-#SBATCH --time=24:00:00
-#SBATCH --nodes=1
+#SBATCH --time=12:00:00
+#SBATCH --nodes=21
 #SBATCH --ntasks-per-node=3
 #SBATCH --cpus-per-task=1
+#SBATCH --mem=24G
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=dgannon@uwyo.edu
-#SBATCH --array=1-7
 
 # Set the parameter combination to use and generate names of R scripts and log file
-Rscript=pois_latAR1_FHS.R
-LogFile_pref=pois_latAR1_log_n
+Rscript=pois_GLARMA-1-1_eval-thresh.R
+LogFile=pois_GLARMA_thresh.log
 
 # Change to the relevant working directory
 cd /project/modelscape/analyses/sponges/Model_evals
 
 # Load R and MPI
-module load gcc/7.3.0 swset/2018.05 r/3.5.3 r-rstan/2.18.2-py27
+module load gcc/7.3.0 swset/2018.05 r-rstan/2.18.2-py27
 
-# create array of arguments
-args=()
-for i in ${SLURM_ARRAY_TASK_ID[@]}; do
-  args+=$(( 50*i ))
-done
-
-
-Rscript $Rscript ${args} > "$LogFile_pref${SLURM_ARRAY_TASK_ID}"
+R CMD BATCH $Rscript $LogFile
 
