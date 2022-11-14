@@ -8,7 +8,11 @@
   library(here)
   library(tidyr)
   library(dplyr)
-  devtools::load_all()
+#  devtools::load_all()
+
+# load user-defined functions (teton way, not devtools way)
+  src_files <- list.files(here("R/"), pattern = "*.R", full.names = T)
+  sapply(src_files, source, .GlobalEnv)
 
 # load data
   dat <- readRDS(
