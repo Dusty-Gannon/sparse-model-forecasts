@@ -6,8 +6,6 @@
 # libraries
   library(rstan)
   library(here)
-  library(tidyr)
-  library(dplyr)
 #  devtools::load_all()
 
 # load user-defined functions (teton way, not devtools way)
@@ -20,11 +18,19 @@
   )[[1]]
 
 # convert cover data to wide format
-  cover_wide <- pivot_wider(
-    dat$cover,
-    names_from = species,
-    values_from = cover
+  sp <- unique(as.character(dat$cover$species))
+  cover_wide <- matrix(
+    data = unique(dat$cover$t),
+    ncol = 1
   )
+  for(s in sp){
+    cover_wide <- cbind(
+      cover_wide,
+      subset(dat$cover, species == s)$cover
+    )
+  }
+  colnames(cover_wide) <- c("t", sp)
+  cover_wide <- as.data.frame(cover_wide)
 
 # store some handy variables
   n <- nrow(cover_wide)
@@ -53,7 +59,7 @@
   tsteps_p1 <- (n - 100 + 1):n
   tsteps_m1 <- (n - 100):(n - 1)
   tau_0 <- tau0(
-    y = pull(cover_wide, foc_a)[tsteps_p1],
+    y = cover_wide[tsteps_p1, foc_a],
     m0 = 4,
     M = ncol(cover_wide) - 2,
     N = 100,
@@ -64,7 +70,7 @@
     N = 100,
     P0 = 1,
     P = ncol(cover_wide) - 2,
-    y = pull(cover_wide[tsteps_p1, ], foc_a),
+    y = cover_wide[tsteps_p1, foc_a],
     X_alpha = matrix(data = 1, nrow = 100, ncol = 1),
     X_beta = as.matrix(
       cover_wide[tsteps_m1, -which(colnames(cover_wide) %in% c("t", foc_a))]
