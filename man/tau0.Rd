@@ -4,16 +4,19 @@
 \alias{tau0}
 \title{Calculate tau0 based on Piironen and Vehtari (2017)}
 \usage{
-tau0(m0, M, N, sigma)
+tau0(y, m0, M, N, fam)
 }
 \arguments{
+\item{y}{Vector of responses}
+
 \item{m0}{Prior guess for number of non-zero effects}
 
 \item{M}{Number of coefficients getting shrinkage priors}
 
 \item{N}{Number of observations}
 
-\item{sigma}{Approximate variance (see Piironen and Vehtari, 2017)}
+\item{fam}{Exponential family distribution for computing pseudo-variance (see Piironen and Vehtari, 2017).
+The options (for now) are \code{fam = c("poisson", "gamma", "gaussian")}}
 }
 \value{
 real
@@ -23,6 +26,6 @@ Calculate tau0 based on Piironen and Vehtari (2017)
 }
 \examples{
 # for a Poisson regression with 200 observations and 50 candidate covariates
-tau0(m0 = 2, M = 50, N = 200, sigma = mean(y)^(-1))
+tau0(y = y, m0 = 2, M = 50, N = 200, fam = "poisson")
 
 }
