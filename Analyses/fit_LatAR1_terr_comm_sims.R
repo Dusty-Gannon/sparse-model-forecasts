@@ -17,6 +17,9 @@
     here("Data/terrestrial_sim_data/simdat_500reps_S2s48_5ann.rds")
   )[[1]]
 
+# number of time points to use as data
+  n_obs <- 100
+
 # convert cover data to wide format
   sp <- unique(as.character(dat$cover$species))
   cover_wide <- matrix(
@@ -29,56 +32,67 @@
       subset(dat$cover, species == s)$cover
     )
   }
-  colnames(cover_wide) <- c("t", sp)
-  cover_wide <- as.data.frame(cover_wide)
+  pcover_wide <- cbind(
+    cover_wide[, 1],
+    cover_wide[, -1] * 100
+  )
+  colnames(pcover_wide) <- c("t", sp)
+  cover_df <- as.data.frame(pcover_wide)
 
 # store some handy variables
-  n <- nrow(cover_wide)
+  n <- nrow(cover_df)
 
   # annuals
   ann <- as.character(1:5)
 
 # find annual with greatest abundance at the end that also has at least
 #  one strong competitor
-  col_ids_a <- which(names(cover_wide) %in% ann)
+  col_ids_a <- which(names(cover_df) %in% ann)
   foc_a <- choose_focal(
-    df = cover_wide,
+    df = cover_df,
     col_ids = col_ids_a,
     t = n, num_ngs = 2
   )
 
 # find a perennial with high abundance and at least one
 #  strong competitor
-  col_ids_p <- which(!(names(cover_wide) %in% c(ann, "t")))
+  col_ids_p <- which(!(names(cover_df) %in% c(ann, "t")))
   foc_p <- choose_focal(
-    df = cover_wide,
+    df = cover_df,
     col_ids = col_ids_p,
     t = n, num_ngs = 2
   )
 
-  tsteps_p1 <- (n - 100 + 1):n
-  tsteps_m1 <- (n - 100):(n - 1)
+  tsteps_p1 <- (n - n_obs + 1):n
+  tsteps_m1 <- (n - n_obs):(n - 1)
   tau_0 <- tau0(
-    y = cover_wide[tsteps_p1, foc_a],
+    y = cover_df[tsteps_p1, foc_a],
     m0 = 4,
-    M = ncol(cover_wide) - 2,
-    N = 100,
+    M = ncol(cover_df) - 2,
+    N = n_obs,
     fam = "gamma"
   )
 # with the last 100 time steps, try fitting the Lat AR1 model
   datlist_a100 <- list(
-    N = 100,
+    N = n_obs,
     P0 = 1,
-    P = ncol(cover_wide) - 2,
-    y = cover_wide[tsteps_p1, foc_a],
-    X_alpha = matrix(data = 1, nrow = 100, ncol = 1),
+    P = ncol(cover_df) - 2,
+    y = cover_df[tsteps_p1, foc_a],
+    X_alpha = matrix(data = 1, nrow = n_obs, ncol = 1),
     X_beta = as.matrix(
-      cover_wide[tsteps_m1, -which(colnames(cover_wide) %in% c("t", foc_a))]
+      cover_df[tsteps_m1, -which(colnames(cover_df) %in% c("t", foc_a))]
     ),
     tau0 = tau_0,
     slab_scl = 1,
     slab_df = 10
   )
+
+  # some species may be extinct towards the end of the time series
+  extincts <- which(
+    apply(datlist_a100$X_beta, 2, sd) == 0
+  )
+  datlist_a100$X_beta <- datlist_a100$X_beta[, -extincts]
+  datlist_a100$P <- ncol(datlist_a100$X_beta)
 
   gamma_latAR1 <- stan_model(here("Stan/Gamma_LatAR1_FHS.stan"))
 

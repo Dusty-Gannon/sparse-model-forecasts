@@ -64,8 +64,8 @@ parameters{
 transformed parameters{
 
   vector[N] mu;               // declare vector of means
-//  vector<lower = 0>[N] b;     // declare vector rate params of gamma dist
-//  real<lower = 0> a;          // shape parameter
+  vector<lower = 0>[N] b;     // declare vector rate params of gamma dist
+  real<lower = 0> a;          // declare shape parameter
   vector[N] lambda;           // declare vector of latent AR(1) variables
 
   // scale c2: c2 ~ inv_gamma(half_slab_df, half_slab_df * slab_scl2)
@@ -90,9 +90,9 @@ transformed parameters{
   // construct means using log-link
   mu = exp(X_alpha * alpha + X_beta * beta + lambda);
 
-  // // transform back to standard gamma parameters
-  // a = inv(psi);
-  // b = a ./ mu;
+  // transform back to standard gamma parameters
+  a = inv(psi);
+  b = a * inv(mu);
 
 }
 
@@ -110,9 +110,7 @@ model{
   c2_std ~ inv_gamma(half_slab_df, half_slab_df);
 
   // likelihood
-  for(i in 1:N){
-    y[i] ~ gamma(inv(psi), inv(psi * mu[i]));
-  }
+    y ~ gamma(a, b);
 
 }
 
