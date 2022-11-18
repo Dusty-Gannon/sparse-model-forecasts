@@ -49,7 +49,6 @@ parameters{
 
   vector[P0] alpha_std;                // unshrunk coefficients (self-limitation and intercept)
   vector[P] beta_std;                  // standardized coefficients for competing species effects
-  real<lower = 0> psi;                 // dispersion parameter
   real<lower = 0, upper = 1> phi;      // autocorrelation parameter
   real<lower = 0> sigma_e;             // sd of random innovations
   vector[N] lambda_std;                // standardized latent AR(1) variables
@@ -91,7 +90,9 @@ transformed parameters{
   mu = exp(X_alpha * alpha + X_beta * beta + lambda);
 
   // define a in an EB sort of way
-  a = inv(psi);
+  a = inv(log(
+    1 + exp(sum(log(mu) + log(y) - y ./ mu) / N)
+  ));
 
   // now define b
   b = a * inv(mu);
@@ -105,7 +106,6 @@ model{
   beta_std ~ std_normal();
   lambda_std ~ std_normal();
   sigma_e ~ normal(0, 3);
-  psi ~ cauchy(0, 1);
 
   tau_std ~ cauchy(0, 1);
   local_scale ~ cauchy(0, 1);
