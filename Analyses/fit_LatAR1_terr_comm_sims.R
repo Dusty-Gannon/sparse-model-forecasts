@@ -70,38 +70,44 @@
     m0 = 4,
     M = ncol(cover_df) - 2,
     N = n_obs,
-    fam = "gamma"
+    fam = "gaussian"
   )
-# with the last 100 time steps, try fitting the Lat AR1 model
+# with the last 200 time steps, try fitting the Lat AR1 model
+# try with all variables centered and scaled
+  X_beta <- scale(as.matrix(
+    cover_df[tsteps_m1, -which(colnames(cover_df) %in% c("t", foc_a))]
+  ))
   datlist_a100 <- list(
     N = n_obs,
     P0 = 1,
     P = ncol(cover_df) - 2,
-    y = cover_df[tsteps_p1, foc_a],
-    X_alpha = matrix(data = 1, nrow = n_obs, ncol = 1),
-    X_beta = as.matrix(
-      cover_df[tsteps_m1, -which(colnames(cover_df) %in% c("t", foc_a))]
-    ),
+    p = 1,
+    q = 1,
+    y = as.double(scale(cover_df[tsteps_p1, foc_a])),
+    X_alpha = matrix(data = 0, nrow = n_obs, ncol = 1),
+    X_beta = X_beta,
     tau0 = tau_0,
-    slab_scl = 1,
+    slab_scl = 2,
     slab_df = 10
   )
 
   # some species may be extinct towards the end of the time series
   extincts <- which(
-    apply(datlist_a100$X_beta, 2, sd) == 0
+    apply(datlist_a100$X_beta, 2, function(x){
+      sum(is.nan(x))
+    }) > 0
   )
   datlist_a100$X_beta <- datlist_a100$X_beta[, -extincts]
   datlist_a100$P <- ncol(datlist_a100$X_beta)
 
-  gamma_latAR1 <- stan_model(here("Stan/Gamma_LatAR1_FHS.stan"))
+  arma_FHS <- stan_model(here("Stan/ARMA-p-q_FHS.stan"))
 
   mfit_a100 <- sampling(
-    gamma_latAR1,
+    arma_FHS,
     data = datlist_a100,
-    cores = 4,
-    chains = 4,
-    control = list(adapt_delta=0.99, max_treedepth = 12)
+    cores = 3,
+    chains = 3,
+    control = list(adapt_delta=0.95, max_treedepth = 12)
   )
 
 # save the fit
@@ -109,11 +115,6 @@
     mfit_a100,
     file = here("Data/terrestrial_sim_data/mfit_sim1_a100.rds")
   )
-
-
-
-
-
 
 
 
