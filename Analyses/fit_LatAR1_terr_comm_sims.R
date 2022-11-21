@@ -6,6 +6,7 @@
 # libraries
   library(rstan)
   library(here)
+  library(dplyr)
 #  devtools::load_all()
 
 # load user-defined functions (teton way, not devtools way)
@@ -74,20 +75,19 @@
   )
 # with the last 200 time steps, try fitting the Lat AR1 model
 # try with all variables centered and scaled
-  X_beta <- scale(as.matrix(
+  X_beta <- as.matrix(scale(
     cover_df[tsteps_m1, -which(colnames(cover_df) %in% c("t", foc_a))]
   ))
   datlist_a100 <- list(
     N = n_obs,
     P0 = 1,
     P = ncol(cover_df) - 2,
-    p = 1,
-    q = 1,
+    p = 2,
     y = as.double(scale(cover_df[tsteps_p1, foc_a])),
-    X_alpha = matrix(data = 0, nrow = n_obs, ncol = 1),
+    X_alpha = matrix(data = 1, nrow = n_obs, ncol = 1),
     X_beta = X_beta,
     tau0 = tau_0,
-    slab_scl = 2,
+    slab_scl = 1,
     slab_df = 10
   )
 
@@ -100,15 +100,60 @@
   datlist_a100$X_beta <- datlist_a100$X_beta[, -extincts]
   datlist_a100$P <- ncol(datlist_a100$X_beta)
 
-  arma_FHS <- stan_model(here("Stan/ARMA-p-q_FHS.stan"))
+  arp_FHS <- stan_model(here("Stan/AR-p_FHS.stan"))
 
   mfit_a100 <- sampling(
-    arma_FHS,
+    arp_FHS,
     data = datlist_a100,
     cores = 3,
     chains = 3,
     control = list(adapt_delta=0.95, max_treedepth = 12)
   )
+
+  plot(datlist_a100$y[2:100], pch = 20)
+  lines(datlist_a100$y[2:100])
+  y_rep <- rstan::extract(mfit_a100, pars = "y_rep")$y_rep
+  lines(apply(y_rep, 2, mean), col = "blue")
+  lines(apply(y_rep, 2, quantile, probs = 0.05), col = "blue", lty="dashed")
+  lines(apply(y_rep, 2, quantile, probs = 0.95), col = "blue", lty="dashed")
+
+
+  # check the residuals
+  resids <- rstan::extract(mfit_a100, pars = "resid")$resid
+
+  df_resid <- data.frame(
+    t = 3:100,
+    mean = apply(resids, 2, mean),
+    low = apply(resids, 2, quantile, probs = 0.05),
+    high = apply(resids, 2, quantile, probs = 0.95)
+  )
+
+  ggplot(df_resid, aes(x = t, y = mean))+
+    geom_errorbar(aes(ymin = low, ymax = high), width = 0)+
+    geom_point()+
+    theme_bw()
+
+  plot(qresids)
+  plot(seq(-3, 3, length.out = 98), y = sort(qresids))
+  abline(a = 0, b = 1)
+
+  # check for a mean-variance relationship
+  y <- cover_df[tsteps_p1, foc_a]
+  thresh <- seq(min(y) - 0.1, max(y) + 0.1, length.out = 8)
+  df_bins <- data.frame(
+    y = y,
+    bin = 1
+  )
+  for(i in 1:nrow(df_bins)){
+    b <- 1
+    while(df_bins$y[i] > thresh[b]){
+      b <- b + 1
+    }
+    df_bins$bin[i] <- b - 1
+  }
+
+  df_mv <- group_by(df_bins, bin) %>%
+    summarise(mean = mean(y), var = var(y))
 
 # save the fit
   saveRDS(
