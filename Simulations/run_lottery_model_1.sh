@@ -20,4 +20,4 @@ cd /project/modelscape/analyses/sponges/Simulations
 # Load R and MPI
 module load gcc/7.3.0 swset/2018.05 r/3.5.3
 
-R CMD BATCH --no-save $Rscript $LogFile
+Rscript --vanilla $Rscript 500 500 > $LogFile

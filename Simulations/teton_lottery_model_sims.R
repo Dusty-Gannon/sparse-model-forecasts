@@ -148,7 +148,8 @@ simulate_comp_communities <- function(X, sim_params){
   return(
     list(
       params = params,
-      cover = cover_df
+      cover = cover_df,
+      env = env
     )
   )
 }
@@ -156,14 +157,15 @@ simulate_comp_communities <- function(X, sim_params){
 
 #### Run the simulations and store datasets ####
 
+  args <- commandArgs(trailingOnly = T)
   # define number of sims
-  nsims <- 500
+  nsims <- as.numeric(args[1])
 
   # set sim parameters
   sim_params <- list(
     cells = 50,
-    nbrhood_radius = 4,
-    steps = 300,
+    nbrhood_radius = 3,
+    steps = as.numeric(args[2]),
     S = 2, s = 48,
     n_annuals = 5
   )
@@ -191,7 +193,9 @@ simulate_comp_communities <- function(X, sim_params){
 
   # stop the cluster and save the results
   stopCluster(cl)
-  saveRDS(sim_dat, file = here("Data/terrestrial_sim_data/simdat_500reps_S2s48_5ann.rds"))
+  fname <- paste0("simdat_", args[1], "reps_", args[2], "steps_S2s48_5ann.rds")
+  fpath <- paste0("Data/terrestrial_sim_data/", fname)
+  saveRDS(sim_dat, file = here(fpath))
 
 
 
