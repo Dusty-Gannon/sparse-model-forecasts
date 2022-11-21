@@ -1,7 +1,7 @@
 #!/bin/bash -l
 
 #SBATCH --account=modelscape
-#SBATCH --time=2:00:00
+#SBATCH --time=05:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=4
 #SBATCH --cpus-per-task=1
@@ -10,7 +10,7 @@
 #SBATCH --mail-user=dgannon@uwyo.edu
 
 # Set the parameter combination to use and generate names of R scripts and log file
-Rscript=fit_LarAR1_terr_comm_sims.R
+Rscript=fit_LatAR1_terr_comm_sims.R
 LogFile=test1.log
 
 # Change to the relevant working directory
