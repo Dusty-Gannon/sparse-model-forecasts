@@ -19,13 +19,16 @@
 #'
 #' @examples
 #'
-choose_focal <- function(df, col_ids, t, num_ngs, rare = F, time_colname = "t"){
+choose_focal <- function(
+    df, col_ids, t, num_ngs, rare = F,
+    exclude_names
+    ){
 
   # get list of potential species
   pot_sp <- names(df)[col_ids]
 
-  # get time column index
-  time_col <- which(names(df) == time_colname)
+  # get time and environment column indexes
+  exclude_cols <- which(names(df) %in% exclude_names)
 
   # set order for sorting based on rare vs. common
   if(isTRUE(rare)){decreasing <- F} else {decreasing <- T}
@@ -41,7 +44,7 @@ choose_focal <- function(df, col_ids, t, num_ngs, rare = F, time_colname = "t"){
       if(
         {as.double(df[t, col_ids[i]]) ==
             sort(as.double(df[t, col_ids]), decreasing = decreasing)[counter]} &
-        {sum(compts %in% as.integer(names(df[,-time_col]))) > 0} &
+        {sum(compts %in% as.integer(names(df[, -exclude_cols]))) > 0} &
         {as.double(df[t, col_ids[i]]) > 0} &
         {sum(as.double(df[t, compts_ids])) > 0}
       ){
