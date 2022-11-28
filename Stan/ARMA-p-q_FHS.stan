@@ -101,4 +101,24 @@ model{
 }
 
 
+generated quantities{
+
+  // post. pred draws
+  vector[N] y_rep;
+  vector[q] epsilon;
+  real epsilon_t;
+
+
+   // assume no error for the initial values
+  epsilon = rep_vector(0, q);
+  y_rep[1:m] = rep_vector(0, m);
+
+  for (t in (m + 1):N) {
+    epsilon_t = normal_rng(0, sigma);
+    y_rep[t] = X_alpha[t, ] * alpha + X_beta[t, ] * beta + phi' * (y[(t - p):(t - 1)]) + theta' * epsilon + epsilon_t;
+    epsilon[2:q] = epsilon[1:(q - 1)];
+    epsilon[1] = epsilon_t;
+  }
+
+}
 
