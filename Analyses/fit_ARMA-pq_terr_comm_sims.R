@@ -368,7 +368,11 @@
   }
 
 
-# load data
+
+
+### fitting the models ###
+
+  # load data on director node
   dat_list <- readRDS(
     here("Data/terrestrial_sim_data/simdat_500reps_500steps_S2s48_5ann.rds")
   )
@@ -377,6 +381,7 @@
 
   cl <- makeCluster(20)
 
+  # load libraries and functions on each node
   clusterEvalQ(cl, {library(rstan); library(here)})
   clusterEvalQ(
     cl,
@@ -393,7 +398,9 @@
     cl = cl,
     X = 1:length(dat_list),
     fun = fit_ARMA_pq,
+    dat_all = dat_list,
     n_obs = n_obs, p = p, q = q,
+    pip = 0.65,
     diagnostic_plots_dir = fp,
     start = start
   )
