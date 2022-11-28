@@ -375,7 +375,7 @@
 
   # use parallel package to fit the models
 
-  cl <- makeCluster(50)
+  cl <- makeCluster(20)
 
   clusterEvalQ(cl, {library(rstan); library(here)})
   clusterEvalQ(
