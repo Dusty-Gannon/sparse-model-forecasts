@@ -6,8 +6,8 @@
 # libraries
   library(rstan)
   library(here)
-  library(parallel)
- # devtools::load_all()
+  # library(parallel)
+  # devtools::load_all()
 
 # load user-defined functions (teton way, not devtools way)
   src_files <- list.files(here("R/"), pattern = "*.R", full.names = T)
@@ -22,7 +22,7 @@
 
 # function to fit the model
   fit_ARMA_pq <- function(
-    X, dat_all, n_obs, p, q,
+    x, dat_all, n_obs, p, q,
     start = 300, ann = as.character(1:5),
     pip = 0.7,
     S_init = 50,
@@ -30,8 +30,8 @@
   ){
 
     # store some useful variables
-    dat <- dat_all[[X]]
-    dat_id <- X
+    dat <- dat_all[[x]]
+    dat_id <- x
     n <- start + n_obs
     m <- max(p, q)
 
@@ -151,6 +151,7 @@
       armafit_a <- sampling(
         arma_pq_FHS,
         data = datlist_a,
+        cores = 4,
         control = list(adapt_delta = 0.99, max_treedepth = 15)
       )
 
@@ -276,6 +277,7 @@
       armafit_p <- sampling(
         arma_pq_FHS,
         data = datlist_p,
+        cores = 4,
         control = list(adapt_delta = 0.99, max_treedepth = 15)
       )
 
@@ -375,27 +377,25 @@
     here("Data/terrestrial_sim_data/simdat_500reps_500steps_S2s48_5ann.rds")
   )
 
-  # use parallel package to fit the models
-
-  cl <- makeCluster(12)
-
-  # load libraries and functions on each node
-  clusterEvalQ(cl, {library(rstan); library(here)})
-  clusterEvalQ(
-    cl,
-    {
-      src_files <- list.files(here("R/"), pattern = "*.R", full.names = T);
-      sapply(src_files, source, .GlobalEnv)
-      }
-  )
+  # # use parallel package to fit the models
+  # cl <- makeCluster(12)
+  #
+  # # load libraries and functions on each node
+  # clusterEvalQ(cl, {library(rstan); library(here)})
+  # clusterEvalQ(
+  #   cl,
+  #   {
+  #     src_files <- list.files(here("R/"), pattern = "*.R", full.names = T);
+  #     sapply(src_files, source, .GlobalEnv)
+  #     }
+  # )
 
   # create file path for diagnostic plots
   fp <- paste0("Data/terrestrial_sim_data/ARMA_", p, q, "_n", n_obs, "/diagnostic_plots/")
 
-  results <- parLapply(
-    cl = cl,
-    X = 1:length(dat_list),
-    fun = fit_ARMA_pq,
+  results <- lapply(
+    1:length(dat_list),
+    FUN = fit_ARMA_pq,
     dat_all = dat_list,
     n_obs = n_obs, p = p, q = q,
     pip = 0.65,
@@ -403,7 +403,7 @@
     start = start
   )
 
-  stopCluster(cl)
+#  stopCluster(cl)
 
   fp_fits <- paste0("Data/terrestrial_sim_data/ARMA_", p, q, "_n", n_obs, "/model_fits.rds")
 
