@@ -2,10 +2,10 @@
 
 #SBATCH --account=modelscape
 #SBATCH --time=05:00:00
-#SBATCH --nodes=21
-#SBATCH --ntasks-per-node=1
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=16
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=8G
+#SBATCH --mem=32G
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=dgannon@uwyo.edu
 

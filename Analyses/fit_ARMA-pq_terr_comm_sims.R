@@ -219,7 +219,6 @@
       )
       # define the annual component of the return list
       ann_ret_list <- list(
-        fit = armafit_a,
         confusion_mat = confusion_mat_a,
         perc_diverged = mean(get_divergent_iterations(armafit_a))
       )
@@ -351,7 +350,6 @@
       )
       # define the annual component of the return list
       per_ret_list <- list(
-        fit = armafit_p,
         confusion_mat = confusion_mat_p,
         perc_diverged = mean(get_divergent_iterations(armafit_p))
       )
@@ -379,7 +377,7 @@
 
   # use parallel package to fit the models
 
-  cl <- makeCluster(20)
+  cl <- makeCluster(12)
 
   # load libraries and functions on each node
   clusterEvalQ(cl, {library(rstan); library(here)})
