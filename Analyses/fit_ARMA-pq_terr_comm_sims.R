@@ -23,10 +23,11 @@
 # function to fit the model
   fit_ARMA_pq <- function(
     x, dat_all, n_obs, p, q,
+    stan_mod,
     start = 300, ann = as.character(1:5),
     pip = 0.7,
     S_init = 50,
-    diagnostic_plots_dir = "Data/diagnostic_plots"
+    diagnostic_plots_dir = "Data/diagnostic_plots/"
   ){
 
     # store some useful variables
@@ -95,12 +96,6 @@
     tsteps_p1 <- (start + 1):n
     tsteps_m1 <- start:(n - 1)
 
-    # proceed to model fitting as long as focal species exist
-    if(!is.null(foc_a$value) | !is.null(foc_p$value)){
-      # compile stan model
-      arma_pq_FHS <- stan_model(here("Stan/ARMA-p-q_FHS.stan"))
-    }
-
     ### Fitting the model for the annual focal species ###
     if(!is.null(foc_a$value)){
       tau_0_a <- tau0(
@@ -149,7 +144,7 @@
 
       # fit the model
       armafit_a <- sampling(
-        arma_pq_FHS,
+        stan_mod,
         data = datlist_a,
         cores = 4,
         control = list(adapt_delta = 0.99, max_treedepth = 15)
@@ -185,11 +180,13 @@
         here(diagnostic_plots_dir),
         "resids_", dat_id, "a", ".png"
       )
-      ggsave(
-        filename = fname_a, plot = resids_plot_a,
-        device = "png", width = 4, height = 3,
-        units = "in"
+      png(
+        filename = fname_a,
+        width = 4, height = 3,
+        units = "in", res = 300
       )
+        resids_plot_a
+      dev.off()
 
       # define the true positive betas
       comp_sp_a <- as.integer(foc_a$value) + c(1,2)
@@ -275,7 +272,7 @@
 
       # fit the model
       armafit_p <- sampling(
-        arma_pq_FHS,
+        stan_mod,
         data = datlist_p,
         cores = 4,
         control = list(adapt_delta = 0.99, max_treedepth = 15)
@@ -377,6 +374,10 @@
     here("Data/terrestrial_sim_data/simdat_500reps_500steps_S2s48_5ann.rds")
   )
 
+  # compile stan model
+  arma_pq_FHS <- stan_model(here("Stan/ARMA-p-q_FHS.stan"))
+
+
   # # use parallel package to fit the models
   # cl <- makeCluster(12)
   #
@@ -394,10 +395,11 @@
   fp <- paste0("Data/terrestrial_sim_data/ARMA_", p, q, "_n", n_obs, "/diagnostic_plots/")
 
   results <- lapply(
-    1:length(dat_list),
+    1:2,
     FUN = fit_ARMA_pq,
     dat_all = dat_list,
     n_obs = n_obs, p = p, q = q,
+    stan_mod = arma_pq_FHS,
     pip = 0.65,
     diagnostic_plots_dir = fp,
     start = start
