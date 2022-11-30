@@ -125,18 +125,32 @@ simulate_comp_communities <- function(X, sim_params){
   cover_df$cover <- cover
   cover_df$species <- as.factor(cover_df$species)
 
-  # which species died out early on?
-  extinct <- which(cover_df[cover_df$t == round(sim_params$steps/2), ]$cover == 0)
-  cover_df <- cover_df[-which(cover_df$species %in% extinct), ]
-
-  # return params for select species
-  params <- list(
-    A_mat = A_mat[-extinct, -extinct],
-    lambda = lambda_max[-extinct],
-    pr_death = Pr_death[-extinct],
-    disp_rate = disp_rate[-extinct],
-    env_optims = sp_optims[-extinct]
+  # get cover values for a randomly selected sub-plot
+  ul_corner <- sample(1:(sim_params$cells - sim_params$sub_cells), size = 1)
+  rc_ids <- ul_corner:(ul_corner + sim_params$sub_cells - 1)
+  subplot_cover <- data.frame(
+    t = rep(1:sim_params$steps, nsp),
+    species = rep(1:nsp, each = sim_params$steps)
   )
+
+  # fill in sub-plot cover values
+  ts_sub <- lapply(
+    ts_all,
+    FUN = function(x, rc_ids){x[rc_ids, rc_ids]},
+    rc_ids = rc_ids
+  )
+  subcover <- vector(mode = "double")
+  for(i in 1:nsp){
+    subcover <- c(
+      subcover,
+      sapply(ts_sub, function(x){sum(x == i)/(nrow(x) * ncol(x))})
+    )
+  }
+  subplot_cover$cover <- subcover
+  subplot_cover$species <- as.factor(subplot_cover$species)
+
+  # print message about the number of species coexisting
+  #  at the end of the simulation
   message(
     paste(
       "Number of species coexisting:",
@@ -147,8 +161,9 @@ simulate_comp_communities <- function(X, sim_params){
   # return objects
   return(
     list(
-      params = params,
+      params = sim_params,
       cover = cover_df,
+      subplot = subplot_cover,
       env = env
     )
   )
@@ -164,6 +179,7 @@ simulate_comp_communities <- function(X, sim_params){
   # set sim parameters
   sim_params <- list(
     cells = 50,
+    sub_cells = 10,
     nbrhood_radius = 3,
     steps = as.numeric(args[2]),
     S = 2, s = 48,
