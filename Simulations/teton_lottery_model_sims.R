@@ -179,7 +179,7 @@ simulate_comp_communities <- function(X, sim_params){
   # set sim parameters
   sim_params <- list(
     cells = 50,
-    sub_cells = 10,
+    sub_cells = 7,
     nbrhood_radius = 3,
     steps = as.numeric(args[2]),
     S = 2, s = 48,
