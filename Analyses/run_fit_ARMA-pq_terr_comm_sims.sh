@@ -17,6 +17,6 @@ LogFile=ARMA-pq.log
 cd /project/modelscape/analyses/sponges/Analyses
 
 # Load R and MPI
-module load gcc/7.3.0 swset/2018.05 r-rstan/2.18.2-py27
+module load swset/2018.05 gcc/7.3.0 r-rstan/2.18.2-py27
 
 Rscript --vanilla $Rscript 100 300 1 1 > $LogFile

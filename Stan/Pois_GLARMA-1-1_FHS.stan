@@ -1,4 +1,8 @@
-
+//////////////////////////////////////////////////////////////////////////
+// This stan program fits a Poisson GLARMA(1,1) model to an integer-valued
+// time series and uses Regularized horseshoe priors for the regression
+// coefficients
+//////////////////////////////////////////////////////////////////////////
 
 data{
 
@@ -29,8 +33,8 @@ parameters{
 
   vector[P0] alpha_std;                      // unshrunk coefficients (self-limitation and intercept)
   vector[P] beta_std;                  // standardized coefficients before shrinkage
-  real<lower = 0, upper = 1> phi;      // autoregression parameter
-  real<lower = 0, upper = 1> theta;    // MA parameter
+  real<lower = -1, upper = 1> phi;      // autoregression parameter
+  real<lower = -1, upper = 1> theta;    // MA parameter
 
   // parameters for shrinkage priors
   vector<lower = 0>[P] local_scale;    // non-regularized local scale
@@ -85,8 +89,19 @@ model{
   c2_std ~ inv_gamma(half_slab_df, half_slab_df);
 
   // likelihood
-  for(i in 1:N){
+  for(i in 2:N){
    y[i] ~ poisson(mu[i]);
+  }
+
+}
+
+
+generated quantities{
+
+  int y_rep[N];     // post pred draws
+  y_rep[1] = y[1];
+  for(i in 2:N){
+    y_rep[i] = poisson_rng(mu[i]);
   }
 
 }

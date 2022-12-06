@@ -7,18 +7,18 @@ devtools::load_all()
 # setup parameters
 
   # lattice size along one margin
-  cells <- 40
+  cells <- 50
 
   # neighborhood size
-  nbrhood_radius <- 4
+  nbrhood_radius <- 3
 
   # time steps
-  steps <- 300
+  steps <- 400
 
   # species
   S <- 2 # number of strong competitors
-  s <- 23 # number weak competitors
-  nsp <- S + s + 1
+  s <- 48 # number weak competitors
+  nsp <- S + s
 
   # vector of intra-specific competitive effects
 #  alpha <- rgamma(nsp, shape = 3, rate = 1)
@@ -38,8 +38,8 @@ devtools::load_all()
   #   rgamma(s, shape = 10, rate = 1)
   # )
   lambda_max <- c(
-    runif(S + 1, min = 45, max = 50),
-    runif(s, min = 10, max = 15)
+    runif(5, min = 45, max = 50),
+    runif(45, min = 10, max = 15)
   )
   sp_optims <- runif(nsp, min = -0.2, max = 0.2)
 
@@ -49,8 +49,8 @@ devtools::load_all()
   #   runif(s, min = 0.1, max = 0.5)
   # )
   Pr_death <- c(
-    rep(1, S + 1),
-    runif(s, min = 0.05, max = 0.2)
+    rep(1, 5),
+    runif(45, min = 0.05, max = 0.2)
   )
 
   # dispersal rates for each species
@@ -59,8 +59,8 @@ devtools::load_all()
   #   runif(s, min = 0, max = 3)
   # )
   disp_rate <- c(
-    runif(S+1, 0.12, 0.2),
-    runif(s, 0.9, 1.1)
+    runif(5, 0.12, 0.2),
+    runif(45, 0.9, 1.1)
   )
 
   # initialize lattice
@@ -79,7 +79,7 @@ devtools::load_all()
 
   # track environment
   sigma_env <- 0.1    # variation in the environment
-  phi <- 0.8          # autocorrelation across time steps
+  phi <- 0.4          # autocorrelation across time steps
   env <- vector(mode = "double", length = steps)
   env[1] <- rnorm(1, sd = sigma_env/sqrt(1 - phi^2))
 
@@ -151,7 +151,8 @@ devtools::load_all()
 
   ggplot(data = cover_df, aes(x = t, y = cover, color = species))+
     geom_line()+
-    theme_classic()
+    theme_classic()+
+    theme(legend.position = "none")
 
 # are the strongly competing species negatively correlated?
   cover_trunc <- cover_df[cover_df$t >= 100, ]

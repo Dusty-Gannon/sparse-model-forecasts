@@ -17,35 +17,32 @@
   args <- commandArgs(trailingOnly = T)
   n_obs <- as.numeric(args[1])
   start <- as.numeric(args[2])
-  p <- as.numeric(args[3])
-  q <- as.numeric(args[4])
 
 # function to fit the model
-  fit_ARMA_pq <- function(
-    dat, n_obs, p, q, dat_id,
+  fit_GLARMA11 <- function(
+    X, dat, n_obs,
     stan_mod,
-    start = 300, ann = as.character(1:5),
+    start = 200, ann = as.character(1:5),
     pip = 0.7,
     S_init = 50,
     diagnostic_plots_dir = "Data/diagnostic_plots/"
   ){
 
     # store some useful variables
-    # dat <- dat_all[[x]]
-    # dat_id <- x
+    dat <- dat_all[[X]]
+    dat_id <- X
     n <- start + n_obs
-    m <- max(p, q)
 
     # convert cover data to wide format
-    sp <- unique(as.character(dat$cover$species))
+    sp <- unique(as.character(dat$subplot$species))
     cover_wide <- matrix(
-      data = unique(dat$cover$t),
+      data = unique(dat$subplot$t),
       ncol = 1
     )
     for(s in sp){
       cover_wide <- cbind(
         cover_wide,
-        subset(dat$cover, species == s)$cover
+        subset(dat$subplot, species == s)$cover
       )
     }
     pcover_wide <- cbind(
@@ -85,11 +82,12 @@
 
     # find a perennial with high abundance and at least one
     #  strong competitor
-    col_ids_p <- which(!(names(cover_df) %in% c(ann, "t")))
+    col_ids_p <- which(!(names(cover_df) %in% c(ann, "t", "env")))
     foc_p <- myTryCatch(choose_focal(
       df = cover_df,
       col_ids = col_ids_p,
-      t = n, num_ngs = 2
+      t = n, num_ngs = 2,
+      exclude_names = c("t", "env")
     ))
 
     # define time steps
@@ -103,40 +101,43 @@
         m0 = 2,
         M = ncol(cover_df) - 2,
         N = n_obs,
-        fam = "gaussian"
+        fam = "poisson"
       )
 
       # define the model matrix
-      X_beta_a <- as.matrix(scale(
+      X_beta_a <- as.matrix(
         cover_df[tsteps_m1, -which(colnames(cover_df) %in% c("t", "env", foc_a$value))]
-      ))
+      )
 
       # some species may be extinct towards the end of the time series
       extincts_a <- which(
         apply(X_beta_a, 2, function(x){
-          sum(is.nan(x))
-        }) > 0
+          sd(x)
+        }) == 0
       )
       if(length(extincts_a) > 0){
         X_beta_a <- X_beta_a[, -extincts_a]
       }
 
       # create model matrix for non-shrinking effects
-      env_std <- as.double(scale(cover_df$env))
+      env <- cover_df$env
       X_alpha <- cbind(
-        rep(1, n_obs),
-        env_std[tsteps_m1],
-        (env_std[tsteps_m1])^2
+        rep(1, n_obs)
+        # env[tsteps_m1],
+        # (env[tsteps_m1])^2
       )
+
+      # define augmented data
+      y_star <- as.integer(cover_df[tsteps_p1, foc_a$value])
+      y_star[y_star == 0] <- 0.5
 
       # compile data list for fitting the model
       datlist_a <- list(
         N = n_obs,
         P0 = ncol(X_alpha),
         P = ncol(X_beta_a),
-        p = p,
-        q = q,
-        y = as.double(scale(cover_df[tsteps_p1, foc_a$value])),
+        y = as.integer(cover_df[tsteps_p1, foc_a$value]),
+        y_star = y_star,
         X_alpha = X_alpha,
         X_beta = X_beta_a,
         tau0 = tau_0_a,
@@ -145,7 +146,7 @@
       )
 
       # fit the model
-      armafit_a <- sampling(
+      glarma_fit_a <- sampling(
         stan_mod,
         data = datlist_a,
         cores = 3,
@@ -154,24 +155,15 @@
       )
 
       # check the residuals
-      y_rep_a <- rstan::extract(armafit_a, pars = "y_rep")$y_rep
-      resids_a <- t(apply(
-        y_rep_a, MARGIN = 1,
-        FUN = function(x, obs){
-          obs - x
-        },
-        obs = datlist_a$y
-      ))
+      y_rep_a <- rstan::extract(glarma_fit_a, pars = "y_rep")$y_rep
+      resids_a <- bayes_qresids(datlist_a$y, y_rep = y_rep_a)
 
       df_resid_a <- data.frame(
-        t = (m + 1):n_obs,
-        mean = apply(resids_a[, (m + 1):n_obs], 2, mean),
-        low = apply(resids_a[, (m + 1):n_obs], 2, quantile, probs = 0.05),
-        high = apply(resids_a[, (m + 1):n_obs], 2, quantile, probs = 0.95)
+        t = (start + 1):n,
+        resids_a
       )
 
-      resids_plot_a <- ggplot(df_resid_a, aes(x = t, y = mean))+
-        geom_errorbar(aes(ymin = low, ymax = high), width = 0)+
+      resids_plot_a <- ggplot(df_resid_a, aes(x = t, y = resids_a))+
         geom_point()+
         theme_bw()
 
@@ -381,7 +373,7 @@
   )
 
   # compile stan model
-  arma_pq_FHS <- stan_model(here("Stan/ARMA-p-q_FHS.stan"))
+  pois_glarma <- stan_model(here("Stan/Pois_GLARMA-1-1_FHS.stan"))
 
 
   # # use parallel package to fit the models
