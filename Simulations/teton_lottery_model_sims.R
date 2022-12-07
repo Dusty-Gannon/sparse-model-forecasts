@@ -54,8 +54,8 @@ simulate_comp_communities <- function(X, sim_params){
   ts_all[[1]] <- X
 
   # track environment
-  sigma_env <- 0.1    # variation in the environment
-  phi <- 0.4          # autocorrelation across time steps
+  sigma_env <- sim_params$sigma_env    # variation in the environment
+  phi <- 0.4                           # autocorrelation across time steps
   env <- vector(mode = "double", length = sim_params$steps)
   env[1] <- rnorm(1, sd = sigma_env/sqrt(1 - phi^2))
 
@@ -183,7 +183,8 @@ simulate_comp_communities <- function(X, sim_params){
     nbrhood_radius = 3,
     steps = as.numeric(args[2]),
     S = 2, s = 48,
-    n_annuals = 5
+    n_annuals = 5,
+    sigma_env = as.numeric(args[3])
   )
 
   # make the cluster
@@ -209,7 +210,7 @@ simulate_comp_communities <- function(X, sim_params){
 
   # stop the cluster and save the results
   stopCluster(cl)
-  fname <- paste0("simdat_", args[1], "reps_", args[2], "steps_S2s48_5ann.rds")
+  fname <- paste0("simdat_", args[1], "reps_", args[2], "steps_S2s48_5ann_env", args[3], ".rds")
   fpath <- paste0("Data/terrestrial_sim_data/", fname)
   saveRDS(sim_dat, file = here(fpath))
 
