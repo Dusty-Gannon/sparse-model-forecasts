@@ -178,7 +178,6 @@ simulate_comp_communities <- function(X, sim_params){
     )
   }
   subplot_fec$fecundity <- subfec
-  fecundity_df$species <- as.factor(fecundity_df$species)
   subplot_fec$species <- as.factor(subplot_fec$species)
 
   # print message about the number of species coexisting
