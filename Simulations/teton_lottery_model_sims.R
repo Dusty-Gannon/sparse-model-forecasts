@@ -53,6 +53,9 @@ simulate_comp_communities <- function(X, sim_params){
   ts_all <- vector(mode = "list", length = sim_params$steps)
   ts_all[[1]] <- X
 
+  # track fecundity through time
+  ts_fecundity <- vector(mode = "list", length = sim_params$steps - 1)
+
   # track environment
   sigma_env <- sim_params$sigma_env    # variation in the environment
   phi <- 0.4                           # autocorrelation across time steps
@@ -66,8 +69,8 @@ simulate_comp_communities <- function(X, sim_params){
     # count neighbors of each species around each cell
     nbrs_t <- kernel_count(ts_all[[t]], r = sim_params$nbrhood_radius, sp_list = 1:nsp)
 
-    # get fecundity matrix by applying the fecundidty_ll() command to each row of X
-    Fecundity <- t(sapply(
+    # get fecundity matrix by applying the fecundity_ll() command to each row of X
+    ts_fecundity[[t]] <- t(sapply(
       1:sim_params$cells,
       FUN = function(x, lattice, lambda_t, alpha, nbrhood, n){
         fecundity_ll(
@@ -89,7 +92,7 @@ simulate_comp_communities <- function(X, sim_params){
 
     # calculate seed rain into each cell by each species
     sr_t <- seed_rain_array(
-      F_mat = Fecundity,
+      F_mat = ts_fecundity[[t]],
       X = ts_all[[t]],
       d_max = 3,
       rate = disp_rate,
@@ -114,40 +117,69 @@ simulate_comp_communities <- function(X, sim_params){
     species = rep(1:nsp, each = sim_params$steps)
   )
 
-  # fill in the cover values
-  cover <- vector(mode = "double")
-  for(i in 1:nsp){
-    cover <- c(
-      cover,
-      sapply(ts_all, function(x){sum(x == i)/(nrow(x) * ncol(x))})
-    )
-  }
-  cover_df$cover <- cover
-  cover_df$species <- as.factor(cover_df$species)
-
-  # get cover values for a randomly selected sub-plot
+  # get cover and fecundity values for a randomly selected sub-plot
   ul_corner <- sample(1:(sim_params$cells - sim_params$sub_cells), size = 1)
   rc_ids <- ul_corner:(ul_corner + sim_params$sub_cells - 1)
-  subplot_cover <- data.frame(
-    t = rep(1:sim_params$steps, nsp),
-    species = rep(1:nsp, each = sim_params$steps)
-  )
 
-  # fill in sub-plot cover values
+  # subset the lattice
   ts_sub <- lapply(
     ts_all,
     FUN = function(x, rc_ids){x[rc_ids, rc_ids]},
     rc_ids = rc_ids
   )
+  ts_fec_sub <- lapply(
+    ts_fecundity,
+    FUN = function(x, rc_ids){x[rc_ids, rc_ids]},
+    rc_ids = rc_ids
+  )
+
+  # initialize dataframes
+  subplot_cover <- data.frame(
+    t = rep(1:sim_params$steps, nsp),
+    species = rep(1:nsp, each = sim_params$steps)
+  )
+  subplot_fec <- data.frame(
+    t = rep(1:(sim_params$steps - 1), nsp),
+    species = rep(1:nsp, each = sim_params$steps - 1)
+  )
+
+  # fill in the cover values
+  cover <- vector(mode = "double")
   subcover <- vector(mode = "double")
   for(i in 1:nsp){
+    cover <- c(
+      cover,
+      sapply(ts_all, function(x){sum(x == i)/(nrow(x) * ncol(x))})
+    )
     subcover <- c(
       subcover,
       sapply(ts_sub, function(x){sum(x == i)/(nrow(x) * ncol(x))})
     )
   }
+  cover_df$cover <- cover
   subplot_cover$cover <- subcover
+  cover_df$species <- as.factor(cover_df$species)
   subplot_cover$species <- as.factor(subplot_cover$species)
+
+  # fill in fecundity values
+  subfec <- vector(mode = "double")
+  for(i in 1:nsp){
+    subfec <- c(
+      subfec,
+      sapply(
+        1:length(ts_fecundity),
+        function(x, mat, id_mat, s){
+          sum((id_mat[[x]] == s) * mat[[x]])
+        },
+        mat = ts_fec_sub,
+        id_mat = ts_sub,
+        s = i
+      )
+    )
+  }
+  subplot_fec$fecundity <- subfec
+  fecundity_df$species <- as.factor(fecundity_df$species)
+  subplot_fec$species <- as.factor(subplot_fec$species)
 
   # print message about the number of species coexisting
   #  at the end of the simulation
@@ -163,7 +195,8 @@ simulate_comp_communities <- function(X, sim_params){
     list(
       params = sim_params,
       cover = cover_df,
-      subplot = subplot_cover,
+      subplot_cover = subplot_cover,
+      subplot_fecundity = subplot_fec,
       env = env
     )
   )
@@ -179,8 +212,8 @@ simulate_comp_communities <- function(X, sim_params){
   # set sim parameters
   sim_params <- list(
     cells = 50,
-    sub_cells = 7,
-    nbrhood_radius = 3,
+    sub_cells = 9,
+    nbrhood_radius = 4,
     steps = as.numeric(args[2]),
     S = 2, s = 48,
     n_annuals = 5,

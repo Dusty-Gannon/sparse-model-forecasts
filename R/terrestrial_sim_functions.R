@@ -303,7 +303,7 @@ fecundity_ll <- function(foc_sp, lambda_max, optims, env_t, alpha, nbrhood, n, s
 
   # fecundity model
   return(
-    lambda_it / comp_vec
+    rpois(n = length(lambda_it), lambda = (lambda_it / comp_vec))
   )
 }
 
