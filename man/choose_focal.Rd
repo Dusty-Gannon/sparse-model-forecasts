@@ -4,7 +4,7 @@
 \alias{choose_focal}
 \title{Choose focal species}
 \usage{
-choose_focal(df, col_ids, t, num_ngs, rare = F, time_colname = "t")
+choose_focal(df, col_ids, num_ngs, exclude_names, tw = 100, start = 50)
 }
 \arguments{
 \item{df}{A dataframe of species cover through time in rows and different species
@@ -12,12 +12,11 @@ across columns.}
 
 \item{col_ids}{Vector of column indexes for the potential candidate species.}
 
-\item{t}{Time step at which to assess whether the species meet the desired specs.}
-
 \item{num_ngs}{Number of non-generic competitors.}
 
-\item{rare}{Logical telling the function whether or not to pick the rarest species
-that meets the other criteria or the most common.}
+\item{tw}{Length of time window over which to assess whether the species meet the desired specs.}
+
+\item{start}{Time step at which to begin looking for an appropriate species}
 }
 \value{
 Column name (integer as a character) of the focal species.
