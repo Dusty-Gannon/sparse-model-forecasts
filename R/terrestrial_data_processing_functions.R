@@ -10,19 +10,18 @@
 #' @param df A dataframe of species cover through time in rows and different species
 #' across columns.
 #' @param col_ids Vector of column indexes for the potential candidate species.
-#' @param t Time step at which to assess whether the species meet the desired specs.
 #' @param num_ngs Number of non-generic competitors.
-#' @param rare Logical telling the function whether or not to pick the rarest species
-#' that meets the other criteria or the most common.
+#' @param tw Length of time window over which to assess whether the species meet the desired specs.
+#' @param start Time step at which to begin looking for an appropriate species
 #'
 #' @return Column name (integer as a character) of the focal species.
 #'
 #' @examples
 #'
 choose_focal <- function(
-    df, col_ids, t, num_ngs, rare = F,
-    exclude_names
-    ){
+    df, col_ids, num_ngs,
+    exclude_names, tw = 100, start = 50
+){
 
   # get list of potential species
   pot_sp <- names(df)[col_ids]
@@ -36,19 +35,28 @@ choose_focal <- function(
   # loop through each to see if they meet the criteria
   foc <- NULL
   counter <- 1
+  l <- start + 1
+  r <- start + tw
   while(is.null(foc) & counter <= length(col_ids)){
     for(i in 1:length(pot_sp)){
       # get list of competitors
       compts <- as.integer(pot_sp[i]) + 1:num_ngs
       compts_ids <- which(names(df) %in% as.character(compts))
-      if(
-        {as.double(df[t, col_ids[i]]) ==
-            sort(as.double(df[t, col_ids]), decreasing = decreasing)[counter]} &
-        {sum(compts %in% as.integer(names(df[, -exclude_cols]))) > 0} &
-        {as.double(df[t, col_ids[i]]) > 0} &
-        {sum(as.double(df[t, compts_ids])) > 0}
-      ){
-        foc <- pot_sp[i]
+      while(r <= nrow(df)){
+        if(
+          {mean(as.double(df[l:r, col_ids[i]]) != 0) >= 0.7} &
+          {sum(compts %in% as.integer(names(df[, -exclude_cols]))) > 0} &
+          {sum(apply(
+            df[l:r, compts_ids], 2, function(x){mean(x != 0) > 0.5}
+          ))}
+        ){
+          foc <- pot_sp[i]
+          r <- nrow(df) + 1
+        } else{
+          # slide the window forward
+          l <- (r + (tw/2) %% 1) + 1
+          r <- l + tw - 1
+        }
       }
     }
     counter <- counter + 1
@@ -57,7 +65,9 @@ choose_focal <- function(
   if(is.null(foc)){
     stop("No species in the dataset fits the bill...")
   } else{
-    return(foc)
+    return(
+      list(foc = foc, tw = l:(l + tw - 1))
+    )
   }
 
 }
