@@ -1,7 +1,7 @@
 #!/bin/bash -l
 
 #SBATCH --account=modelscape
-#SBATCH --time=06:00:00
+#SBATCH --time=07:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=21
 #SBATCH --cpus-per-task=1

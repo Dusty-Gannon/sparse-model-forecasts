@@ -192,7 +192,13 @@ simulate_comp_communities <- function(X, sim_params){
   # return objects
   return(
     list(
-      params = sim_params,
+      params = c(
+        sim_params,
+        A_mat = A_mat,
+        lambda_max = lambda_max,
+        sp_optims = sp_optims,
+        Pr_death = Pr_death
+      ),
       cover = cover_df,
       subplot_cover = subplot_cover,
       subplot_fecundity = subplot_fec,
@@ -211,8 +217,8 @@ simulate_comp_communities <- function(X, sim_params){
   # set sim parameters
   sim_params <- list(
     cells = 50,
-    sub_cells = 9,
-    nbrhood_radius = 4,
+    sub_cells = 7,
+    nbrhood_radius = 3,
     steps = as.numeric(args[2]),
     S = 2, s = 48,
     n_annuals = 5,
