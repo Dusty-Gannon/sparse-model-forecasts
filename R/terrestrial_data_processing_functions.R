@@ -20,7 +20,8 @@
 #'
 choose_focal <- function(
     df, col_ids, num_ngs,
-    exclude_names, tw = 100, start = 50
+    exclude_names, tw = 100, start = 50,
+    rare = F
 ){
 
   # get list of potential species
