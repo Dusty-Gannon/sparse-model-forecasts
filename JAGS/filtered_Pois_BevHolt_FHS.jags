@@ -12,16 +12,19 @@ model {
   for(t in 1:N){
 
     # growth determined by log-linear model
-    lambda[t] = exp(inprod(X_alpha[t,], alpha))
+    lambda[t] <- exp(alpha_1 + inprod(X_alpha[t,], alpha))
 
     # expected fecundity
-    mu[t] = (vm[t] * lambda) / (1 + exp(inprod(X_beta[t, ], beta))
+    mu[t] <- (vm[t] * lambda[t]) / (1 + exp(vm[t] * beta_ii + inprod(X_beta[t, ], beta)))
 
     # fecundity model
-    f[t] ~ dpois(mu[t])
+    fec[t] ~ dpois(mu[t])
+
+    # latent dispersal model
+    d[t] ~ dpois(lambda_d)T(1, )
 
     # survival filter
-    vp[t] ~ dbinom(f[t], p)
+    vp[t] ~ dbin(p, (fec[t] + d[t]))
 
   }
 
@@ -49,11 +52,18 @@ model {
     local_scl[i] ~ dt(0, 1, 1)T(0, )
   }
 
+  # scale the alphas
   for(i in 1:P0){
-    alpha[i] = 5 * alpha_std[i]
+    alpha[i] = 2 * alpha_std[i]
     alpha_std[i] ~ dnorm(0, 1)
   }
 
+  # scale the intra-specific competitive effect
+  beta_ii = 2 * beta_ii_std
+  beta_ii_std ~ dnorm(0, 1)
+
   p ~ dbeta(1, 1)
+
+  lambda_d ~ dgamma(a_d, b_d)
 
 }
