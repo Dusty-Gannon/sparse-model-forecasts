@@ -4,7 +4,15 @@
 \alias{choose_focal}
 \title{Choose focal species}
 \usage{
-choose_focal(df, col_ids, num_ngs, exclude_names, tw = 100, start = 50)
+choose_focal(
+  df,
+  col_ids,
+  num_ngs,
+  exclude_names,
+  tw = 100,
+  start = 50,
+  rare = F
+)
 }
 \arguments{
 \item{df}{A dataframe of species cover through time in rows and different species
