@@ -120,51 +120,6 @@ comp_matrix2 <- function(n_sp, rho, alpha, num_ngs, ng_range = c(0.4, 0.6)){
 
 
 
-#' Ricker competition model
-#'
-#' This function computes the abundance of \eqn{S} species at time
-#' \eqn{t + 1} given their abundances at time \eqn{t} based on a
-#' Ricker population growth model
-#'
-#' @param N_t Vector of population abundances at time \eqn{t}
-#' @param lambdas Vector of intrinsic growth rates
-#' @param A_mat Matrix of competition coefficients
-#' @param stochastic Logical determining whether there is demographic stochasticity or not
-#'
-#' @return A vector of species abundances at time \eqn{t + 1}
-#' @export
-#'
-#' @examples
-#' N_t <- rpois(5, lambda = 10)
-#' lambdas <- runif(5)
-#'
-ricker_step <- function(N_t, lambdas, A_mat, stochastic = T){
-
-  # get number of species in the community
-  S <- length(N_t)
-
-  # define abundance vector for time t plus 1
-  N_tp1 <- vector(mode = "double", length = S)
-
-  # define the next step
-  for(s in 1:S){
-    N_tp1[s] <- N_t[s] * exp(
-      lambda[s] + A_mat[s, ] %*% N_t
-    )
-  }
-
-  # return either a stochastic or deterministic abundance for the next step
-  if(isTRUE(stochastic)){
-    return(rpois(S, lambda = N_tp1))
-  } else{
-    return(N_tp1)
-  }
-
-}
-
-
-
-
 
 
 
