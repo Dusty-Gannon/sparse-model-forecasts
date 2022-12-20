@@ -1,11 +1,10 @@
 
 
-#' Generate matrix of competition parameters
+#' Generate an array of parameters that determine competition
 #'
-#' This function generates a matrix of parameters that, when combined with
-#' a model matrix with heterospecific abundances and environmental variables,
-#' determines the strength of competition acting on the population of a focal
-#' species.
+#' This function generates an array of parameters that, when combined with
+#' a model matrix of environmental variables, determines the matrix of
+#' competition coefficients.
 #'
 #' @param nsp Number of species in the community
 #' @param num_ngs Number of non-generic competitors (usually, stronger competitors)
@@ -20,7 +19,7 @@
 #' @param intra_strength Factor to multiply the generic effect by for the deviation from the
 #' generic strength to the intraspecific effect
 #'
-#' @return A matrix with \eqn{S \times V + 1} rows and \eqn{S} columns, where \eqn{S} is the
+#' @return An array with \eqn{S} slices, each with dimensions \eqn{S \times V + 2}, where \eqn{S} is the
 #' number of species in the community and \eqn{V} is the number of environmental variables.
 #' @export
 #'
@@ -32,7 +31,7 @@
 #'   generic = 0.001
 #' )
 #'
-ricker_comp_matrix <- function(
+ricker_comp_array <- function(
     nsp, num_ngs, env,
     num_dynamic, generic = 0.001,
     ng_strength = c(20, 50), intra_strength = c(80, 100)
@@ -43,24 +42,24 @@ ricker_comp_matrix <- function(
   dyn_sp <- sample(1:nsp, size = num_dynamic)
   m <- length(env)
 
-  # initialize matrix
-  B <- matrix(data = 0, nrow = nsp * (1 + length(env)) + 1, ncol = nsp)
+  # initialize array
+  B <- array(data = 0, dim = c(nsp, m + 2, nsp))
 
-  # fill in the first row with the generic effect
-  B[1, ] <- rep(generic, nsp)
+  # fill in the first column of each slice with the generic effect
+  B[, 1, ] <- generic
 
-  # proceed to fill in the remaining elements
+  # proceed to fill in the remaining elements of each matrix
   for(j in 1:nsp){
 
     # intraspecific effect
-    B[(j + 1), j] <- generic * runif(1, min = intra_strength[1], max = intra_strength[2])
+    B[j, 2, j] <- generic * runif(1, min = intra_strength[1], max = intra_strength[2])
 
     # non generic effects
     if(nsp - j >= num_ngs){
-      B[(j + 1) + c(1:num_ngs), j] <- generic * runif(num_ngs, min = ng_strength[1], max = ng_strength[2])
-      for(i in (j + 1) + c(1:num_ngs)){
-        for(v in 1:m){
-          if((i - 1) %in% dyn_sp){B[nsp * v + i, j] <- env[v]}
+      B[j + c(1:num_ngs), 2, j] <- generic * runif(num_ngs, min = ng_strength[1], max = ng_strength[2])
+      for(i in j + c(1:num_ngs)){
+        if(i %in% dyn_sp){
+          B[i, (1:m) + 2, j] <- env
         }
       }
     }
@@ -69,33 +68,66 @@ ricker_comp_matrix <- function(
     if(nsp - j < num_ngs & nsp - j > 0){
       # get ng_sp ids
       ng_ids <- c(
-        1:(num_ngs - (nsp - j)) + 1,
-        (j + 1) + c(1:(nsp - j))
+        1:(num_ngs - (nsp - j)),
+        j + c(1:(nsp - j))
       )
-      B[ng_ids, j] <- generic * runif(num_ngs, min = 20, max = 50)
+      B[ng_ids, 2, j] <- generic * runif(num_ngs, min = 20, max = 50)
       for(i in ng_ids){
-        for(v in 1:m){
-          if((i - 1) %in% dyn_sp){B[nsp * v + i, j] <- env[v]}
+        if(i %in% dyn_sp){
+          B[i, (1:m) + 2, j] <- env
         }
       }
     }
 
     if(nsp - j == 0){
-      B[1:num_ngs + 1, j] <- generic * runif(num_ngs, min = 20, max = 50)
-      for(i in (1:num_ngs) + 1){
-        for(v in 1:m){
-          if((i - 1) %in% dyn_sp){B[nsp * v + i, j] <- env[v]}
+      B[1:num_ngs, 2, j] <- generic * runif(num_ngs, min = 20, max = 50)
+      for(i in (1:num_ngs)){
+        if(i %in% dyn_sp){
+          B[i, (1:m) + 2, j] <- env
         }
       }
     }
 
   }
 
-  return(B)
+  return(list(
+    B = B,
+    dynamic_spids = dyn_sp
+  ))
 
 }
 
 
+
+
+
+
+#' Gaussian function to determine population growth given the environment
+#'
+#' This function uses optimal environmental growing conditions for a given species
+#' and the current environment at time \eqn{t} to determine intrinsic growth at time \eqn{t}.
+#'
+#' @param env_t Environment at time t (Numeric).
+#' @param lambda_max Vector of max growth rates for each species, achieve when \code{env_t} is
+#' equal to a species' optimum.
+#' @param optims Vector of optimal growing conditions for each species.
+#' @param tau Scalar or vector of sensitivity parameters that determine how quickly a species
+#' intrinsic growth rate deviates from \code{lambda_max} with changes in environmental conditions.
+#'
+#' @return Vector of intrinsic growth rates given the environment.
+#'
+#' @examples
+#' env <- rnorm(1)
+#' lambda_max <- runif(10, min = 1, max = 2)
+#' optims <- runif(10, min = -0.5, max = 0.5)
+#' gauss_env_effect(env, lambda_max, optims)
+#'
+#'
+gauss_env_effect <- function(env, lambda_max, optims, tau = 1){
+
+  lambda_max * exp(-tau * (env - optims)^2)
+
+}
 
 
 
@@ -137,8 +169,8 @@ ricker_step <- function(N_t, lambdas, A_mat, stochastic = T){
 
   # define the next step
   for(s in 1:S){
-    N_tp1[s] <- N_t[s] * exp(
-      lambda[s] + A_mat[s, ] %*% N_t
+    N_tp1[s] <- N_t[s] * lambdas[s] * exp(
+      - A_mat[s, ] %*% N_t
     )
   }
 

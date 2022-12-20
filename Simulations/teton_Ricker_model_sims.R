@@ -17,85 +17,75 @@ simulate_Ricker_comp_communities <- function(X, sim_params){
 
   # track 2 environmental variables
   # one stationary, one increasing through time
-  sigma_env1 <- sim_params$sigma_env[1]    # variation in the environment
   phi <- 0.4                               # autocorrelation across time steps
   env <- matrix(data = 0, nrow = sim_params$steps, ncol = 2)
-  env[1, 1] <- rnorm(1, sd = sigma_env1/sqrt(1 - phi^2))
+  env[1, 1] <- rnorm(1, sd = sim_params$sigma_env[1]/sqrt(1 - phi^2))
 
   # generate autocorrelated but increasing time series
-  env[1, 2] <- rnorm(1, mean = - 0.5, sd = sim_params$sigma_env[2])
+  mu_env2 <- seq(-0.5, 0.5, length.out = sim_params$steps)
+  env[1, 2] <- rnorm(1, mean = mu_env2[1], sd = sim_params$sigma_env[2])
 
-  # select a couple species that get more competitive with increases in env2
-  incr_comps <- sample(1:nsp, size = 2)
-
-  # generate a matrix of coefficients that determine the competition matrix
-  # one column for each species and as many rows as coefficients
-  B_mat <- matrix(data = 0, nrow = nsp * 2 + 1, ncol = nsp)
-
-  # the first row (element in a given vector) is the generic species affect
-  generic <- 0.001
-  B_mat[1, ] <- rep(generic, nsp)
-
-  # fill the rest of the matrix such that each species has two non-generic
-  for(j in 1:ncol(B_mat)){
-
-    # intraspecific effect
-    B_mat[(j + 1), j] <- generic * runif(1, min = 80, max = 100)
-
-    # non generic effects
-    if(nsp - j >= 2){
-      B_mat[(j + 1) + c(1,2), j] <- generic * runif(2, min = 20, max = 50)
-      for(i in (j + 1) + c(1,2)){
-        if((i - 1) %in% incr_comps){B_mat[nsp + i, j] <- 1/sim_params$steps}
-      }
-    }
-
-    if(nsp - j == 1){
-      B_mat[(j + 1) + c(-1, 1), j] <- generic * runif(2, min = 20, max = 50)
-      for(i in (j + 1) + c(-1,1)){
-        if((i - 1) %in% incr_comps){B_mat[nsp + i, j] <- 1/sim_params$steps}
-      }
-    }
-
-    if(nsp - j == 0){
-      B_mat[(j + 1) - c(1, 2), j] <- generic * runif(2, min = 20, max = 50)
-      for(i in (j + 1) - c(1, 2)){
-        if((i - 1) %in% incr_comps){B_mat[nsp + i, j] <- 1/sim_params$steps}
-      }
-    }
-  }
-
-  # model matrix to create the A_mat
-  N_mat <- matrix(data = 1, nrow = 1, ncol = nsp)
-  N_mat <- cbind(1, N_mat, N_mat * env[1, 2])
+  # generate matrix of parameters that determine competition based
+  #  on number of non-generics and environmental covariates
+  B <- ricker_comp_array(
+    nsp = nsp, num_ngs = sim_params$S,
+    env = c(0.1),
+    num_dynamic = 2, generic = 0.001
+  )
 
   # max per-capita fecundity
   lambda_max <- c(
-    runif(sim_params$n_annuals, min = 45, max = 50),
-    runif(nsp - sim_params$n_annuals, min = 10, max = 15)
+    runif(nsp, min = 1.2, max = 2)
   )
 
   # environmental optima
   sp_optims <- runif(nsp, min = -0.2, max = 0.2)
 
   # track abundances through time
-  Y <- matrix(data = 0, nrow = nsp, ncol = sim_params$steps)
+  N_ts <- matrix(data = 0, nrow = nsp, ncol = sim_params$steps)
+  N_ts[, 1] <- rpois(nsp, lambda = 10)
 
   # step through the evolution of the community
   for(t in 1:(sim_params$steps-1)){
 
+    # determine competition
+    env_comp_t <- c(1, 1, env[t, 2])
+    A_mat_t <- t(sapply(
+      1:nsp,
+      function(x, A, vec){
+        A[, , x] %*% vec
+      },
+      A = B$B,
+      vec = env_comp_t
+    ))
 
+    # growth rates for each step for each population
+    lambda_t <- gauss_env_effect(env[t, 1], lambda_max, optims = sp_optims)
+
+    # determine species abundance in the next step
+    N_ts[, t + 1] <- ricker_step(
+      N_ts[, t],
+      lambdas = lambda_t,
+      A_mat = A_mat_t,
+      stochastic = F
+    )
 
     # change environment for next iteration
-    env[t + 1] <- phi * env[t] + rnorm(1, sd = sigma_env)
+    env[t + 1, 1] <- phi * env[t, 1] + rnorm(1, sd = sim_params$sigma_env[1])
+    env[t + 1, 2] <- mu_env2[t + 1] + phi * (env[t, 2] - mu_env2[1]) +
+      rnorm(1, sd = sim_params$sigma_env[2])
 
   }
 
-  # get percent cover dataframe
-  cover_df <- data.frame(
-    t = rep(1:sim_params$steps, nsp),
-    species = rep(1:nsp, each = sim_params$steps)
+  # abundance dataframe (long)
+  df_long <- data.frame(
+    t = rep(1:sim_params$steps, each = nsp),
+    species = as.factor(rep(1:nsp, sim_params$steps)),
+    abundance = as.vector(N_ts)
   )
+
+  ggplot2::ggplot(data = df_long, ggplot2::aes(x= t, y = abundance, color = species))+
+    ggplot2::geom_line()
 
   # get cover and fecundity values for a randomly selected sub-plot
   ul_corner <- sample(1:(sim_params$cells - sim_params$sub_cells), size = 1)

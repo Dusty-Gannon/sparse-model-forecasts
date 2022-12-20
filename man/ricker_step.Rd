@@ -26,5 +26,11 @@ Ricker population growth model
 \examples{
 N_t <- rpois(5, lambda = 10)
 lambdas <- runif(5)
+A_mat <- comp_matrix(
+  n_sp = 5, rho = c(0.1, 0.1),
+  alpha = runif(5, min = 0.05, max = 0.1),
+  num_ngs = 0, num_regs = 0
+)
+ricker_step(N_t, lambdas, A_mat)
 
 }
