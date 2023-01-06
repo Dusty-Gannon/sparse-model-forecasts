@@ -10,19 +10,19 @@
 #' @param df A dataframe of species cover through time in rows and different species
 #' across columns.
 #' @param col_ids Vector of column indexes for the potential candidate species.
-#' @param t Time step at which to assess whether the species meet the desired specs.
 #' @param num_ngs Number of non-generic competitors.
-#' @param rare Logical telling the function whether or not to pick the rarest species
-#' that meets the other criteria or the most common.
+#' @param tw Length of time window over which to assess whether the species meet the desired specs.
+#' @param start Time step at which to begin looking for an appropriate species
 #'
 #' @return Column name (integer as a character) of the focal species.
 #'
 #' @examples
 #'
 choose_focal <- function(
-    df, col_ids, t, num_ngs, rare = F,
-    exclude_names
-    ){
+    df, col_ids, num_ngs,
+    exclude_names, tw = 100, start = 50,
+    rare = F
+){
 
   # get list of potential species
   pot_sp <- names(df)[col_ids]
@@ -36,19 +36,28 @@ choose_focal <- function(
   # loop through each to see if they meet the criteria
   foc <- NULL
   counter <- 1
+  l <- start + 1
+  r <- start + tw
   while(is.null(foc) & counter <= length(col_ids)){
     for(i in 1:length(pot_sp)){
       # get list of competitors
       compts <- as.integer(pot_sp[i]) + 1:num_ngs
       compts_ids <- which(names(df) %in% as.character(compts))
-      if(
-        {as.double(df[t, col_ids[i]]) ==
-            sort(as.double(df[t, col_ids]), decreasing = decreasing)[counter]} &
-        {sum(compts %in% as.integer(names(df[, -exclude_cols]))) > 0} &
-        {as.double(df[t, col_ids[i]]) > 0} &
-        {sum(as.double(df[t, compts_ids])) > 0}
-      ){
-        foc <- pot_sp[i]
+      while(r <= nrow(df)){
+        if(
+          {mean(as.double(df[l:r, col_ids[i]]) != 0) >= 0.7} &
+          {sum(compts %in% as.integer(names(df[, -exclude_cols]))) > 0} &
+          {sum(apply(
+            df[l:r, compts_ids], 2, function(x){mean(x != 0) > 0.5}
+          ))}
+        ){
+          foc <- pot_sp[i]
+          r <- nrow(df) + 1
+        } else{
+          # slide the window forward
+          l <- (r + (tw/2) %% 1) + 1
+          r <- l + tw - 1
+        }
       }
     }
     counter <- counter + 1
@@ -57,7 +66,123 @@ choose_focal <- function(
   if(is.null(foc)){
     stop("No species in the dataset fits the bill...")
   } else{
-    return(foc)
+    return(
+      list(foc = foc, tw = l:(l + tw - 1))
+    )
   }
 
 }
+
+
+
+
+
+
+#' Choose a focal species from the communities simulated using a Ricker model
+#'
+#' @param df Data frame (or matrix) with one column per species and each species' abundance
+#' in each time step in the rows.
+#' @param num_ngs Integer number of non-generic competitors for each species
+#' @param dyn_sp Integer vector with the identities of the species that become more competitive
+#' with changes in the environment
+#' @param tw Integer vector with the start and end of the time window to be assessed
+#' @param perc_present Vector indicating the proportion of observations for which the focal
+#' (\code{perc_present[1]}) and the non-generic competing species (\code{perc_present[2]}) should
+#' be present for the species to be used as the focal species.
+#'
+#' @return List in which \code{list$value} is the index for the focal species.
+#'
+#' @examples
+#'
+choose_focal2 <- function(
+    df, num_ngs, dyn_sp,
+    tw = c(101, 200),
+    perc_present = c(0.95, 0.7)
+){
+
+  # store some useful variables
+  nsp <- ncol(df)
+  n_obs <- tw[2] - tw[1] + 1
+
+  # loop through each to see if they meet the criteria
+  foc <- NULL
+  counter <- 1
+  while(is.null(foc) & counter <= nsp){
+    for(i in 1:nsp){
+      # get list of competitors
+      if(nsp - i >= num_ngs){
+        compts <- i + 1:num_ngs
+      }
+      if(nsp - i < num_ngs & nsp - i > 0){
+        compts <- c(
+          1:(num_ngs - nsp + i),
+          i + 1:(nsp - i)
+        )
+      }
+      if(nsp - i == 0){
+        compts <- 1:num_ngs
+      }
+
+      # check if species i has ng competitors present and one of them is a dynamic species
+      if(
+        {mean(df[tw[1]:tw[2], i]) > perc_present[1]} &
+        {sum(df[floor(perc_present[2] * n_obs + tw[1] - 1), compts]) > 0} &
+        {
+          sum(which(which(df[floor(perc_present[2] * n_obs + tw[1] - 1), ] > 0) %in% compts) %in% dyn_sp) > 0
+        }
+      ){
+        foc <- i
+      }
+    }
+    counter <- counter + 1
+  }
+
+  # if there isn't a species with at least one dynamic competitor present,
+  #   select one that has at least one ng competitor present
+  if(is.null(foc)){
+    counter <- 1
+    while(is.null(foc) & counter <= nsp){
+      for(i in 1:nsp){
+        # get list of competitors
+        if(nsp - i >= num_ngs){
+          compts <- i + 1:num_ngs
+        }
+        if(nsp - i < num_ngs & nsp - i > 0){
+          compts <- c(
+            1:(num_ngs - nsp + i),
+            i + 1:(nsp - i)
+          )
+        }
+        if(nsp - i == 0){
+          compts <- 1:num_ngs
+        }
+
+        # check if species i has ng competitors present and one of them is a dynamic species
+        if(
+          {mean(df[tw[1]:tw[2], i]) > perc_present[1]} &
+          {sum(df[floor(perc_present[2] * n_obs + tw[1] - 1), compts]) > 0}
+        ){
+          foc <- i
+        }
+      }
+      counter <- counter + 1
+    }
+  }
+
+  # if there is still no species that seems good, exit
+  if(is.null(foc)){
+    stop("No species in the dataset fits the bill...")
+  } else{
+    return(
+      foc
+    )
+  }
+
+}
+
+
+
+
+
+
+
