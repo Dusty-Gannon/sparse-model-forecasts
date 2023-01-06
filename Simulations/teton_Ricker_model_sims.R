@@ -29,8 +29,10 @@ simulate_Ricker_comp_communities <- function(X, sim_params){
   #  on number of non-generics and environmental covariates
   B <- ricker_comp_array(
     nsp = nsp, num_ngs = sim_params$S,
-    env = c(0.1),
-    num_dynamic = 2, generic = 0.001
+    num_env = 1, generic = 0.0001,
+    num_dynamic = sim_params$num_dynamic,
+    ng_strength = c(15, 20),
+    intra_strength = c(90, 100)
   )
 
   # max per-capita fecundity
@@ -59,15 +61,17 @@ simulate_Ricker_comp_communities <- function(X, sim_params){
       vec = env_comp_t
     ))
 
+    # set sensititivy of growth rates to changes in environment
+    tau <- 1
     # growth rates for each step for each population
-    lambda_t <- gauss_env_effect(env[t, 1], lambda_max, optims = sp_optims)
+    lambda_t <- gauss_env_effect(env[t, 1], lambda_max, optims = sp_optims, tau = tau)
 
     # determine species abundance in the next step
     N_ts[, t + 1] <- ricker_step(
       N_ts[, t],
       lambdas = lambda_t,
       A_mat = A_mat_t,
-      stochastic = F
+      stochastic = T
     )
 
     # change environment for next iteration
@@ -81,119 +85,61 @@ simulate_Ricker_comp_communities <- function(X, sim_params){
   df_long <- data.frame(
     t = rep(1:sim_params$steps, each = nsp),
     species = as.factor(rep(1:nsp, sim_params$steps)),
-    abundance = as.vector(N_ts)
+    abundance = as.vector(N_ts),
+    env1 = rep(env[, 1], each = nsp),
+    env2 = rep(env[, 2], each = nsp)
   )
 
-  ggplot2::ggplot(data = df_long, ggplot2::aes(x= t, y = abundance, color = species))+
-    ggplot2::geom_line()
+  # ggplot(data = df_long, aes(x = t, y = abundance, color = species))+
+  #   geom_line()
 
-  # get cover and fecundity values for a randomly selected sub-plot
-  ul_corner <- sample(1:(sim_params$cells - sim_params$sub_cells), size = 1)
-  rc_ids <- ul_corner:(ul_corner + sim_params$sub_cells - 1)
-
-  # subset the lattice
-  ts_sub <- lapply(
-    ts_all,
-    FUN = function(x, rc_ids){x[rc_ids, rc_ids]},
-    rc_ids = rc_ids
-  )
-  ts_fec_sub <- lapply(
-    ts_fecundity,
-    FUN = function(x, rc_ids){x[rc_ids, rc_ids]},
-    rc_ids = rc_ids
-  )
-
-  # initialize dataframes
-  subplot_cover <- data.frame(
-    t = rep(1:sim_params$steps, nsp),
-    species = rep(1:nsp, each = sim_params$steps)
-  )
-  subplot_fec <- data.frame(
-    t = rep(1:(sim_params$steps - 1), nsp),
-    species = rep(1:nsp, each = sim_params$steps - 1)
-  )
-
-  # fill in the cover values
-  cover <- vector(mode = "double")
-  subcover <- vector(mode = "double")
-  for(i in 1:nsp){
-    cover <- c(
-      cover,
-      sapply(ts_all, function(x){sum(x == i)/(nrow(x) * ncol(x))})
-    )
-    subcover <- c(
-      subcover,
-      sapply(ts_sub, function(x){sum(x == i)/(nrow(x) * ncol(x))})
-    )
-  }
-  cover_df$cover <- cover
-  subplot_cover$cover <- subcover
-  cover_df$species <- as.factor(cover_df$species)
-  subplot_cover$species <- as.factor(subplot_cover$species)
-
-  # fill in fecundity values
-  subfec <- vector(mode = "double")
-  for(i in 1:nsp){
-    subfec <- c(
-      subfec,
-      sapply(
-        1:length(ts_fecundity),
-        function(x, mat, id_mat, s){
-          sum((id_mat[[x]] == s) * mat[[x]])
-        },
-        mat = ts_fec_sub,
-        id_mat = ts_sub,
-        s = i
-      )
-    )
-  }
-  subplot_fec$fecundity <- subfec
-  subplot_fec$species <- as.factor(subplot_fec$species)
-
-  # print message about the number of species coexisting
-  #  at the end of the simulation
-  message(
-    paste(
-      "Number of species coexisting:",
-      sum(cover_df[cover_df$t == sim_params$steps, ]$cover > 0)
+  df_wide <- as.data.frame(
+    cbind(
+      1:sim_params$steps,
+      env,
+      t(N_ts)
     )
   )
 
-  # return objects
-  return(
-    list(
-      params = c(
-        sim_params,
-        A_mat = A_mat,
-        lambda_max = lambda_max,
-        sp_optims = sp_optims,
-        Pr_death = Pr_death
-      ),
-      cover = cover_df,
-      subplot_cover = subplot_cover,
-      subplot_fecundity = subplot_fec,
-      env = env
-    )
+  # make sure columns have distinguishable names
+  names(df_wide) <- c(
+    "t",
+    paste0("v", 1:ncol(env)),
+    paste0("s", 1:nsp)
   )
+
+  return(list(
+    B_mat = B$B,
+    dynamic_sp = B$dynamic_spids,
+    lambda_max = lambda_max,
+    tau = tau,
+    sp_optims = sp_optims,
+    abundance_long = df_long,
+    abundance_wide = df_wide,
+    sim_params = sim_params
+  ))
+
 }
 
 
 #### Run the simulations and store datasets ####
 
+  # bring in command line arguments
   args <- commandArgs(trailingOnly = T)
+
   # define number of sims
   nsims <- as.numeric(args[1])
 
   # set sim parameters
   sim_params <- list(
     steps = as.numeric(args[2]),
-    S = 2, s = 48,
-    n_annuals = 5,
-    sigma_env = as.numeric(args[3])
+    S = 2, s = 28,
+    num_dynamic = 10,
+    sigma_env = c(0.1, 0.05)
   )
 
   # make the cluster
-  cl <- makeCluster(20)
+  cl <- makeCluster(4)
 
   # load necessary functions
   clusterEvalQ(
@@ -209,18 +155,54 @@ simulate_Ricker_comp_communities <- function(X, sim_params){
   sim_dat <- parLapply(
     cl = cl,
     X = 1:nsims,
-    fun = simulate_comp_communities,
+    fun = simulate_Ricker_comp_communities,
     sim_params = sim_params
   )
 
   # stop the cluster and save the results
   stopCluster(cl)
-  fname <- paste0("simdat_", args[1], "reps_", args[2], "steps_S2s48_5ann_env", args[3], ".rds")
-  fpath <- paste0("Data/terrestrial_sim_data/", fname)
-  saveRDS(sim_dat, file = here(fpath))
+  fname <- paste0(
+    "simdat_500reps_", sim_params$steps, "steps_S",
+    sim_params$S, "s", sim_params$s, "_",
+    sim_params$num_dynamic, "dyn", "_",
+    length(sim_params$sigma_env), "env", ".rds"
+  )
+  fpath <- paste0(here("Data/terrestrial_sim_data/"), fname)
+  saveRDS(sim_dat, file = fpath)
 
 
+# save plots from a randomly selected 50 simulations
+  samps <- sample(1:nsims, size = 25)
+  sub_sims <- sim_dat[samps]
 
+  plots <- lapply(
+    sub_sims,
+    FUN = function(X){
+      ggplot2::ggplot(data = X$abundance_long, ggplot2::aes(x = t, y = abundance, color = species))+
+        ggplot2::geom_line()+
+        ggplot2::theme(legend.position = "none")
+    }
+  )
 
+  fname_plots <- paste0(
+    "plots_", nsims, "reps_",
+    sim_params$steps, "steps_",
+    "S", sim_params$S, "s", sim_params$s, "_",
+    sim_params$num_dynamic, "dyn_",
+    length(sim_params$sigma_env), "env.png"
+  )
+
+  fpath_plots <- paste0("Data/terrestrial_sim_data/", fname_plots)
+
+  png(
+    filename = here(fpath_plots),
+    width = 3000, height = 3000,
+    units = "px", res = 300
+  )
+    gridExtra::grid.arrange(
+      grobs = plots,
+      nrow = 5, ncol = 5
+    )
+  dev.off()
 
 

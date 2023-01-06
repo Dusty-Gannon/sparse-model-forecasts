@@ -7,7 +7,7 @@
 ricker_comp_array(
   nsp,
   num_ngs,
-  env,
+  num_env,
   num_dynamic,
   generic = 0.001,
   ng_strength = c(20, 50),
@@ -19,9 +19,14 @@ ricker_comp_array(
 
 \item{num_ngs}{Number of non-generic competitors (usually, stronger competitors)}
 
-\item{env}{Parameters determining the linear effect of one or more environmental variables
-on the competitive effects of some select dynamic species whose competitive abilities vary
-with the environment}
+\item{num_env}{Number of environmental variables that help to determine
+the linear effect of the variables on the competitive effects of some select dynamic
+species whose competitive abilities vary with the environment. The effect is drawn from
+a uniform distribution on the interval \eqn{(-\alpha[ii], \alpha_{ii})},
+where \eqn{\alpha_{ii}} is the intra-specific effect of the species for which the
+dynamic species serves as a non-generic competitor.
+\eqn{\beta_0} is the generic effect. This helps to keep inter-specific effects weaker than
+intra-specific effects.}
 
 \item{num_dynamic}{Number of species whose competitive abilities vary with the environment}
 
@@ -47,7 +52,7 @@ competition coefficients.
 
 ricker_comp_matrix(
   nsp = 10, num_ngs = 3,
-  env = c(-1, 1), num_dynamic = 2,
+  env_sd = c(0.5, 0.1), num_dynamic = 2,
   generic = 0.001
 )
 

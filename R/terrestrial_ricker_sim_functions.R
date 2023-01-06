@@ -8,9 +8,14 @@
 #'
 #' @param nsp Number of species in the community
 #' @param num_ngs Number of non-generic competitors (usually, stronger competitors)
-#' @param env Parameters determining the linear effect of one or more environmental variables
-#' on the competitive effects of some select dynamic species whose competitive abilities vary
-#' with the environment
+#' @param num_env Number of environmental variables that help to determine
+#' the linear effect of the variables on the competitive effects of some select dynamic
+#' species whose competitive abilities vary with the environment. The effect is drawn from
+#' a uniform distribution on the interval \eqn{(-\alpha_{ii}, \alpha_{ii})},
+#' where \eqn{\alpha_{ii}} is the intra-specific effect of the species for which the
+#' dynamic species serves as a non-generic competitor.
+#' \eqn{\beta_0} is the generic effect. This helps to keep inter-specific effects weaker than
+#' intra-specific effects.
 #' @param num_dynamic Number of species whose competitive abilities vary with the environment
 #' @param generic Effect of adding an individual of a generic competitor to the growth of the
 #' focal species
@@ -27,12 +32,12 @@
 #'
 #' ricker_comp_matrix(
 #'   nsp = 10, num_ngs = 3,
-#'   env = c(-1, 1), num_dynamic = 2,
+#'   env_sd = c(0.5, 0.1), num_dynamic = 2,
 #'   generic = 0.001
 #' )
 #'
 ricker_comp_array <- function(
-    nsp, num_ngs, env,
+    nsp, num_ngs, num_env,
     num_dynamic, generic = 0.001,
     ng_strength = c(20, 50), intra_strength = c(80, 100)
 ){
@@ -40,10 +45,9 @@ ricker_comp_array <- function(
   # randomly sample the species that get more or less competitive
   #  depending on the environment
   dyn_sp <- sample(1:nsp, size = num_dynamic)
-  m <- length(env)
 
   # initialize array
-  B <- array(data = 0, dim = c(nsp, m + 2, nsp))
+  B <- array(data = 0, dim = c(nsp, num_env + 2, nsp))
 
   # fill in the first column of each slice with the generic effect
   B[, 1, ] <- generic
@@ -59,7 +63,11 @@ ricker_comp_array <- function(
       B[j + c(1:num_ngs), 2, j] <- generic * runif(num_ngs, min = ng_strength[1], max = ng_strength[2])
       for(i in j + c(1:num_ngs)){
         if(i %in% dyn_sp){
-          B[i, (1:m) + 2, j] <- env
+          B[i, (1:num_env) + 2, j] <- runif(
+            num_env,
+            min = - B[j, 2, j],
+            max = B[j, 2, j]
+          )
         }
       }
     }
@@ -74,7 +82,11 @@ ricker_comp_array <- function(
       B[ng_ids, 2, j] <- generic * runif(num_ngs, min = 20, max = 50)
       for(i in ng_ids){
         if(i %in% dyn_sp){
-          B[i, (1:m) + 2, j] <- env
+          B[i, (1:num_env) + 2, j] <- runif(
+            num_env,
+            min = -B[j, 2, j],
+            max = B[j, 2, j]
+          )
         }
       }
     }
@@ -83,7 +95,11 @@ ricker_comp_array <- function(
       B[1:num_ngs, 2, j] <- generic * runif(num_ngs, min = 20, max = 50)
       for(i in (1:num_ngs)){
         if(i %in% dyn_sp){
-          B[i, (1:m) + 2, j] <- env
+          B[i, (1:num_env) + 2, j] <- runif(
+            num_env,
+            min = -B[j, 2, j],
+            max = B[j, 2, j]
+          )
         }
       }
     }
