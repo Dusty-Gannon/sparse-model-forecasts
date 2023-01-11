@@ -323,7 +323,7 @@
   # load data on director node
   dat_list <- readRDS(
     here("Data/terrestrial_sim_data/simdat_500reps_500steps_S3s37_20dyn_2env.rds")
-  )[1:3]
+  )
 
   # compile stan model
   modfile <- paste0("Stan/Pois_ricker_", args[3], "_lambda_FHS.stan")
@@ -341,7 +341,7 @@
   }
 
   # use parallel package to fit the models
-  cl <- makeCluster(3)
+  cl <- makeCluster(20)
 
   # load libraries and functions on each node
   clusterEvalQ(cl, {library(rstan); library(here); devtools::load_all()})

@@ -3,7 +3,7 @@
 #SBATCH --account=modelscape
 #SBATCH --time=01:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=4
+#SBATCH --ntasks-per-node=21
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=32G
 #SBATCH --mail-type=ALL
