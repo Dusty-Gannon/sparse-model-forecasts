@@ -37,7 +37,7 @@ transformed data{
 parameters{
 
   // vector[P_lambda] gamma_std;          // unshrunk coefficients (self-limitation and intercept)
-  real<lower = 0> alpha_std;           // standardized intra-specific competition
+  real alpha_std;                      // standardized intra-specific competition
   real beta0_std;                      // standardized generic effect
   vector[P] beta_std;                  // standardized coefficients before shrinkage
 
