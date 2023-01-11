@@ -369,7 +369,7 @@
 
   # save fits into unique directory
   fp_fits <- paste0("Data/terrestrial_sim_data/Ricker_n", n_obs, "_lambda-", args[3], "/")
-  dir.create(fp_fits)
+  dir.create(here(fp_fits))
 
   fits_file <- paste0(fp_fits, "model_fits.rds")
 
