@@ -6,17 +6,13 @@
 # libraries
   library(rstan)
   library(here)
-  # library(parallel)
+  library(parallel)
   devtools::load_all()
 
-# load user-defined functions (teton way, not devtools way)
-  src_files <- list.files(here("R/"), pattern = "*.R", full.names = T)
-  sapply(src_files, source, .GlobalEnv)
+# # load user-defined functions (teton way, not devtools way)
+#   src_files <- list.files(here("R/"), pattern = "*.R", full.names = T)
+#   sapply(src_files, source, .GlobalEnv)
 
-# pull in arguments from the command line
-  args <- commandArgs(trailingOnly = T)
-  n_obs <- as.numeric(args[1])
-  start <- as.numeric(args[2])
 
 # function to fit the model
   fit_ricker <- function(
@@ -76,9 +72,6 @@
           optims = dat$sp_optims[foc_sp$value]
         )
 
-        # # define the model matrices
-        # X_lambda <- model.matrix(~ v1 + I(v1^2), data = df)
-
         X_beta0 <- as.matrix(
           df[, -which(names(df) %in% c("t", "v1", "v2", foc))]
         )
@@ -89,11 +82,16 @@
           X_beta0,
           apply(X_beta0, 2, function(x, v){x * v}, v = df$v2)
         )
+        # rename columns to have unique names
+        colnames(X_beta) <- c(
+          colnames(X_beta0),
+          paste0("v", colnames(X_beta0))
+        )
 
         # define tau0
         tau_0 <- tau0(
           y = df[, foc],
-          m0 = 2,
+          m0 = 5,
           M = ncol(X_beta),
           N = n_obs,
           fam = "poisson"
@@ -139,6 +137,11 @@
         X_beta <- cbind(
           X_beta0,
           apply(X_beta0, 2, function(x, v){x * v}, v = df$v2)
+        )
+        # rename columns to have unique names
+        colnames(X_beta) <- c(
+          colnames(X_beta0),
+          paste0("v", colnames(X_beta0))
         )
 
         tau_0 <- tau0(
@@ -234,7 +237,12 @@
       }
 
       # define the true positive betas
-      ng_species <- as.integer(foc_sp$value) + c(1:dat$sim_params$S)
+      ng_species <- which(
+        (dat$B_mat[, 2, foc_sp$value] != 0)
+      )
+      ng_species <- ng_species[-which(
+        ng_species == foc_sp$value
+      )]
       ng_coefs <- paste0("s", ng_species)
 
       # define whether the ng_competitors have dynamic effects
@@ -303,78 +311,65 @@
 
 
 
-### fitting the models ###
+  ####################
+  # fitting the models
+  ####################
+
+  # pull in arguments from the command line
+  args <- commandArgs(trailingOnly = T)
+  n_obs <- as.numeric(args[1])
+  start <- as.numeric(args[2])
 
   # load data on director node
   dat_list <- readRDS(
-    here("Data/terrestrial_sim_data/simdat_100reps_500steps_S2s28_10dyn_2env.rds")
+    here("Data/terrestrial_sim_data/simdat_500reps_500steps_S3s37_20dyn_2env.rds")
   )
 
   # compile stan model
-  ricker1 <- stan_model(here("Stan/Pois_ricker_known_lambda_FHS.stan"))
+  modfile <- paste0("Stan/Pois_ricker_", args[3], "_lambda_FHS.stan")
+  stan_mod <- rstan::stan_model(here(modfile))
 
+  # set knowledge parameter
+  if(args[3] == "known"){
+    lambda_knowledge <- "full"
+  }
+  if(args[3] == "partial"){
+    lambda_knowledge <- "covariates"
+  }
+  if(args[3] == "fixed"){
+    lambda_knowledge <- "naive"
+  }
 
-  # # use parallel package to fit the models
-  # cl <- makeCluster(12)
-  #
-  # # load libraries and functions on each node
-  # clusterEvalQ(cl, {library(rstan); library(here)})
+  # use parallel package to fit the models
+  cl <- makeCluster(20)
+
+  # load libraries and functions on each node
+  clusterEvalQ(cl, {library(rstan); library(here); devtools::load_all()})
   # clusterEvalQ(
   #   cl,
   #   {
   #     src_files <- list.files(here("R/"), pattern = "*.R", full.names = T);
   #     sapply(src_files, source, .GlobalEnv)
-  #     }
+  #   }
   # )
 
-  # create file path for diagnostic plots
-  fp <- paste0("Data/terrestrial_sim_data/Ricker_", n_obs, "_env0.05", "/diagnostic_plots/")
-
-  results <- pblapply(
+  results <- parLapply(
     X = 1:length(dat_list),
     FUN = fit_ricker,
     dat_all = dat_list,
     n_obs = n_obs,
-    stan_mod = ricker_mod,
+    stan_mod = stan_mod,
     pip = 0.65,
-    diagnostic_plots_dir = fp,
-    start = 200
+    start = start,
+    lambda_knowledge = lambda_knowledge
   )
 
-  # results <- vector(mode = "list", length = 100)
-  # for(i in 1:100){
-  #
-  #   results[[i]] <- fit_ARMA_pq(
-  #     dat = dat_list[[i]], n_obs = 100, p = 1,
-  #     q = 1, stan_mod = arma_pq_FHS,
-  #     dat_id = i,
-  #     pip = 0.7, diagnostic_plots_dir = fp,
-  #     start = 300
-  #   )
-  #
-  # }
+  stopCluster(cl)
 
-#  stopCluster(cl)
-
-  fp_fits <- paste0("Data/terrestrial_sim_data/Ricker_", n_obs, "_env0.05", "/model_fits.rds")
+  fp_fits <- paste0("Data/terrestrial_sim_data/Ricker_n", n_obs, "_lambda-", args[3], "/model_fits.rds")
 
   # save the model fits
   saveRDS(results, file = here(fp_fits))
-
-  confmat_a <- matrix(data = 0, nrow = 2, ncol = 2)
-  confmat_p <- confmat_a
-
-  for(i in 1:length(results)){
-
-    if(!is.null(results[[i]]$annual)){
-      confmat_a <- confmat_a + results[[i]]$annual$confusion_mat
-    }
-
-    if(!is.null(results[[i]]$perennial)){
-      confmat_p <- confmat_p + results[[i]]$perennial$confusion_mat
-    }
-
-  }
 
 
 
