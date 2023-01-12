@@ -367,11 +367,13 @@
 
   stopCluster(cl)
 
-  # save fits into unique directory
-  fp_fits <- paste0("Data/terrestrial_sim_data/Ricker_n", n_obs, "_lambda-", args[3], "/")
-  dir.create(here(fp_fits))
+  # save fits into unique directory and filename
+  dir_fits <- paste0("Data/terrestrial_sim_data/Ricker_lambda_", args[3], "/")
+  dir.create(here(dir_fits))
 
-  fits_file <- paste0(fp_fits, "model_fits.rds")
+  fname <- paste0("fits_n", n_obs, "_lambda_", args[3], ".rds")
+
+  fits_file <- paste0(dir_fits, fname)
 
   # save the model fits
   saveRDS(results, file = here(fits_file))
