@@ -324,7 +324,7 @@
   # load data on director node
   dat_list <- readRDS(
     here("Data/terrestrial_sim_data/simdat_500reps_500steps_S3s37_20dyn_2env.rds")
-  )[[1]]
+  )
 
   # compile stan model
   modfile <- paste0("Stan/Pois_ricker_", args[3], "_lambda_FHS.stan")
