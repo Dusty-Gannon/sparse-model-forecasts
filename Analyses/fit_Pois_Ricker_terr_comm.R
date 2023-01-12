@@ -16,7 +16,7 @@
 
 # function to fit the model
   fit_ricker <- function(
-    X, dat_all, n_obs,
+    X, n_obs,
     stan_mod,
     start = 100,
     pip = 0.7,
@@ -27,8 +27,7 @@
 
     xtra_args <- list(...)
     # store some useful variables
-    dat <- dat_all[[X]]
-    dat_id <- X
+    dat <- X
     n <- start + n_obs
     nsp <- length(unique(dat$abundance_long$species))
 
@@ -292,6 +291,8 @@
       return(
         list(
           data = dat,
+          foc_sp = foc_sp$value,
+          nonzero_betas = ng_betas,
           fit = list(
             confusion_mat = confusion_mat,
             perc_diverged = mean(get_divergent_iterations(ricker_fit)),
@@ -323,7 +324,7 @@
   # load data on director node
   dat_list <- readRDS(
     here("Data/terrestrial_sim_data/simdat_500reps_500steps_S3s37_20dyn_2env.rds")
-  )
+  )[[1]]
 
   # compile stan model
   modfile <- paste0("Stan/Pois_ricker_", args[3], "_lambda_FHS.stan")
@@ -355,14 +356,14 @@
 
   results <- parLapply(
     cl = cl,
-    X = 1:length(dat_list),
+    X = dat_list,
     fun = fit_ricker,
-    dat_all = dat_list,
     n_obs = n_obs,
     stan_mod = stan_mod,
     pip = 0.65,
     start = start,
-    lambda_knowledge = lambda_knowledge
+    lambda_knowledge = lambda_knowledge,
+    a = 2, b = 2
   )
 
   stopCluster(cl)
