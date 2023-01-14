@@ -4,70 +4,100 @@
 
 #' Choose focal species
 #'
-#' This function goes through a list of potential focal species and
-#' selects one based on the desired characteristics provided as arguments.
+#' This function goes through a dataframe (\code{df}) with one column per species
+#' and species abundances through time in the rows and selects a focal species given
+#' a time window in the series and characteristics of the species. The focal species
+#' must be present for at least 95% of the time window, have at least one non-generic
+#' competitor present for 95% of the time window, and may be a rare or a common species
+#' depending on the \code{rare} flag.
 #'
-#' @param df A dataframe of species cover through time in rows and different species
+#' @param df A dataframe of species abundance through time in rows and different species
 #' across columns.
-#' @param col_ids Vector of column indexes for the potential candidate species.
 #' @param num_ngs Number of non-generic competitors.
 #' @param tw Length of time window over which to assess whether the species meet the desired specs.
-#' @param start Time step at which to begin looking for an appropriate species
+#' @param start Time step at which to begin looking for an appropriate species.
+#' @param rare Logical (Default = \code{FALSE}). If set to \code{TRUE}, the function will look for an
+#' appropriate rare species to choose as a focal. Otherwise, preference is given to the common species.
 #'
 #' @return Column name (integer as a character) of the focal species.
 #'
 #' @examples
 #'
 choose_focal <- function(
-    df, col_ids, num_ngs,
-    exclude_names, tw = 100, start = 50,
+    df, num_ngs,
+    tw = 100, start = 50,
     rare = F
 ){
 
-  # get list of potential species
-  pot_sp <- names(df)[col_ids]
-
-  # get time and environment column indexes
-  exclude_cols <- which(names(df) %in% exclude_names)
+  # store some useful variables
+  nsp <- ncol(df)
 
   # set order for sorting based on rare vs. common
   if(isTRUE(rare)){decreasing <- F} else {decreasing <- T}
 
   # loop through each to see if they meet the criteria
   foc <- NULL
-  counter <- 1
   l <- start + 1
   r <- start + tw
-  while(is.null(foc) & counter <= length(col_ids)){
-    for(i in 1:length(pot_sp)){
+
+  # set initial species order
+  sp_order <- (1:nsp)[
+    order(apply(df[l:r, ], 2, mean), decreasing = decreasing)
+  ]
+
+  while(is.null(foc) & r <= nrow(df)){
+
+    # start with the first species
+    i <- 1
+
+    while(i <= nsp){
+
       # get list of competitors
-      compts <- as.integer(pot_sp[i]) + 1:num_ngs
-      compts_ids <- which(names(df) %in% as.character(compts))
-      while(r <= nrow(df)){
-        if(
-          {mean(as.double(df[l:r, col_ids[i]]) != 0) >= 0.7} &
-          {sum(compts %in% as.integer(names(df[, -exclude_cols]))) > 0} &
-          {sum(apply(
-            df[l:r, compts_ids], 2, function(x){mean(x != 0) > 0.5}
-          ))}
-        ){
-          foc <- pot_sp[i]
-          r <- nrow(df) + 1
-        } else{
-          # slide the window forward
-          l <- (r + (tw/2) %% 1) + 1
-          r <- l + tw - 1
-        }
+      if(nsp - sp_order[i] >= num_ngs){
+        compts <- sp_order[i] + 1:num_ngs
+      }
+      if(nsp - sp_order[i] < num_ngs & nsp - sp_order[i] > 0){
+        compts <- c(
+          1:(num_ngs - nsp + sp_order[i]),
+          sp_order[i] + 1:(nsp - sp_order[i])
+        )
+      }
+      if(nsp - sp_order[i] == 0){
+        compts <- 1:num_ngs
+      }
+
+      # check if the current species meets the criteria
+      if(
+        {mean(as.double(df[l:r, sp_order[i]]) != 0) >= 0.95} &
+        {sum(apply(
+          df[l:r, compts], 2, function(x){mean(x != 0) > 0.95}
+        )) > 0}
+      ){
+        foc <- sp_order[i]
+        i <- nsp + 1
+      } else{
+        # check the next species
+        i <- i + 1
       }
     }
-    counter <- counter + 1
+
+    # if no species was found for that time window, shift the window forward
+    # and reset the species order
+    if(is.null(foc)){
+      l <- l + (tw + tw %% 2) / 2
+      r <- l + tw - 1
+      sp_order <- (1:nsp)[
+        order(apply(df[l:r, ], 2, mean), decreasing = decreasing)
+      ]
+    }
+
   }
 
   if(is.null(foc)){
     stop("No species in the dataset fits the bill...")
   } else{
     return(
-      list(foc = foc, tw = l:(l + tw - 1))
+      list(foc = foc, tw = l:r)
     )
   }
 
@@ -174,7 +204,7 @@ choose_focal2 <- function(
     stop("No species in the dataset fits the bill...")
   } else{
     return(
-      foc
+      list(foc = foc, tw = tw)
     )
   }
 

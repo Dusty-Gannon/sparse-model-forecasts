@@ -49,7 +49,7 @@ simulate_Ricker_comp_communities <- function(X, sim_params, vary_comp = FALSE){
       nsp = nsp, num_ngs = sim_params$S,
       num_env = 0, generic = 0.0001,
       num_dynamic = 0,
-      ng_strength = c(15, 20),
+      ng_strength = c(30, 50),
       intra_strength = c(90, 100)
     )
 
