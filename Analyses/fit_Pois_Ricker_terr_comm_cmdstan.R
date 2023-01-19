@@ -4,34 +4,32 @@
 
 
 # libraries
-  library(rstan)
+  library(cmdstanr)
   library(here)
   library(parallel)
-  devtools::load_all()
+  # devtools::load_all()
 
-# # load user-defined functions (teton way, not devtools way)
-#   src_files <- list.files(here("R/"), pattern = "*.R", full.names = T)
-#   sapply(src_files, source, .GlobalEnv)
+# load user-defined functions (teton way, not devtools way)
+  src_files <- list.files(here("R/"), pattern = "*.R", full.names = T)
+  sapply(src_files, source, .GlobalEnv)
 
 
+###########################
 # function to fit the model
+###########################
   fit_ricker <- function(
-    X, n_obs,
+    X, dat_all, n_obs,
     stan_mod,
     start = 100,
     pip = 0.7,
-    S_init = 50, num_ngs = 3,
     lambda_knowledge = c("full", "covariates", "naive"),
-    vary_comp = FALSE,
     ...
   ){
 
     xtra_args <- list(...)
-    if(is.null(xtra_args$beta0_scl)){xtra_args$beta0_scl <- 0}
-    if(is.null(xtra_args$a)){xtra_args$a <- 2}
-    if(is.null(xtra_args$b)){xtra_args$b <- 2}
     # store some useful variables
-    dat <- X
+    dat <- dat_all[[X]]
+    dat_id <- X
     n <- start + n_obs
     nsp <- length(unique(dat$abundance_long$species))
 
@@ -52,56 +50,47 @@
 
     # find species with at least one strong competitor, preferably
     #  a competitor that is also dynamic
-    if(isTRUE(vary_comp)){
-      foc_sp <- myTryCatch(choose_focal2(
-        df = dat$abundance_wide[,-c(1:3)],
-        num_ngs = num_ngs, dyn_sp = dat$dynamic_sp,
-        tw = c(start, n)
-      ))
-    } else{
-      foc_sp <- myTryCatch(choose_focal(
-        df = dat$abundance_wide[, -c(1, 2)],
-        num_ngs = num_ngs, start = start,
-        tw = n_obs
-      ))
-    }
+    foc_sp <- myTryCatch(choose_focal2(
+      df = dat$abundance_wide[,-c(1:3)],
+      num_ngs = dat$sim_params$S, dyn_sp = dat$dynamic_sp,
+      tw = c(start, n)
+    ))
+
+    # define time steps
+    tsteps <- (start + 1):n
 
     ### Fitting the model for the focal species ###
     if(!is.null(foc_sp$value)){
 
-      foc <- paste0("s", foc_sp$value$foc)
-      tsteps <- foc_sp$value$tw
+      foc <- paste0("s", foc_sp$value)
       df <- dat$abundance_wide[tsteps, ]
 
       if(lambda_knowledge == "full"){
         # construct known lambda
         lambda <- gauss_env_effect(
           env = df$v1,
-          lambda_max = dat$lambda_max[foc_sp$value$foc],
-          optims = dat$sp_optims[foc_sp$value$foc]
+          lambda_max = dat$lambda_max[foc_sp$value],
+          optims = dat$sp_optims[foc_sp$value]
         )
 
-        # columns not to be included
-        xclude <- which(names(df) %in% c("t", "v1", "v2", foc))
-        X_beta0 <- as.matrix(df[, -xclude])
+        # # define the model matrices
+        # X_lambda <- model.matrix(~ v1 + I(v1^2), data = df)
+
+        X_beta0 <- as.matrix(
+          df[, -which(names(df) %in% c("t", "v1", "v2", foc))]
+        )
         X_beta0 <- X_beta0[, -which(apply(X_beta0, 2, mean) == 0)] /
           mean(df[, foc])
 
-        # define design matrix for beta depending on whether the
-        # competition varies through time
-        if(vary_comp){
-          X_beta <- cbind(
-            X_beta0,
-            apply(X_beta0, 2, function(x, v){x * v}, v = df$v2)
-          )
-          # rename columns to have unique names
-          colnames(X_beta) <- c(
-            colnames(X_beta0),
-            paste0("v", colnames(X_beta0))
-          )
-        } else{
-          X_beta <- X_beta0
-        }
+        X_beta <- cbind(
+          X_beta0,
+          apply(X_beta0, 2, function(x, v){x * v}, v = df$v2)
+        )
+        # rename columns to have unique names
+        colnames(X_beta) <- c(
+          colnames(X_beta0),
+          paste0("v", colnames(X_beta0))
+        )
 
         # define tau0
         tau_0 <- tau0(
@@ -122,20 +111,11 @@
           lambda = lambda,
           X_beta0 = X_beta0,
           X_beta = X_beta,
-          beta0_scl = xtra_args$beta0_scl,
           tau0 = tau_0,
-          slab_scl = 1,
-          slab_df = 8
+          slab_scl = 0.2,
+          slab_df = 10
         )
 
-        # fit the model
-        ricker_fit <- rstan::sampling(
-          stan_mod,
-          data = datlist,
-          cores = 3,
-          chains = 3,
-          control = list(adapt_delta = 0.99, max_treedepth = 15)
-        )
       }
 
       # model fit when information on lambda is partial
@@ -150,19 +130,15 @@
         X_beta0 <- X_beta0[, -which(apply(X_beta0, 2, mean) == 0)] /
           mean(df[, foc])
 
-        if(vary_comp){
-          X_beta <- cbind(
-            X_beta0,
-            apply(X_beta0, 2, function(x, v){x * v}, v = df$v2)
-          )
-          # rename columns to have unique names
-          colnames(X_beta) <- c(
-            colnames(X_beta0),
-            paste0("v", colnames(X_beta0))
-          )
-        } else{
-          X_beta <- X_beta0
-        }
+        X_beta <- cbind(
+          X_beta0,
+          apply(X_beta0, 2, function(x, v){x * v}, v = df$v2)
+        )
+        # rename columns to have unique names
+        colnames(X_beta) <- c(
+          colnames(X_beta0),
+          paste0("v", colnames(X_beta0))
+        )
 
         tau_0 <- tau0(
           y = df[, foc],
@@ -183,20 +159,10 @@
           X_lambda = X_lambda,
           X_beta0 = X_beta0,
           X_beta = X_beta,
-          beta0_scl = xtra_args$beta0_scl,
           tau0 = tau_0,
-          slab_scl = 1,
-          slab_df = 8,
-          lambda_star = dat$lambda_max[foc_sp$value$foc]
-        )
-
-        # fit the model
-        ricker_fit <- rstan::sampling(
-          stan_mod,
-          data = datlist,
-          cores = 3,
-          chains = 3,
-          control = list(adapt_delta = 0.99, max_treedepth = 15)
+          slab_scl = 0.5,
+          slab_df = 10,
+          lambda_star = dat$lambda_max[foc_sp$value]
         )
 
       }
@@ -213,19 +179,15 @@
         X_beta0 <- X_beta0[, -which(apply(X_beta0, 2, mean) == 0)] /
           mean(df[, foc])
 
-        if(vary_comp){
-          X_beta <- cbind(
-            X_beta0,
-            apply(X_beta0, 2, function(x, v){x * v}, v = df$v2)
-          )
-          # rename columns to have unique names
-          colnames(X_beta) <- c(
-            colnames(X_beta0),
-            paste0("v", colnames(X_beta0))
-          )
-        } else{
-          X_beta <- X_beta0
-        }
+        X_beta <- cbind(
+          X_beta0,
+          apply(X_beta0, 2, function(x, v){x * v}, v = df$v2)
+        )
+        # rename columns to have unique names
+        colnames(X_beta) <- c(
+          colnames(X_beta0),
+          paste0("v", colnames(X_beta0))
+        )
 
         tau_0 <- tau0(
           y = df[, foc],
@@ -245,29 +207,28 @@
           y = as.integer(df[, foc]),
           X_beta0 = X_beta0,
           X_beta = X_beta,
-          beta0_scl = xtra_args$beta0_scl,
           tau0 = tau_0,
-          slab_scl = 1,
-          slab_df = 8
-        )
-
-        # fit the model
-        ricker_fit <- rstan::sampling(
-          stan_mod,
-          data = datlist,
-          cores = 3,
-          chains = 3,
-          control = list(adapt_delta = 0.99, max_treedepth = 15)
+          slab_scl = 0.2,
+          slab_df = 10
         )
 
       }
 
+
+      # fit the model
+      ricker_fit <- stan_mod$sample(
+        data = datlist,
+        chains = 4,
+        adapt_delta = 0.99,
+        max_treedepth = 12
+      )
+
       # define the true positive betas
       ng_species <- which(
-        (dat$B_mat[, 2, foc_sp$value$foc] != 0)
+        (dat$B_mat[, 2, foc_sp$value] != 0)
       )
       ng_species <- ng_species[-which(
-        ng_species == foc_sp$value$foc
+        ng_species == foc_sp$value
       )]
       ng_coefs <- paste0("s", ng_species)
 
@@ -286,7 +247,7 @@
       g_betas <- which(!(colnames(X_beta) %in% ng_coefs))
 
       # compute confusion matrix
-      beta_post <- rstan::extract(ricker_fit, pars = "beta")$beta
+      beta_post_array <- ricker_fit$draws(variables = "beta", format = "df")[, 1:ncol(X_beta)]
       nzs <- apply(
         beta_post, MARGIN = 2,
         FUN = function(x, p){
@@ -310,22 +271,20 @@
         lambda_post <- lambda
       }
       if(lambda_knowledge == "naive"){
-        lambda_post <- rstan::extract(ricker_fit, pars = "lambda")$lambda
+        lambda_post <- ricker_fit$draws(variables = "lambda", format = "df")
       }
       if(lambda_knowledge == "covariates"){
-        lambda_post <- rstan::extract(ricker_fit, pars = "gamma")$gamma
+        lambda_post <- ricker_fit$draws(variables = "gamma", format = "df")
       }
       return(
         list(
           data = dat,
-          foc_sp = foc_sp$value$foc,
-          nonzero_betas = ng_betas,
           fit = list(
             confusion_mat = confusion_mat,
-            perc_diverged = mean(get_divergent_iterations(ricker_fit)),
+            # perc_diverged = mean(get_divergent_iterations(ricker_fit)),
             beta_post = beta_post,
-            beta0_post = rstan::extract(ricker_fit, pars = "beta0")$beta0,
-            alpha_post = rstan::extract(ricker_fit, pars = "alpha")$alpha,
+            beta0_post = ricker_fit$draws(variables = "beta0", format = "df"),
+            alpha_post = ricker_fit$draws(variables = "alpha", format = "df"),
             lambda_post = lambda_post
           )
         )
@@ -339,75 +298,65 @@
 
 
 
-  ####################
-  # fitting the models
-  ####################
+####################
+# fitting the models
+####################
 
   # pull in arguments from the command line
   args <- commandArgs(trailingOnly = T)
-  datfile <- args[1]
-  n_obs <- as.numeric(args[2])
-  start <- as.numeric(args[3])
+  n_obs <- as.numeric(args[1])
+  start <- as.numeric(args[2])
 
   # load data on director node
   dat_list <- readRDS(
-    here(paste0("Data/terrestrial_sim_data/", datfile))
-  )[1]
+    here("Data/terrestrial_sim_data/simdat_500reps_500steps_S3s37_20dyn_2env.rds")
+  )
 
   # compile stan model
-  modfile <- paste0("Stan/Pois_ricker_", args[4], "_lambda_FHS.stan")
-  stan_mod <- rstan::stan_model(here(modfile))
+  modfile <- paste0("Stan/Pois_ricker_", args[3], "_lambda_FHS.stan")
+  stan_mod <- cmdstan_model(here(modfile))
 
   # set knowledge parameter
-  if(args[4] == "known"){
+  if(args[3] == "known"){
     lambda_knowledge <- "full"
   }
-  if(args[4] == "partial"){
+  if(args[3] == "partial"){
     lambda_knowledge <- "covariates"
   }
-  if(args[4] == "fixed"){
+  if(args[3] == "fixed"){
     lambda_knowledge <- "naive"
   }
 
   # use parallel package to fit the models
-  cl <- makeCluster(4)
+  cl <- makeCluster(20)
 
   # load libraries and functions on each node
-  clusterEvalQ(cl, {library(rstan); library(here); devtools::load_all()})
-  # clusterEvalQ(
-  #   cl,
-  #   {
-  #     src_files <- list.files(here("R/"), pattern = "*.R", full.names = T);
-  #     sapply(src_files, source, .GlobalEnv)
-  #   }
-  # )
+  clusterEvalQ(cl, {library(cmdstanr); library(here); library(posterior)})
+  clusterEvalQ(
+    cl,
+    {
+      src_files <- list.files(here("R/"), pattern = "*.R", full.names = T);
+      sapply(src_files, source, .GlobalEnv)
+    }
+  )
 
   results <- parLapply(
-    cl = cl,
-    X = dat_list,
-    fun = fit_ricker,
+    X = 1:length(dat_list),
+    FUN = fit_ricker,
+    dat_all = dat_list,
     n_obs = n_obs,
     stan_mod = stan_mod,
     pip = 0.65,
     start = start,
-    lambda_knowledge = lambda_knowledge,
-    a = 2, b = 2
+    lambda_knowledge = lambda_knowledge
   )
 
   stopCluster(cl)
 
-  # save fits into unique directory and filename
-  dir_fits <- paste0("Data/terrestrial_sim_data/Ricker_lambda_", args[3], "/")
-  dir.create(here(dir_fits))
-
-  fname <- paste0("fits_n", n_obs, "_lambda_", args[3], ".rds")
-
-  fits_file <- paste0(dir_fits, fname)
+  fp_fits <- paste0("Data/terrestrial_sim_data/Ricker_", n_obs, "_lambda-", args[3], "/model_fits.rds")
 
   # save the model fits
-  saveRDS(results, file = here(fits_file))
-
-
+  saveRDS(results, file = here(fp_fits))
 
 
 

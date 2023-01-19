@@ -17,6 +17,7 @@ data {
   matrix[N, P_lambda] X_lambda; // model matrix for unshrunk effects
   matrix[N, P_h] X_beta0;       // model matrix for generic effect
   matrix[N, P] X_beta;          // model matrix for shrinking effects
+  real<lower = 0> beta0_scl;    // prior scale for generic effects
   real<lower = 0> tau0;         // scale for global shrinkage parameter
   real<lower = 0> slab_scl;     // scale for non-zero coefficients
   real<lower = 0> slab_df;      // degrees of freedom for non-zero coefficients
@@ -38,7 +39,7 @@ parameters{
 
   vector[P_lambda] gamma_std;          // unshrunk coefficients (self-limitation and intercept)
   real alpha_std;                      // standardized intra-specific competition
-  real beta0_std;                      // standardized generic effect
+  real<upper = 0> beta0_std;                      // standardized generic effect
   vector[P] beta_std;                  // standardized coefficients before shrinkage
 
   // parameters for shrinkage priors
@@ -73,7 +74,7 @@ transformed parameters{
   vector[P_lambda] gamma = gamma_std * 0.5;
 
   // scale beta0
-  real beta0 = beta0_std * 0.5;
+  real beta0 = beta0_std * beta0_scl;
 
   // construct linear predictors
   eta[1] = log(y[1]);

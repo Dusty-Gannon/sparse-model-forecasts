@@ -22,7 +22,7 @@ ricker_comp_array(
 \item{num_env}{Number of environmental variables that help to determine
 the linear effect of the variables on the competitive effects of some select dynamic
 species whose competitive abilities vary with the environment. The effect is drawn from
-a uniform distribution on the interval \eqn{(-\alpha[ii], \alpha_{ii})},
+a uniform distribution on the interval \eqn{(-\alpha_{ii}, \alpha_{ii})},
 where \eqn{\alpha_{ii}} is the intra-specific effect of the species for which the
 dynamic species serves as a non-generic competitor.
 \eqn{\beta_0} is the generic effect. This helps to keep inter-specific effects weaker than
