@@ -8,8 +8,9 @@ data {
 
   int<lower = 0> N;             // length of the time series
   int<lower = 0> P;             // number of heterospecific species effects
-  int<lower = 0> y[N];          // vector of responses
+  vector<lower = 0>[N] y;       // vector of responses
   matrix[N, P] X_beta;          // model matrix for shrinking effects
+  real<lower = 0> error_scl;    // prior guess for the scale of demographic stochasticity
   real<lower = 0> tau0;         // scale for global shrinkage parameter
   real<lower = 0> slab_scl;     // scale for non-zero coefficients
   real<lower = 0> slab_df;      // degrees of freedom for non-zero coefficients
@@ -22,6 +23,9 @@ transformed data{
   real slab_scl2 = square(slab_scl);
   real half_slab_df = 0.5 * slab_df;
 
+  // convert counts to growth rates
+  vector[N - 1] r = log(y[2:N] ./ y[1:(N - 1)]);
+
 }
 
 
@@ -30,6 +34,7 @@ parameters{
   real<upper = 0> alpha_std;           // standardized intra-specific competition
   vector[P] beta_std;                  // standardized coefficients before shrinkage
   real<lower = 0> lambda;              // intrinsic growth of the focal species
+  real<lower = 0> sigma;               // demographic stochasticity
 
   // parameters for shrinkage priors
   vector<lower = 0>[P] local_scale;    // non-regularized local scale
@@ -41,7 +46,7 @@ parameters{
 
 transformed parameters{
 
-  vector[N] eta;                // declare vector of linear predictors
+  vector[N - 1] eta;                // declare vector of linear predictors
 
   // scale c2: c2 ~ inv_gamma(half_slab_df, half_slab_df * slab_scl2)
   real c2 = slab_scl2 * c2_std;
@@ -60,10 +65,9 @@ transformed parameters{
   real alpha = alpha_std * 0.25;
 
   // construct linear predictors
-  eta[1] = log(y[1]);
-  for(t in 2:N){
+  for(t in 1:(N - 1)){
     // mean       intrinsic growth          intra          non-generic          offset
-    eta[t] = log(lambda) + y[t - 1] * alpha + X_beta[t - 1, ] * beta + log(y[t - 1]);
+    eta[t] = log(lambda) + alpha * y[t] + X_beta[t, ] * beta;
 
   }
 
@@ -73,9 +77,10 @@ transformed parameters{
 model{
 
   // priors
-  // alpha_std ~ std_normal();
+  alpha_std ~ std_normal();
   beta_std ~ std_normal();
   lambda ~ gamma(2, 2);
+  sigma ~ normal(0, error_scl);
 
 
   tau_std ~ cauchy(0, 1);
@@ -83,7 +88,9 @@ model{
   c2_std ~ inv_gamma(half_slab_df, half_slab_df);
 
   // likelihood
-   y[2:N] ~ poisson_log(eta[2:N]);
+   for(t in 1:(N - 1)){
+     r[t] ~ normal(eta[t], sigma / sqrt(y[t]));
+   }
 
 }
 

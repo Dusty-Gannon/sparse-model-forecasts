@@ -90,6 +90,7 @@ model{
   alpha_std ~ std_normal();
   beta_std ~ std_normal();
   beta0_std ~ std_normal();
+  lambda ~ gamma(a_lambda, b_lambda);
 
 
   tau_std ~ cauchy(0, 1);
