@@ -100,19 +100,32 @@ comp_matrix2 <- function(n_sp, rho, alpha, num_ngs, ng_range = c(0.4, 0.6)){
   Dalpha <- diag(alpha, nrow = n_sp, ncol = n_sp)
   mat <- Dalpha %*% (rho[1] + (1 - rho[1]) * Id)
 
-  # now sprinkle in some more competition
-  for(i in 1:n_sp){
-    col_ids <- i + c(1:num_ngs)
-    if(max(col_ids) > n_sp){
-      n_over <- max(col_ids) - n_sp
-      over_ids <- length(col_ids):(length(col_ids) - n_over + 1)
-      col_ids[over_ids] <- i - 1:length(over_ids)
+  # now add some non-generic competition
+  if(num_ngs > 0){
+
+    for(i in 1:n_sp){
+      # define the column ids for the non-generic competitors
+      if(n_sp - i >= num_ngs){
+        col_ids <- i + c(1:num_ngs)
+      }
+      if(n_sp - i < num_ngs & n_sp - i > 0){
+        col_ids <- c(
+          1:(num_ngs - (n_sp - i)),
+          i + c(1:(n_sp - i))
+        )
+      }
+      if(n_sp - i == 0){
+        col_ids <- 1:num_ngs
+      }
+      mat[i, col_ids] <- mat[i, i] * runif(num_ngs, min = ng_range[1], max = ng_range[2])
     }
-    mat[i, col_ids] <- mat[i, i] * runif(num_ngs, min = ng_range[1], max = ng_range[2])
+
   }
 
   return(mat)
+
 }
+
 
 
 

@@ -7,11 +7,8 @@
 data {
 
   int<lower = 0> N;             // length of the time series
-  int<lower = 0> P0;            // number of non-shrinking effects
-  int<lower = 0> P;             // number of shrinking effects
+  int<lower = 0> P;             // number of heterospecific species effects
   int<lower = 0> y[N];          // vector of responses
-  vector<lower = 0>[N] y_star;  // augmented data
-  matrix[N, P0] X_alpha;        // model matrix for unshrunk effects
   matrix[N, P] X_beta;          // model matrix for shrinking effects
   real<lower = 0> tau0;         // scale for global shrinkage parameter
   real<lower = 0> slab_scl;     // scale for non-zero coefficients
@@ -30,8 +27,9 @@ transformed data{
 
 parameters{
 
-  vector[P0] alpha_std;                // unshrunk coefficients (self-limitation and intercept)
+  real<upper = 0> alpha_std;           // standardized intra-specific competition
   vector[P] beta_std;                  // standardized coefficients before shrinkage
+  real<lower = 0> lambda;              // intrinsic growth of the focal species
 
   // parameters for shrinkage priors
   vector<lower = 0>[P] local_scale;    // non-regularized local scale
@@ -59,13 +57,13 @@ transformed parameters{
   vector[P] beta = tau * local_scale_tilde .* beta_std;
 
   // scale alpha
-  vector[P0] alpha = alpha_std * 5;
+  real alpha = alpha_std * 0.25;
 
   // construct linear predictors
-  eta[1] = log(y_star[1]);
+  eta[1] = log(y[1]);
   for(t in 2:N){
-
-    eta[t] = X_alpha[t,] * alpha + X_beta[t, ] * beta + log(y_star[t - 1]);
+    // mean       intrinsic growth          intra          non-generic          offset
+    eta[t] = log(lambda) + y[t - 1] * alpha + X_beta[t - 1, ] * beta + log(y[t - 1]);
 
   }
 
@@ -75,27 +73,19 @@ transformed parameters{
 model{
 
   // priors
-  alpha_std ~ std_normal();
+  // alpha_std ~ std_normal();
   beta_std ~ std_normal();
+  lambda ~ gamma(2, 2);
+
 
   tau_std ~ cauchy(0, 1);
   local_scale ~ cauchy(0, 1);
   c2_std ~ inv_gamma(half_slab_df, half_slab_df);
 
   // likelihood
-  for(t in 2:N){
-   y[t] ~ poisson_log(eta[t]);
-  }
+   y[2:N] ~ poisson_log(eta[2:N]);
 
 }
 
 
-generated quantities{
-
-  int<lower = 0> y_rep[N];
-  for(t in 1:N){
-    y_rep[t] = poisson_log_rng(eta[t]);
-  }
-
-}
 
