@@ -151,7 +151,7 @@ gauss_env_effect <- function(env, lambda_max, optims, tau = 1){
 
 
 
-#' Ricker competition model
+#' Ricker competition model with Poisson-distributed demographic stochasticity
 #'
 #' This function computes the abundance of \eqn{S} species at time
 #' \eqn{t + 1} given their abundances at time \eqn{t} based on a
@@ -175,7 +175,7 @@ gauss_env_effect <- function(env, lambda_max, optims, tau = 1){
 #' )
 #' ricker_step(N_t, lambdas, A_mat)
 #'
-ricker_step <- function(N_t, lambdas, A_mat, stochastic = T){
+ricker_step_pois <- function(N_t, lambdas, A_mat, stochastic = T){
 
   # get number of species in the community
   S <- length(N_t)
@@ -198,5 +198,9 @@ ricker_step <- function(N_t, lambdas, A_mat, stochastic = T){
   }
 
 }
+
+
+
+
 
 
