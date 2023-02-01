@@ -131,7 +131,7 @@
   cores <- args[2]
 
   # load simulated data
-  datfp <- paste0("Data/terrestrial_sim_data/", datfile)
+  datfp <- paste0("Data/terrestrial_sim_data/lnorm_ricker/", datfile)
   sims <- readRDS(here(datfp))
 
   # compile stan model

@@ -234,28 +234,28 @@ generate_sim_params <- function(
     FUN = simulate_communities
   )
 
-##### Quick checks #####
- sapply(sims, function(x){sum(x$N_full[, steps] > 0)})
-
-  plot_comm <- function(N){
-    library(ggplot2)
-    nsp <- nrow(N)
-    steps <- ncol(N)
-
-    df <- data.frame(
-      t = rep(1:steps, each = nsp),
-      sp = as.factor(rep(1:nsp, steps)),
-      N = as.vector(N)
-    )
-
-    return(
-      ggplot(data = df, aes(x = t, y = N, color = sp)) +
-        geom_line() +
-        theme_classic()
-    )
-  }
-
-  plot_comm(sims[[401]]$N_cor)
+# ##### Quick checks #####
+#  sapply(sims, function(x){sum(x$N_full[, steps] > 0)})
+#
+#   plot_comm <- function(N){
+#     library(ggplot2)
+#     nsp <- nrow(N)
+#     steps <- ncol(N)
+#
+#     df <- data.frame(
+#       t = rep(1:steps, each = nsp),
+#       sp = as.factor(rep(1:nsp, steps)),
+#       N = as.vector(N)
+#     )
+#
+#     return(
+#       ggplot(data = df, aes(x = t, y = N, color = sp)) +
+#         geom_line() +
+#         theme_classic()
+#     )
+#   }
+#
+#   plot_comm(sims[[401]]$N_cor)
 
 ##### Save the simulated datasets #####
 
