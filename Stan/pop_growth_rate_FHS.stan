@@ -9,7 +9,7 @@ data {
   int<lower = 0> N;             // length of the time series
   int<lower = 0> P;             // number of heterospecific species effects
   vector<lower = 0>[N] y;       // vector of responses
-  matrix[N, P] X_beta;          // model matrix for shrinking effects
+  matrix[N, P] X_beta;          // standardized model matrix for shrinking effects
   real<lower = 0> error_scl;    // prior guess for the scale of demographic stochasticity
   real<lower = 0> tau0;         // scale for global shrinkage parameter
   real<lower = 0> slab_scl;     // scale for non-zero coefficients
@@ -22,6 +22,9 @@ transformed data{
   // transformations for horseshoe priors
   real slab_scl2 = square(slab_scl);
   real half_slab_df = 0.5 * slab_df;
+
+  // scale the ys
+  vector[N] y_std = (y - mean(y)) / sd(y);
 
   // convert counts to growth rates
   vector[N - 1] r = log(y[2:N] ./ y[1:(N - 1)]);
@@ -66,8 +69,8 @@ transformed parameters{
 
   // construct linear predictors
   for(t in 1:(N - 1)){
-    // mean       intrinsic growth          intra          non-generic          offset
-    eta[t] = log(lambda) + alpha * y[t] + X_beta[t, ] * beta;
+    // mean   //intrinsic growth  //intra       //inter
+    eta[t] = log(lambda) + alpha * y_std[t] + X_beta[t, ] * beta;
 
   }
 
