@@ -141,7 +141,7 @@
   # apply the above wrapper in parallel
   results <- lapply(
     sims,
-    fun = fit_3_summaries,
+    FUN = fit_3_summaries,
     stan_mod = growth_mod,
     tsteps = 41:100,
     pip = 0.9
