@@ -11,7 +11,7 @@
 
 # Set the parameter combination to use and generate names of R scripts and log file
 Rscript=fit_lnorm_ricker_3scenarios_tandem.R
-LogFile=ricker_vrtests
+LogFile=ricker_vrtests_tandem
 
 # Change to the relevant working directory
 cd /project/modelscape/analyses/sponges/Analyses
