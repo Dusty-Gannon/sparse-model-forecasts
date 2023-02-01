@@ -4,18 +4,21 @@
 \alias{comp_matrix}
 \title{Build a competition matrix}
 \usage{
-comp_matrix(n_sp, rho = c(0, 0), alpha, num_ngs, num_regs)
+comp_matrix(n_sp, rho = 0, alpha, num_ngs, ng_range = c(0.3, 0.6))
 }
 \arguments{
 \item{n_sp}{The number of species competing}
 
-\item{rho}{The strength of interspecific competition relative to intraspecific competition.
+\item{rho}{The strength of a generic competitor relative to intraspecific competition.
 \eqn{\rho \in (0,1)}}
 
 \item{alpha}{A scalar or vector of length \code{n_sp} with the strength(s) of
 intraspecific competition.}
 
 \item{num_ngs}{Number of strong competitors}
+
+\item{ng_range}{A range of values from which to draw the strength of non-generic competition
+relative to intraspecific competition.}
 }
 \value{
 \code{n_sp} X \code{n_sp} matrix
