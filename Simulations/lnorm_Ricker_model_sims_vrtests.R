@@ -209,7 +209,7 @@ generate_sim_params <- function(
 ##### Running the simulations #####
 
   # number of iterations
-  iter = 500
+  iter = 1000
 
   # generate list of parameters
   params <- lapply(
@@ -224,7 +224,7 @@ generate_sim_params <- function(
   )
 
   # change the variance factor across the sims
-  het_vr <- rep(c(0.5, 1, 2, 5, 10), each = 100)
+  het_vr <- rep(c(0.5, 1, 2, 5, 10), each = iter / 5)
   for(i in 1:iter){
     params[[i]]$het_vr <- het_vr[i]
   }
@@ -259,6 +259,24 @@ generate_sim_params <- function(
 
 ##### Save the simulated datasets #####
 
+  # find and remove any cases where the focal went extinct
+  to_keep <- which(
+    {
+      sapply(sims, function(x){sum(is.na(x$N_full))}) +
+      sapply(sims, function(x){sum(is.na(x$N_cor))}) +
+      sapply(sims, function(x){sum(is.na(x$N_eqv))})
+    } == 0
+  )
+
+  sims_final <- sims[sample(to_keep, 500)]
+
+# # sanity check
+#     sum({
+#       sapply(sims_final, function(x){sum(is.na(x$N_full))}) +
+#       sapply(sims_final, function(x){sum(is.na(x$N_cor))}) +
+#       sapply(sims_final, function(x){sum(is.na(x$N_eqv))})
+#     })
+
   fname <- paste0(
     "lnorm_ricker_sims_",
      steps, "steps_",
@@ -271,5 +289,5 @@ generate_sim_params <- function(
     fname
   )
 
-  saveRDS(sims, file = here(fp))
+  saveRDS(sims_final, file = here(fp))
 
