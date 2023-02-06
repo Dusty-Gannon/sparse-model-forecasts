@@ -212,7 +212,7 @@ simulate_communities <- function(vr, sim_params){
   fname <- paste0(
     "lnorm_ricker_sims_",
      steps, "steps_",
-    "rho", params$rho, "_S", num_ngs,
+    "rho0", "_S", num_ngs,
     "_s", nsp - num_ngs, "_1param.rds"
   )
 
