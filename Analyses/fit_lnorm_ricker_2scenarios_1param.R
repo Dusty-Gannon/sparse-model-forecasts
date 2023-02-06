@@ -8,7 +8,7 @@
   # libraries
   library(rstan)
   library(here)
-  library(parallel)
+  # library(parallel)
   devtools::load_all()
 
 
@@ -139,27 +139,35 @@
     here("Stan/pop_growth_rate_FHS.stan")
   )
 
-  # build cluster
-  cl <- makeCluster(cores)
+  # # build cluster
+  # cl <- makeCluster(cores)
+  #
+  # # load libraries on each node in the cluster
+  # clusterEvalQ(cl, {
+  #   library(rstan); library(here);
+  #   src_files <- list.files(here("R/"), pattern = "*.R", full.names = T);
+  #   sapply(src_files, source, .GlobalEnv)
+  # })
+  #
+  # # apply the above wrapper in parallel
+  # results <- parLapply(
+  #   cl = cl,
+  #   X = sims,
+  #   fun = fit_2_summaries,
+  #   stan_mod = growth_mod,
+  #   tsteps = 51:100,
+  #   pip = 0.9
+  # )
+  #
+  # stopCluster(cl)
 
-  # load libraries on each node in the cluster
-  clusterEvalQ(cl, {
-    library(rstan); library(here);
-    src_files <- list.files(here("R/"), pattern = "*.R", full.names = T);
-    sapply(src_files, source, .GlobalEnv)
-  })
-
-  # apply the above wrapper in parallel
-  results <- parLapply(
-    cl = cl,
+  results <- lapply(
     X = sims,
-    fun = fit_2_summaries,
+    FUN = fit_2_summaries,
     stan_mod = growth_mod,
     tsteps = 51:100,
     pip = 0.9
   )
-
-  stopCluster(cl)
 
 
   # save the results
