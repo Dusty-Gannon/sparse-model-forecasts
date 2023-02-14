@@ -48,7 +48,7 @@ simulate_communities <- function(sim_params){
 
   })
 
-  # simulate another round but with random draws for the
+  # simulate additional rounds but with random draws for the
   #  heterospecifics that amplify the ratio of variation in
   #  heterospecifics relative to demographic stochasticity
 
@@ -58,68 +58,50 @@ simulate_communities <- function(sim_params){
   N_full_final <- N_full[nesp, ]
   foc <- nesp[1]
 
+  # store parameters for focal species
+  N0_i <- sim_params$N0[foc]
+  lambda_i <- sim_params$lambdas[foc]
+  A_i <- as.double(sim_params$A_mat[foc, -ext])
+  sigma_i <- sim_params$sigmas[foc]
+
   # compute means and variancs on abundance scale
   mus <- apply(N_full_final[-1, 50:steps], 1, mean)
   s_N <- apply(N_full_final[-1, 50:steps], 1, sd)
-  D <- diag(sqrt(sim_params$het_vr) * s_N)
-  S <- D %*% cor(t(N_full_final[-1, 50:steps])) %*% D
 
-  N_cor <- with(c(sim_params, list(foc = foc, ext = ext, mus = mus, S = S)), {
+  # now loop through and create amplified heterospecific abundance matrices
+  N_focs <- purrr::map(
+    sim_params$het_vr,
+    ~ {
+      # compute covariance matrix for the heterospecifics
+      D <- diag(sqrt(.x) * s_N)
+      S <- D %*% cor(t(N_full_final[-1, 50:steps])) %*% D
 
-    # draw from distribution, then exponentiate
-    N_het <- t(mvtnorm::rmvnorm(
-      steps,
-      mean = mus,
-      sigma = S
-    ))
-    N_het[N_het < 0] <- 0
+      # draw from distribution with same correlation structure
+      N_het <- mvtnorm::rmvnorm(
+        sim_params$steps,
+        mean = mus,
+        sigma = S
+      )
+      N_het[N_het < 0] <- 0
 
-    # initialize focal species vector
-    N_foc <- vector(mode = "double", length = steps)
-    foc <- nesp[1]
-    N_foc[1] <- N0[foc]
-
-    # simulate ricker model
-    for(t in 2:steps){
-      N_foc[t] <- N_foc[t - 1] * lambdas[foc] *
-        exp(-A_mat[foc, foc] * N_foc[t - 1] - A_mat[foc, -c(foc, ext)] %*% N_het[, t - 1] + rnorm(1) * (sigmas[foc] / sqrt(het_vr)) / sqrt(N_foc[t - 1]))
+      # simulate focal densities
+      N_foc <- ricker_ts_lnorm_foc(
+        N_0 = N0_i, lambda = lambda_i,
+        A_i = A_i, sigma_i = sigma_i,
+        N_het = N_het,
+        steps = sim_params$steps,
+        het_vr = .x
+      )
+      rbind(
+        N_foc,
+        t(N_het)
+      )
     }
-
-    rbind(N_foc, N_het)
-
-  })
-
-  # simulate another round, but with equal variances across heterospecifics
-
-  N_eqv <- with(c(sim_params, list(foc = foc, ext = ext, mus = mus, S = S)), {
-
-    # create heterospecific densities through time
-    m <- rep(quantile(mus, probs = 0.5), length(mus))
-    s <- quantile(diag(S), probs = 0.5)
-    N_het <- t(mvtnorm::rmvnorm(
-      n = steps,
-      mean = m,
-      sigma = diag(s, nrow = length(mus), ncol = length(mus))
-    ))
-    N_het[N_het < 0] <- 0
-
-    # initialize focal species vector
-    N_foc <- vector(mode = "double", length = steps)
-    N_foc[1] <- N0[foc]
-
-    # simulate ricker model
-    for(t in 2:steps){
-      N_foc[t] <- N_foc[t - 1] * lambdas[foc] * exp(-A_mat[foc, foc] * N_foc[t - 1] - A_mat[foc, -c(foc, ext)] %*% N_het[, t - 1] + rnorm(1) * (sigmas[foc] / sqrt(het_vr)) / sqrt(N_foc[t - 1]))
-    }
-
-    rbind(N_foc, N_het)
-
-  })
+  )
 
   return(list(
     N_full = N_full_final,
-    N_cor = N_cor,
-    N_eqv = N_eqv,
+    N_vrtests = N_focs,
     sim_params = list(
       lambdas = sim_params$lambdas[nesp],
       A_mat = sim_params$A_mat[nesp, nesp],
@@ -169,47 +151,47 @@ generate_sim_params <- function(
 }
 
 
-##### Get an idea of variation from empirical data to use in sims #####
-
-  jr_data <- read.csv(here("Data/JR_Data/JR_count.csv"), header = T)
-  jr_p1 <- subset(jr_data, Site == "83A") %>%
-    group_by(Year, Species) %>% summarise(count = sum(Data))
-
-  dem_var_estims <- function(sp, df){
-
-    y <- subset(df, Species == sp)$count
-    n <- length(y)
-    # if(sum(y <= 0) > 0){
-    #   return(NA)
-    # }
-
-    y2 <- y + 1
-
-    r <- log(y2[2:n] / y2[1:(n - 1)])
-    ricker_mod <- lm(r ~ 1 + y2[1:(n - 1)])
-
-    return(
-      sum(ricker_mod$residuals^2) / (n - 2)
-    )
-
-  }
-
-
-  jr_demstoch <- sapply(unique(jr_p1$Species), dem_var_estims, df = jr_p1)
-  min(jr_demstoch); max(jr_demstoch)
+# ##### Get an idea of variation from empirical data to use in sims #####
+#
+#   jr_data <- read.csv(here("Data/JR_Data/JR_count.csv"), header = T)
+#   jr_p1 <- subset(jr_data, Site == "83A") %>%
+#     group_by(Year, Species) %>% summarise(count = sum(Data))
+#
+#   dem_var_estims <- function(sp, df){
+#
+#     y <- subset(df, Species == sp)$count
+#     n <- length(y)
+#     # if(sum(y <= 0) > 0){
+#     #   return(NA)
+#     # }
+#
+#     y2 <- y + 1
+#
+#     r <- log(y2[2:n] / y2[1:(n - 1)])
+#     ricker_mod <- lm(r ~ 1 + y2[1:(n - 1)])
+#
+#     return(
+#       sum(ricker_mod$residuals^2) / (n - 2)
+#     )
+#
+#   }
+#
+#
+#   jr_demstoch <- sapply(unique(jr_p1$Species), dem_var_estims, df = jr_p1)
+#   min(jr_demstoch); max(jr_demstoch)
 
 
 ##### Defining ranges for parameter generation #####
 
-  nsp <- 60; steps <- 200; num_ngs <- 3;
-  sigma_rng <- c(0.1, sqrt(max(jr_demstoch)) / 2);
-  alpha_rng <- c(0.01, 0.05); lambda_rng <- c(1.2, 1.8);
+  nsp <- 60; steps <- 200; num_ngs <- 5;
+  sigma_rng <- c(0.1, 0.3);
+  alpha_rng <- c(0.01, 0.05); lambda_rng <- c(1.2, 1.6);
   ng_range <- c(0.1, 0.5); rho <- 0; mean_init_abund <- 50
 
 ##### Running the simulations #####
 
   # number of iterations
-  iter = 1000
+  iter = 500
 
   # generate list of parameters
   params <- lapply(
@@ -220,14 +202,9 @@ generate_sim_params <- function(
     alpha_rng = alpha_rng, lambda_rng = lambda_rng,
     ng_range = ng_range, rho = rho,
     mean_init_abund = mean_init_abund,
-    comp_matrix_type = 2
+    comp_matrix_type = 2,
+    het_vr = c(0.5, 1, 2, 4, 10)
   )
-
-  # change the variance factor across the sims
-  het_vr <- rep(c(0.5, 1, 2, 5, 10), each = iter / 5)
-  for(i in 1:iter){
-    params[[i]]$het_vr <- het_vr[i]
-  }
 
   sims <- lapply(
     params,
@@ -255,27 +232,23 @@ generate_sim_params <- function(
 #     )
 #   }
 #
-#   plot_comm(sims[[401]]$N_cor)
+#   plot_comm(sims[[200]]$N_vrtests[[5]])
 
 ##### Save the simulated datasets #####
 
   # find and remove any cases where the focal went extinct
   to_keep <- which(
     {
-      sapply(sims, function(x){sum(is.na(x$N_full))}) +
-      sapply(sims, function(x){sum(is.na(x$N_cor))}) +
-      sapply(sims, function(x){sum(is.na(x$N_eqv))})
+      as.vector(sapply(sims, function(x){sum(is.na(x$N_full))})) +
+      as.vector(sapply(sims, function(x){
+        sum(sapply(x$N_vrtests, function(y){
+          sum(is.nan(y[1, ]) | y[1, ] == 0)
+        }))
+      }))
     } == 0
   )
 
-  sims_final <- sims[sample(to_keep, 500)]
-
-# # sanity check
-#     sum({
-#       sapply(sims_final, function(x){sum(is.na(x$N_full))}) +
-#       sapply(sims_final, function(x){sum(is.na(x$N_cor))}) +
-#       sapply(sims_final, function(x){sum(is.na(x$N_eqv))})
-#     })
+  sims_final <- sims[sample(to_keep, 200)]
 
   fname <- paste0(
     "lnorm_ricker_sims_",
@@ -290,4 +263,6 @@ generate_sim_params <- function(
   )
 
   saveRDS(sims_final, file = here(fp))
+
+
 

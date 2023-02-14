@@ -96,9 +96,12 @@
   }
 
 ##### Wrapper function to fit and summarize #####
-  fit_3_summaries <- function(X, stan_mod, tsteps = 51:100, pip = 0.9){
+  fit_n_summarize <- function(X, stan_mod, tsteps = 51:100, pip = 0.9){
 
-    N_list <- list(N_full = X$N_full, N_cor = X$N_cor, N_eqv = X$N_eqv)
+    N_list <- c(
+      list(N_full = X$N_full),
+      X$N_vrtests
+    )
 
     beta_posts <- lapply(
       N_list,
@@ -141,9 +144,9 @@
   # apply the above wrapper in parallel
   results <- lapply(
     sims,
-    FUN = fit_3_summaries,
+    FUN = fit_n_summarize,
     stan_mod = growth_mod,
-    tsteps = 41:100,
+    tsteps = 51:100,
     pip = 0.9
   )
 

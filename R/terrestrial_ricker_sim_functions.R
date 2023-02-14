@@ -200,6 +200,32 @@ ricker_step_pois <- function(N_t, lambdas, A_mat, stochastic = T){
 }
 
 
+#' Simulating a Ricker population model with log-normal demographic stochasticity
+#'
+#' @param N_0 Initial abundance of the focal species
+#' @param lambda Intrinsic growth rate of the focal species
+#' @param A_i Vector of competition coefficients with intra-specific competition in the
+#' first index
+#' @param sigma_i Scale of demographic stochasticity for the focal species
+#' @param N_het Matrix of heterospecific abundances through time
+#' @param steps Number of steps to simulate
+#' @param het_vr Scalar multiplier by which to reduce demographic stochasticity
+#'
+#' @return Vector of focal species abundances through time
+#'
+#'
+ricker_ts_lnorm_foc <- function(N_0, lambda, A_i, sigma_i, N_het, steps = 300, het_vr = 1){
+
+  N <- vector(mode = "double", length = steps)
+  N[1] <- N_0
+  for(t in 1:(steps - 1)){
+    N[t + 1] <- N[t] * lambda * exp(-A_i[1] * N[t] - N_het[t, ] %*% A_i[-1] + rnorm(1) * (sigma_i / sqrt(het_vr)) / sqrt(N[t]))
+  }
+
+  return(N)
+
+}
+
 
 
 
