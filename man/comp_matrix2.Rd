@@ -9,9 +9,6 @@ comp_matrix2(n_sp, rho, alpha, num_ngs, ng_range = c(0.4, 0.6))
 \arguments{
 \item{ng_range}{}
 }
-\value{
-
-}
 \description{
 This alternative function to generate a matrix of competition coefficients
 first generates a diagonal matrix with the vector \eqn{\vec\alpha} of
