@@ -39,6 +39,7 @@
 #'   n_lags = 2,   # number of non-zero lags in covariate
 #'   n_beta = 2,   # number of non-zero covariate parameters
 #'   non_zero_coef_guess = 5, # guess for the number of non-zero coefficients
+#'   sigma_e = 1,  #standard deviation of the innovations
 #'   holdout = 50
 #' )
 #'
@@ -57,11 +58,12 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL){
     n_lags = 2,   # number of non-zero lags in covariate
     n_beta = 2,   # number of non-zero covariate parameters
     non_zero_coef_guess = 5, # guess for the number of non-zero coefficients
+    sigma_e = 1,  #standard deviation of the innovations
     holdout = 50
   )
 
   for(nm in names(input_pars)){
-    model_params[[nm]] <- input_pars[[nm]]
+    model_pars[[nm]] <- input_pars[[nm]]
   }
 
   # draw parameters from distributions:
@@ -117,10 +119,10 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL){
 
   # reassign n because of days lost to beta_1 lag:
   n <- nrow(X)
+  model_pars$n <- n
 
   # mean of the process
   mu <- as.double(X %*% model_pars$beta)
-  sigma_e <- 1
 
   # simulate the AR process
   # y <- arima.sim(
@@ -159,8 +161,7 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL){
     fam = "gaussian"
   )
   model_pars <- c(model_pars,
-                  list(n = n,
-                       X = X,
+                  list(X = X,
                        y = y,
                        tau_0 = tau_0
                   ))
@@ -256,3 +257,131 @@ fit_ARp_beta_model <- function(model_pars, fit_nr = TRUE){
 
 
 
+#' Unpack AR-p model fit and predict holdout set
+#'
+#' This function takes the output of two model fits, one regularized and one
+#' not regularized, run on simulated AR-p data and summarizes the posterior
+#' parameter estimates, predicts the holdout set, and calculates rmse.
+#'
+#'
+#' @param fits a list of model_pars and stanfit objects, or if model pars is
+#' provided separately, this can just be a stanfit object.
+#' @param model_pars a list of parameters that was used to run models
+#'
+#' @return A list including model input parameters and a model fit list for each
+#' model that contains: posterior parameter estimates, forcasts of held out
+#' observations, and rmses of model forecasts.
+#'
+#' @export
+#'
+
+
+unpack_ARp_fit <- function(fits, model_pars = NULL){
+
+  extract_predict_fit <- function(fit, reg = TRUE){
+      # Extract posterior estimates
+      if(reg){
+        alpha_post <- rstan::extract(fit, pars = "alpha")$alpha
+        beta_post <- cbind(alpha_post,
+                           rstan::extract(fit, pars = "beta")$beta)
+      }else{
+          beta_post <- rstan::extract(fit, pars = "beta")$beta
+
+      }
+
+      phi_post <- rstan::extract(fit, pars = "phi")$phi
+      sigma_post <- rstan::extract(fit, pars = "sigma")$sigma
+
+      beta_hat <- data.frame(
+        mean = apply(beta_post, 2, mean),
+        low = apply(beta_post, 2, quantile, probs = 0.025),
+        high = apply(beta_post, 2, quantile, probs = 0.975)
+      )
+
+      phi_hat <- data.frame(
+        mean = apply(phi_post, 2, mean),
+        low = apply(phi_post, 2, quantile, probs = 0.025),
+        high = apply(phi_post, 2, quantile, probs = 0.975)
+      )
+      # reverse the estimates to match input vector
+      phi_hat <- phi_hat[nrow(phi_hat):1,]
+
+      sigma_hat <- data.frame(
+        mean = mean(sigma_post),
+        low = quantile(sigma_post, probs = 0.025),
+        high = quantile(sigma_post, probs = 0.975)
+
+      )
+
+      par_ests <- list(beta_hat = beta_hat,
+                       phi_hat = phi_hat,
+                       sigma_hat = sigma_hat)
+      # forecast the held-out observations
+
+      y_rep <- rstan::extract(fit, pars = "y_rep")$y_rep
+      draws <- nrow(beta_post)
+
+      # matrix of draws from the posterior-predictive distribution
+      post_preds <- matrix(nrow = draws, ncol = model_pars$n)
+
+      # fill in first p observations that are considered fixed
+      post_preds[, 1:model_pars$p] <- matrix(
+        rep(model_pars$y[1:model_pars$p], each = draws),
+        nrow = draws, ncol = model_pars$p
+      )
+
+      # fill in post. pred. draws from stan
+      post_preds[, (model_pars$p + 1):(model_pars$n - model_pars$holdout)] <- y_rep
+
+      for(i in 1:draws){
+        for(t in (model_pars$n - model_pars$holdout + 1):model_pars$n){
+          # regularized model
+          y_past <- as.double(post_preds[i, (t - model_pars$p):(t - 1)])
+          post_preds[i, t] <- model_pars$X[t, ] %*% beta_post[i, ] +
+            phi_post[i, ] %*% y_past + rnorm(1, sd = sigma_post[i])
+        }
+      }
+
+      forecast <- data.frame(
+        time = 1:model_pars$n,
+        y = as.double(model_pars$y),
+        estim = apply(post_preds, 2, mean),
+        low = apply(post_preds, 2, quantile, probs = 0.025),
+        high = apply(post_preds, 2, quantile, probs = 0.975)
+      )
+
+      # compute prediction root mean squared error for each model
+      # RMSE_bayes() is a user-defined function in R/model_checking.R
+      rmse = RMSE_bayes(model_pars$y[(model_pars$n - model_pars$holdout + 1):model_pars$n],
+                        ppreds = post_preds[, (model_pars$n - model_pars$holdout + 1):model_pars$n])
+
+
+      mod_fit <- list(
+        par_ests = par_ests,
+        forecast = forecast,
+        rmse = rmse)
+
+      return(mod_fit)
+
+    }
+
+  if(is.list(fits)){
+    model_pars <- fits$model_pars
+    mod_fit_r <- extract_predict_fit(fits$mfit_r, TRUE)
+    mod_fit_nr <- extract_predict_fit(fits$mfit_nr, FALSE)
+
+    return(list(
+      model_pars = model_pars,
+      mod_fit_r = mod_fit_r,
+      mod_fit_nr = mod_fit_r
+    ))
+  }
+
+  mod_fit_r <- extract_predict_fit(fits, TRUE)
+
+  return(list(
+    model_pars = model_pars,
+    mod_fit_r = mod_fit_r
+  ))
+
+}
