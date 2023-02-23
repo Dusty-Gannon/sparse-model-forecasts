@@ -7,7 +7,18 @@
 comp_matrix2(n_sp, rho, alpha, num_ngs, ng_range = c(0.4, 0.6))
 }
 \arguments{
-\item{ng_range}{}
+\item{n_sp}{Number of species in commmunity}
+
+\item{rho}{The strength of a generic competitor relative to intraspecific competition.
+\eqn{\rho \in (0,1)}}
+
+\item{alpha}{A scalar or vector of length \code{n_sp} with the strength(s) of
+intraspecific competition.}
+
+\item{num_ngs}{Number of strong competitors}
+
+\item{ng_range}{A range of values from which to draw the strength of non-generic competition
+relative to intraspecific competition.}
 }
 \value{
 
@@ -20,5 +31,8 @@ in the \eqn{i^{th}} row of the off-diagonal elements. It then adds \code{num_ngs
 non-generic competitive effects to each row, each one randomly generated using
 \eqn{U_i \times \alpha_i}, where \eqn{U_i} is a uniform random variable on the interval
 supplied by \code{ng_range} (should be on the unit interval to ensure intra- greater than
-inter-specific competion).
+inter-specific competion). These are structured so that the a given species \eqn{i}'s ng
+competitors are always species \eqn{i + 1, i + 2, ..., i + g}, where \eqn{g} is the number
+of non-generic competitors. If \eqn{i + g > S}, then the competitor indices begin to wrap
+around such that the ng competitors for species \eqn{S} are \eqn{{1, 2, ..., g}}.
 }
