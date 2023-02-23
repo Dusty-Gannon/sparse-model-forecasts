@@ -7,10 +7,10 @@ devtools::load_all()
 #### Simulate data and run regularized and non-regularized AR-p_beta models ####
 # store data inputs and model fits in a log file
 
-  args <- 2
+  args <- commandArgs()
 
   #number of simulations to run:
-  nsims <- args[1]
+  nsims <- as.numeric(args[1])
 
   # simulate AR-p data (will update in future to have variable inputs)
   input_pars <- list(
