@@ -22,7 +22,7 @@ cd /project/modelscape/analyses/sponges/Simulations
 # Load R and MPI
 module load gcc/11.2.0 r/4.2.2s
 
-echo '----------------------' > slurm.out 
-echo '----------------------' > slurm.err
-#Rscript --vanilla $Rscript 2 > $LogFile
-R CMD BATCH --no-save --no-restore -2 $Rscript $LogFile
+echo '----------------------' > slurmlogs/slurm.out 
+echo '----------------------' > slurmlogs/slurm.err
+Rscript --vanilla $Rscript 2 > $LogFile
+#R CMD BATCH --no-save --no-restore --args a=2 < $Rscript $LogFile
