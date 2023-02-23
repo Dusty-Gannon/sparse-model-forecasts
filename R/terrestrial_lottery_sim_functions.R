@@ -7,11 +7,11 @@
 #' of competition coefficients \eqn{A}, where
 #' \eqn{A_{ij}} is the competitive effect of species \eqn{j} on \eqn{i}.
 #' \eqn{A_{ij} = \alpha_i (\rho + (1 - \rho) \delta_{ij})}, where \eqn{\delta_{ij}=1} if
-#' \eqn{i=j} and 0 otherwise and \eqn{\alpha_i} is the strength of self regulations for
+#' \eqn{i=j} and 0 otherwise and \eqn{\alpha_i} is the strength of self regulation for
 #' species i.
 #'
-#' @param n_sp The number of species/populations competing
-#' @param rho The strength of interspecific competition relative to intraspecific competion.
+#' @param n_sp The number of species competing
+#' @param rho The strength of interspecific competition relative to intraspecific competition.
 #' \eqn{\rho \in (0,1)}
 #' @param alpha A scalar or vector of length \code{n_sp} with the strength(s) of
 #' intraspecific competition.
@@ -24,25 +24,112 @@
 #' @examples
 #' comp_matrix(3, rho=0.4, alpha=0.01, num_ngs = 1)
 #'
-comp_matrix <- function(n_sp, rho, alpha, num_ngs){
-  if(rho < 0 | rho > 1){
-    stop("rho must be on the unit interval (0,1)")
+comp_matrix <- function(n_sp, rho = c(0,0), alpha, num_ngs, num_regs){
+  if(sum(rho < 0) > 0 | sum(rho > 1) > 0){
+    stop("rho must be on the unit interval [0,1]")
   }
 
+  # set full matrix
   Id <- diag(nrow = n_sp, ncol = n_sp)
   Dalpha <- diag(alpha, nrow = n_sp, ncol = n_sp)
-  mat <- Dalpha%*%(rho + (1-rho)*Id)
+  mat <- Dalpha %*% (rho[1] + (1 - rho[1]) * Id)
 
-   if(num_ngs >= 1){
-    # pull out top row (focal species)
-    tr <- mat[1,]
-    tr[2:(num_ngs+1)] <- tr[2:(num_ngs+1)] * runif(num_ngs, min = 1, max = 3)
+  # alternative approach
+  Id_ng <- diag(nrow = num_ngs + 1, ncol = num_ngs + 1)
+  Dalpha_ng <- diag(alpha[1:(num_ngs + 1)], nrow = num_ngs + 1, ncol = num_ngs + 1)
+  mat_core <- Dalpha_ng %*% (rho[2] + (1 - rho[2]) * Id_ng)
 
-    mat[1,] <- tr
+  mat[1:(num_ngs + 1), 1:(num_ngs + 1)] <- mat_core
 
-   }
+  # now add some regulating species
+  others <- (num_ngs + 2):n_sp
+  for(i in 2:(num_ngs + 1)){
+    j <- sample(others, num_regs)
+    mat[i, j] <- mat[i, i] * rho[2]
+  }
+
+  # now sprinkle in some more competition
+  for(i in 1:length(others)){
+    if(i < length(others) - 1){
+      j <- sample(others[-(1:i)], 1)
+      mat[others[i], j] <- mat[others[i], others[i]] * rho[2]
+    }
+    if(i == length(others) - 1){
+      mat[others[i], n_sp] <- mat[others[i], others[i]] * rho[2]
+    }
+  }
+
   return(mat)
 }
+
+
+
+
+
+
+
+
+#' Create matrix of competition coefficients
+#'
+#' This alternative function to generate a matrix of competition coefficients
+#' first generates a diagonal matrix with the vector \eqn{\vec\alpha} of
+#' intra-specific competition coefficients on the diagonal and \eqn{\rho \alpha_i}
+#' in the \eqn{i^{th}} row of the off-diagonal elements. It then adds \code{num_ngs}
+#' non-generic competitive effects to each row, each one randomly generated using
+#' \eqn{U_i \times \alpha_i}, where \eqn{U_i} is a uniform random variable on the interval
+#' supplied by \code{ng_range} (should be on the unit interval to ensure intra- greater than
+#' inter-specific competion).
+#'
+#' @param n_sp
+#' @param rho
+#' @param alpha
+#' @param num_ngs
+#' @param ng_range
+#'
+#' @return
+#' @export
+#'
+#' @examples
+comp_matrix2 <- function(n_sp, rho, alpha, num_ngs, ng_range = c(0.4, 0.6)){
+  if(sum(rho < 0) > 0 | sum(rho > 1) > 0){
+    stop("rho must be on the unit interval [0,1]")
+  }
+
+  # set full matrix
+  Id <- diag(nrow = n_sp, ncol = n_sp)
+  Dalpha <- diag(alpha, nrow = n_sp, ncol = n_sp)
+  mat <- Dalpha %*% (rho[1] + (1 - rho[1]) * Id)
+
+  # now add some non-generic competition
+  if(num_ngs > 0){
+
+    for(i in 1:n_sp){
+      # define the column ids for the non-generic competitors
+      if(n_sp - i >= num_ngs){
+        col_ids <- i + c(1:num_ngs)
+      }
+      if(n_sp - i < num_ngs & n_sp - i > 0){
+        col_ids <- c(
+          1:(num_ngs - (n_sp - i)),
+          i + c(1:(n_sp - i))
+        )
+      }
+      if(n_sp - i == 0){
+        col_ids <- 1:num_ngs
+      }
+      mat[i, col_ids] <- mat[i, i] * runif(num_ngs, min = ng_range[1], max = ng_range[2])
+    }
+
+  }
+
+  return(mat)
+
+}
+
+
+
+
+
 
 
 
@@ -188,34 +275,47 @@ kernel_count <- function(X, r, sp_list){
 
 
 
-#' Fecundity for an individual in a lattice lottery model
+#' Fecundity for a row in the lattice
 #'
-#' @param lambda_it Vector of (potentially) time-varying growth rates, one for each cell in the row of the lattice
+#'
+#' @param foc_sp Vector of species occupying each cell in the row in the lattice at the beginning of
+#' the time step
+#' @param lambda_max Vector of max growth rates, maximized when the environment is in a state equal to the
+#' optimum for the given species
+#' @param optims Vector of environmental optima for each species
+#' @param env_t Environmental condition at time t
 #' @param alpha Matrix of competition coefficients with as many rows and columns as there are species
 #' @param nbrhood Vector of sizes of the neighborhood for each cell in the row
 #' @param n matrix of neighbor counts with as many columns as species and as many rows as columns
 #' in the lattice
-#' @param foc_sp Vector of species occupying each cell in the row in the lattice at the beginning of
-#' the time step
+#' @param sigma An optional scalar or vector of length \eqn{S} defining how sensitive each species is to
+#' changes in the environment. Default is that \code{sigma = 1}.
 #'
 #' @return vector with fecudities for each individual in one row of the lattice
 #' @export
 #'
 #' @examples
 #'
-fecundity_ll <- function(lambda_it, alpha, nbrhood, n, foc_sp){
+fecundity_ll <- function(foc_sp, lambda_max, optims, env_t, alpha, nbrhood, n, sigma = 1){
+
+  # define growth at time t based on environment
+  lambda_t <- lambda_max * exp(-sigma * (env_t - optims)^2)
+
+  # get vector of growth rates for each cell in row i
+  lambda_it <- lambda_t[foc_sp]
+
   # normalizing constant for neighborhood
-  norm_constant <- diag(nbrhood, nrow = length(nbrhood))
+  norm_constant <- solve(diag(nbrhood, nrow = length(nbrhood)))
 
   # pull out row of alpha corresponding to focal ind. sp. id
   alpha_i <- alpha[foc_sp, ]
 
   # get competition vector
-  comp_vec <- 1 + diag((solve(norm_constant) %*% n) %*% t(alpha_i))
+  comp_vec <- 1 + diag(norm_constant %*% n %*% t(alpha_i))
 
   # fecundity model
   return(
-    lambda_it / comp_vec
+    rpois(n = length(lambda_it), lambda = (lambda_it / comp_vec))
   )
 }
 
@@ -274,8 +374,8 @@ P_d_exp <- function(d, d_max, lambda){
 #' @param d_max Max distance (vertical and horizontal, not diagonal) for dispersal (currently
 #' set as a global parameter and is not species-specific).
 #' @param rate Exponential rate parameter(s) for each species defining the dispersal kernel. This
-#' can be a vector of length \eqn{S}, where \eqn{S} is the number of species in the model, or a single value giving
-#' all species equal dispersal distributions.
+#' can be a vector of length \eqn{S}, where \eqn{S} is the number of species in the model, or a scalar,
+#' giving all species equal dispersal distributions.
 #'
 #' @return An array with \eqn{S} slices made up of \eqn{M \times J} matrices, where \eqn{M \times J}
 #' is the dimension of the lattice.
@@ -298,10 +398,10 @@ P_d_exp <- function(d, d_max, lambda){
 #' seed_rain_array(F_mat, X, d_max, rate)
 #'
 #'
-seed_rain_array <- function(F_mat, X, d_max, rate = 1){
+seed_rain_array <- function(F_mat, X, d_max, rate = 1, nsp){
 
   # store some useful values
-  S <- length(unique(as.vector(X))) # number of species
+  S <- nsp                          # number of species
   M <- nrow(X)                      # number of rows in lattice
   J <- ncol(X)                      # number of columns in lattice
 
