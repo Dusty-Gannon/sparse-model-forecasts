@@ -68,13 +68,18 @@ simulate_communities <- function(sim_params){
     )
   })
 
+  # find and remove any species that went extinct in the first 50 steps after thinning
+  ext2 <- (2:nrow(N_exp))[which(apply(N_exp[-1, ], 1, function(x){
+    mean(x == 0)
+  }) > 0.7)]
+
 
   return(list(
-    N = cbind(N_pre_final, N_exp),
+    N = cbind(N_pre_final[-ext2, ], N_exp[-ext2, ]),
     sim_params = list(
-      lambdas = sim_params$lambdas[nesp],
-      A_mat = sim_params$A_mat[nesp, nesp],
-      sigmas = sim_params$sigmas[nesp],
+      lambdas = sim_params$lambdas[nesp][-ext2],
+      A_mat = sim_params$A_mat[nesp, nesp][-ext2, -ext2],
+      sigmas = sim_params$sigmas[nesp][-ext2],
       start_thin = sim_params$init_steps + 1,
       thin_freq = sim_params$thin_freq
     )
@@ -140,7 +145,7 @@ simulate_communities <- function(sim_params){
 #     )
 #   }
 #
-#   plot_comm(N)
+#  plot_comm(N)
 
 ##### Save the simulated datasets #####
 
@@ -149,7 +154,9 @@ simulate_communities <- function(sim_params){
     {
       as.vector(sapply(sims, function(x){sum(is.na(x$N))})) +
       as.vector(sapply(sims, function(x){
-          sum(is.nan(x$N[1, ]) | x$N[1, ] == 0)
+          if(nrow(x$N) == 0){return(1)} else{
+            sum(is.nan(x$N[1, ]) | x$N[1, ] == 0)
+          }
       }))
     } == 0
   )
