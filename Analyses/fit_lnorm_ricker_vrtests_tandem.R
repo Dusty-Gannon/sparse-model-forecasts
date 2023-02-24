@@ -131,6 +131,7 @@
   # command line arguments
   args <- commandArgs(trailingOnly = T)
   datfile <- args[1]
+  tsteps <- as.numeric(args[2]):as.numeric(args[3])
 
   # load simulated data
   datfp <- paste0("Data/terrestrial_sim_data/lnorm_ricker/", datfile)
@@ -141,19 +142,18 @@
     here("Stan/pop_growth_rate_FHS.stan")
   )
 
-  # apply the above wrapper in parallel
+  # apply the above wrapper to each simulated dataset
   results <- lapply(
     sims,
     FUN = fit_n_summarize,
     stan_mod = growth_mod,
-    tsteps = 51:100,
+    tsteps = tsteps,
     pip = 0.9
   )
 
   # save the results
-  saveRDS(results, file = here(
-    "Data/terrestrial_sim_data/lnorm_ricker/vr_tests.rds"
-  ))
+  outfp <- paste0("Data/terrestrial_sim_data/lnorm_ricker/", args[3])
+  saveRDS(results, file = here(outfp))
 
 
 
