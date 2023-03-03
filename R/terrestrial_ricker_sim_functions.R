@@ -292,17 +292,18 @@ generate_sim_params_vrtests <- function(
 #' @param thin_freq Frequency of thinning treatments. \code{thin_freq = 0} will proceed without
 #' thinning treatments, while a value of \code{thin_freq = c} with c > 0, will perform a
 #' thinning treatment every c years.
+#' @param prop_cthin Proportion of the community that should be thinned throughout the time series.
 #' @param thin_factor Factor by which to thin a species. \code{thin_freq = 0.1} with thin a
 #' species to 10 percent of its population density in the previous year.
 #'
 #' @return List of simulation parameters
 #'
 generate_sim_params_thin <- function(
-    x, nsp = 40, init_steps = 100, tot_steps = 500, num_ngs = 3,
+    nsp = 40, init_steps = 100, tot_steps = 500, num_ngs = 3,
     sigma_rng = c(0.1, 0.5), alpha_rng = c(0.005, 0.01),
     lambda_rng = c(1.2, 1.8), ng_range = c(0.2, 0.4), rho = 0,
     mean_init_abund = 20, comp_matrix_type = 2, thin_freq = 2,
-    thin_factor = 0.1, target_thin = TRUE
+    prop_cthin = 1, thin_factor = 0.1, target_thin = TRUE
 ){
 
   # generate competition matrix
@@ -330,7 +331,7 @@ generate_sim_params_thin <- function(
       lambdas = runif(nsp, min = lambda_rng[1], max = lambda_rng[2]),
       N_0 = rpois(nsp, lambda = mean_init_abund),
       thin_factor = thin_factor, thin_freq = thin_freq,
-      target_thin = target_thin
+      prop_cthin = prop_cthin, target_thin = target_thin
     )
   )
 
@@ -395,7 +396,11 @@ ricker_ts_lnorm_foc <- function(N_0, lambda, A_i, sigma_i, N_het, steps = 300, h
 #' as steps.
 #'
 #'
-ricker_ts_lnorm <- function(N_0, lambdas, A_mat, sigmas, steps, thin_freq = 0, thin_factor = 0.1, thin_order = NULL){
+ricker_ts_lnorm <- function(
+    N_0, lambdas, A_mat, sigmas, steps,
+    thin_freq = 0, thin_factor = 0.1, thin_order = NULL,
+    thin_levels = NULL
+){
 
   nsp <- length(N_0)
   # initialize tracking matrix
@@ -423,13 +428,18 @@ ricker_ts_lnorm <- function(N_0, lambdas, A_mat, sigmas, steps, thin_freq = 0, t
 
     # create vector of thinning factors
     thin <- rep(1, steps)
-    thin[thin_freq * c(1:floor(steps/thin_freq))] <- thin_factor
+    if(is.null(thin_levels)){
+      thin[thin_freq * c(1:floor(steps/thin_freq))] <- thin_factor
+    } else{
+      thin[thin_freq * c(1:floor(steps/thin_freq))] <- 0
+    }
+
 
     # create vector that cycles through the thinning order
     if(is.null(thin_order)){thin_order <- sample(1:nsp)}
     sp2thin <- rep(
       rep(thin_order, each = thin_freq),
-      ceiling(steps / (thin_freq * nsp))
+      ceiling(steps / (thin_freq * length(thin_order)))
     )
 
     # now proceed with simulations
@@ -440,7 +450,14 @@ ricker_ts_lnorm <- function(N_0, lambdas, A_mat, sigmas, steps, thin_freq = 0, t
       N[extinct, t - 1] <- 0
 
       # thin species if it was a thinning year
-      N[sp2thin[t - 1], t - 1] <- N[sp2thin[t - 1], t - 1] * thin[t - 1]
+      if(is.null(thin_levels)){
+        N[sp2thin[t - 1], t - 1] <- N[sp2thin[t - 1], t - 1] * thin[t - 1]
+      } else{
+        thinsp_id <- which(thin_order == sp2thin[t - 1])
+        if(thin[t - 1] == 0){
+          N[sp2thin[t - 1], t - 1] <- min(N[sp2thin[t - 1], t - 1], thin_levels[thinsp_id])
+        }
+      }
 
       # step the process forward
       nesp <- (1:nsp)[-extinct]

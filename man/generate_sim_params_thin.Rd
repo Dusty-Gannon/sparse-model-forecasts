@@ -5,7 +5,6 @@
 \title{Generate simulation parameters for single TS thinning experiments}
 \usage{
 generate_sim_params_thin(
-  x,
   nsp = 40,
   init_steps = 100,
   tot_steps = 500,
@@ -18,13 +17,12 @@ generate_sim_params_thin(
   mean_init_abund = 20,
   comp_matrix_type = 2,
   thin_freq = 2,
+  prop_cthin = 1,
   thin_factor = 0.1,
   target_thin = TRUE
 )
 }
 \arguments{
-\item{x}{Dummy variable so that this function is straight forward to use with apply statements}
-
 \item{nsp}{Number of species to start with}
 
 \item{init_steps}{Number of steps before thinning}
@@ -54,8 +52,12 @@ or structured so that no species gets overloaded with strong competitors (\code{
 thinning treatments, while a value of \code{thin_freq = c} with c > 0, will perform a
 thinning treatment every c years.}
 
+\item{prop_cthin}{Proportion of the community that should be thinned throughout the time series.}
+
 \item{thin_factor}{Factor by which to thin a species. \code{thin_freq = 0.1} with thin a
 species to 10 percent of its population density in the previous year.}
+
+\item{x}{Dummy variable so that this function is straight forward to use with apply statements}
 }
 \value{
 List of simulation parameters
