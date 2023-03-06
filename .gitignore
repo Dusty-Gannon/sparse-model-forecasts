@@ -15,6 +15,9 @@ dist/
 
 # Log files
 *.log
+*.out 
+ricker_thintests
+Simulations/slurmlogs
 
 # Package files
 *.jar
