@@ -3,7 +3,7 @@
 #SBATCH --account=modelscape
 #SBATCH --nodes=1
 #SBATCH --time=00:30:00
-#SBATCH --ntasks-per-node=21
+#SBATCH --ntasks-per-node=4
 #SBATCH --cpus-per-task=1
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=acarte26@beartooth.arcc.uwyo.edu
@@ -20,7 +20,7 @@ LogFile=ARpmod_sims.log
 cd /project/modelscape/analyses/sponges/Simulations
 
 # Load R and MPI
-module load gcc/11.2.0 r/4.2.2s
+module load arcc/1.0 gcc/12.2.0 r/4.2.2
 
 echo '----------------------' > slurmlogs/slurm.out 
 echo '----------------------' > slurmlogs/slurm.err

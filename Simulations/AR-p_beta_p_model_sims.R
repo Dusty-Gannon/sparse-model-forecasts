@@ -1,17 +1,17 @@
 
 # libraries
 library(rstan)
-library(here)
+#library(here)
 devtools::load_all()
 
 #### Simulate data and run regularized and non-regularized AR-p_beta models ####
 # store data inputs and model fits in a log file
 
-  args <- commandArgs()
-
+  args <- commandArgs(trailingOnly = TRUE)
+  
   #number of simulations to run:
   nsims <- as.numeric(args[1])
-
+  
   # simulate AR-p data (will update in future to have variable inputs)
   input_pars <- list(
     n = 300,      # length of time series
@@ -27,14 +27,19 @@ devtools::load_all()
     holdout = 50
   )
 
-  ARp_beta_sims <- function(input_pars){
+  #ARp_beta_sims <- function(input_pars){
+
     model_pars <- simulate_AR_p_beta_p_timeseries(input_pars)
+    message("donkey")
     fits <- fit_ARp_beta_model(model_pars)
+    message("pastry")
     sim_list <- unpack_ARp_fit(fits)
-    return(fits)
+   # return(fits)
 
-  }
+  #}
+  
 
+ 
   # make the cluster
   cl <- parallel::makeCluster(20)
 
@@ -42,23 +47,23 @@ devtools::load_all()
   parallel::clusterEvalQ(
     cl = cl,
     expr = {
-      library(here)
-      src_files <- list.files(here("R/"), pattern = "*.R", full.names = T)
+ #     library(here)
+      src_files <- list.files("/project/modelscape/analyses/sponges/R", pattern = "*.R", full.names = T)
       sapply(src_files, source, .GlobalEnv)
     }
   )
-
+  
   # run the simulations in parallel
-  sim_dat <- parallel::parLapply(
-    cl = cl,
-    X = 1:nsims,
-    fun = ARp_beta_sims,
-    input_pars = input_pars
-  )
 
+  #sim_dat <- parallel::parLapply(
+  #  cl = cl,
+  #  X = 1:nsims,
+  #  fun = ARp_beta_sims,
+  #  input_pars = input_pars
+  #)
   # stop the cluster and save the results
   parallel::stopCluster(cl)
   fname <- paste0("simdat_", args[1], ".rds")
   fpath <- paste0("Data/aquatic_sim_data/", fname)
-  saveRDS(sim_dat, file = here(fpath))
+  saveRDS(sim_dat, file = "/project/modelscape/analyses/sponges/Data/aquatic_sim_data/")
 
