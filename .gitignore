@@ -55,7 +55,10 @@ Thumbs.db
 .Rhistory
 
 # Data files
-/Data
+/Data/*
+!/Data/aquatic_sims
+/Data/aquatic_sims/*
+!/Data/aquatic_sims/summary_files
 
 # presentation files
 /Presentations
