@@ -155,7 +155,8 @@
   cl <- makeCluster(20)
     clusterEvalQ(cl, expr = {
       src_files <- list.files(here("R/"), pattern = "*.R", full.names = T);
-      sapply(src_files, source, .GlobalEnv)
+      sapply(src_files, source, .GlobalEnv);
+      library(here); library(rstan)
     })
 
     results <- clusterLapply(

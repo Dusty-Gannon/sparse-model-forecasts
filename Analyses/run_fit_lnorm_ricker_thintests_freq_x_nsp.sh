@@ -19,4 +19,4 @@ cd /project/modelscape/analyses/sponges/Analyses
 # Load R
 module load arcc/1.0  gcc/12.2.0  r/4.2.2
 
-Rscript --vanilla $Rscript lnorm_ricker_thin_freq-by-nsp_ordered_S5_s55.rds 51 500 freq-by-nsp_thintests_mfits.rds > $LogFile
+Rscript --vanilla $Rscript lnorm_ricker_thin_freq_x_nsp_ordered_S5_s55.rds 51 500 freq_x_nsp_thintests_mfits.rds > $LogFile
