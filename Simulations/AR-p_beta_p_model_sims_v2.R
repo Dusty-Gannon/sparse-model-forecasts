@@ -13,11 +13,12 @@ setwd("/project/modelscape/analyses/sponges/")
   args <- commandArgs(trailingOnly = TRUE)
 
   #number of simulations to run:
-  nsims <- as.numeric(args[2])
+  nsteps <- as.numeric(args[3])
+  sigma <- as.numeric(args[4])
 
   # simulate AR-p data (will update in future to have variable inputs)
   input_pars <- list(
-    n = 300,      # length of time series
+    n = nsteps,   # length of time series
     p  = 16,      # number of AR lags to consider
     beta_p = 5,   # number of beta lags to consider in lagged covariate (beta_1)
     beta_n = 45,  # number of additional covariates to include
@@ -26,8 +27,8 @@ setwd("/project/modelscape/analyses/sponges/")
     n_lags = 2,   # number of non-zero lags in covariate
     n_beta = 2,   # number of non-zero covariate parameters
     non_zero_coef_guess = 5, # guess for the number of non-zero coefficients
-    sigma_e = 1,  #standard deviation of the innovations
-    holdout = 50
+    sigma_e = sigma,  #standard deviation of the innovations
+    holdout = 30
   )
 
   ARp_beta_sims <- function(input_pars){

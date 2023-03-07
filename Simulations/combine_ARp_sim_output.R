@@ -1,6 +1,7 @@
 # concatenate files from batch SLURM runs
 
 # args <- 'ARp_sims_test'
+setwd("/project/modelscape/analyses/sponges/")
 args <- commandArgs(trailingOnly = TRUE)
 
 filelist <- paste0('Data/aquatic_sim_data/', args[1], '/',
@@ -9,7 +10,8 @@ filelist <- paste0('Data/aquatic_sim_data/', args[1], '/',
 
 out <- lapply( filelist, function(x) c(readRDS(x)))
 
-saveRDS(out, paste0('Data/aquatic_sim_data/', args[1], '.rds'))
+saveRDS(out, paste0('Data/aquatic_sim_data/', args[1], '_', args[2], 'steps_',
+		    args[3], 'sigma.rds'))
 
 
 df <- data.frame()
@@ -28,7 +30,9 @@ for(i in 1:length(out)){
                   mean(out[[i]]$mod_fit_nr$rmse$rmse_sigma))
   )
 
-  df <- bind_rows(df,dd)
+  df <- rbind(df,dd)
 }
 
-write.csv(df, paste0('Data/aquatic_sim_data/', args[1], '_condensed.csv'))
+write.csv(df, paste0('Data/aquatic_sim_data/', args[1], '_', args[2], 'steps_',
+		     args[3], 'sigma_condensed.csv'),
+	  row.names = FALSE)
