@@ -65,7 +65,7 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL){
   for(nm in names(input_pars)){
     model_pars[[nm]] <- input_pars[[nm]]
   }
-  
+
   # draw parameters from distributions:
   model_pars$beta = c(model_pars$b0,
                       sample(c(rnorm(model_pars$n_lags, 0, 1),
@@ -78,7 +78,7 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL){
   if(model_pars$holdout > 0.3 * model_pars$n){
     model_pars$holdout = floor(0.3) * model_pars$n
   }
-  
+
   ### generate the model matrix with some correlated variables ###
   # To create a covariance matrix, step one is to create an orthogonal matrix,
   # which can be done using QR decomposition of an arbitrary matrix
@@ -195,7 +195,7 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL){
 
 fit_ARp_beta_model <- function(model_pars, fit_nr = TRUE){
   # compile stan model
-  arp_r <- rstan::stan_model("/project/modelscape/analyses/sponges/Stan/AR-p_FHS-p-beta.stan")
+  arp_r <- rstan::stan_model("Stan/AR-p_FHS-p-beta.stan")
 
   # compile data (see Stan file for descriptions of each input)
   datlist <- list(
@@ -231,7 +231,7 @@ fit_ARp_beta_model <- function(model_pars, fit_nr = TRUE){
       X = model_pars$X[1:(model_pars$n - model_pars$holdout), ]
     )
 
-    arp_nr <- rstan::stan_model("/project/modelscape/analyses/sponges/Stan/AR-p.stan")
+    arp_nr <- rstan::stan_model("Stan/AR-p.stan")
 
     mfit_arp_nr <- rstan::sampling(
       arp_nr,
@@ -350,8 +350,17 @@ unpack_ARp_fit <- function(fits, model_pars = NULL){
 
       # compute prediction root mean squared error for each model
       # RMSE_bayes() is a user-defined function in R/model_checking.R
-      rmse = RMSE_bayes(model_pars$y[(model_pars$n - model_pars$holdout + 1):model_pars$n],
+      rmse_forecast = RMSE_bayes(model_pars$y[(model_pars$n - model_pars$holdout + 1):model_pars$n],
                         ppreds = post_preds[, (model_pars$n - model_pars$holdout + 1):model_pars$n])
+
+      rmse_beta = RMSE_bayes(model_pars$beta, beta_post)
+      rmse_phi = RMSE_bayes(model_pars$phi, phi_post)
+      rmse_sigma = RMSE_bayes(model_pars$sigma_e, sigma_post)
+
+      rmse <- list(rmse_forecast = rmse_forecast,
+                   rmse_beta = rmse_beta,
+                   rmse_phi = rmse_phi,
+                   rmse_sigma = rmse_sigma)
 
 
       mod_fit <- list(
@@ -371,7 +380,7 @@ unpack_ARp_fit <- function(fits, model_pars = NULL){
     return(list(
       model_pars = model_pars,
       mod_fit_r = mod_fit_r,
-      mod_fit_nr = mod_fit_r
+      mod_fit_nr = mod_fit_nr
     ))
   }
 
