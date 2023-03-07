@@ -9,12 +9,22 @@ setwd("/project/modelscape/analyses/sponges/")
 
 #### Simulate data and run regularized and non-regularized AR-p_beta models ####
 # store data inputs and model fits in a log file
+   nsims <- 300
+   sigmas <- c(0.1, 1, 10)
+   lengths <- c(65, 125, 185, 245, 370)
+
+   sim_df <- data.frame(
+     sigma = rep(sigmas, each = nsims * length(lengths)),
+     length = rep(rep(lengths, each = nsims), length(sigmas))
+   )
 
   args <- commandArgs(trailingOnly = TRUE)
 
   #number of simulations to run:
-  nsteps <- as.numeric(args[3])
-  sigma <- as.numeric(args[4])
+  i <- as.numeric(args[2])
+  message(paste('i = ', i))
+  nsteps <- sim_df$length[i]
+  sigma <- sim_df$sigma[i]
 
   # simulate AR-p data (will update in future to have variable inputs)
   input_pars <- list(

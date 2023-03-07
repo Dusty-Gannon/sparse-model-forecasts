@@ -10,8 +10,7 @@ filelist <- paste0('Data/aquatic_sim_data/', args[1], '/',
 
 out <- lapply( filelist, function(x) c(readRDS(x)))
 
-saveRDS(out, paste0('Data/aquatic_sim_data/', args[1], '_', args[2], 'steps_',
-		    args[3], 'sigma.rds'))
+saveRDS(out, paste0('Data/aquatic_sim_data/', args[1], '.rds'))
 
 
 df <- data.frame()
@@ -33,6 +32,5 @@ for(i in 1:length(out)){
   df <- rbind(df,dd)
 }
 
-write.csv(df, paste0('Data/aquatic_sim_data/', args[1], '_', args[2], 'steps_',
-		     args[3], 'sigma_condensed.csv'),
+write.csv(df, paste0('Data/aquatic_sim_data/summary_files/', args[1], '_condensed.csv'),
 	  row.names = FALSE)

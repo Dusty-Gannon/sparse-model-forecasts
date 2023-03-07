@@ -11,7 +11,7 @@
 #SBATCH --time=07:00:00
 #SBATCH -o slurmlogs/slurm.out
 #SBATCH -e slurmlogs/slurm.err
-#SBATCH --array=1-300
+#SBATCH --array=1-4500
 
 # Set the parameter combination to use and generate names of R scripts and log file
 Rscript=AR-p_beta_p_model_sims_v2.R
@@ -25,4 +25,4 @@ cd /project/modelscape/analyses/sponges/Simulations
 # Load R and MPI
 module load arcc/1.0 gcc/12.2.0 r/4.2.2
 
-Rscript --vanilla $Rscript $1 $SLURM_ARRAY_TASK_ID $2 $3
+Rscript --vanilla $Rscript $1 $SLURM_ARRAY_TASK_ID
