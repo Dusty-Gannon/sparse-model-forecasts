@@ -3,6 +3,7 @@
 library(rstan)
 #library(here)
 devtools::load_all()
+rstan_options(auto_write = TRUE)
 
 #### Simulate data and run regularized and non-regularized AR-p_beta models ####
 # store data inputs and model fits in a log file
@@ -26,19 +27,17 @@ devtools::load_all()
     sigma_e = 1,  #standard deviation of the innovations
     holdout = 50
   )
-
-  #ARp_beta_sims <- function(input_pars){
+  
+  ARp_beta_sims <- function(input_pars){
 
     model_pars <- simulate_AR_p_beta_p_timeseries(input_pars)
-    message("donkey")
     fits <- fit_ARp_beta_model(model_pars)
-    message("pastry")
     sim_list <- unpack_ARp_fit(fits)
-   # return(fits)
+    return(fits)
 
-  #}
-  
-
+  }
+   
+#sim_dat <- ARp_beta_sims(input_pars)
  
   # make the cluster
   cl <- parallel::makeCluster(20)
@@ -55,15 +54,18 @@ devtools::load_all()
   
   # run the simulations in parallel
 
-  #sim_dat <- parallel::parLapply(
-  #  cl = cl,
-  #  X = 1:nsims,
-  #  fun = ARp_beta_sims,
-  #  input_pars = input_pars
-  #)
+  sim_dat <- parallel::parLapply(
+    cl = cl,
+    X = 1:nsims,
+    fun = ARp_beta_sims,
+    input_pars = input_pars
+  )
+  
   # stop the cluster and save the results
   parallel::stopCluster(cl)
-  fname <- paste0("simdat_", args[1], ".rds")
+  fname <- paste0("/simdat_", args[1], ".rds")
   fpath <- paste0("Data/aquatic_sim_data/", fname)
-  saveRDS(sim_dat, file = "/project/modelscape/analyses/sponges/Data/aquatic_sim_data/")
+  saveRDS(sim_dat, file = paste0("/project/modelscape/analyses/sponges/", fpath))
+
+  message("donkey")
 

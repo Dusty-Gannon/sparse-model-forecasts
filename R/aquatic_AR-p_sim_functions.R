@@ -65,7 +65,7 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL){
   for(nm in names(input_pars)){
     model_pars[[nm]] <- input_pars[[nm]]
   }
-
+  
   # draw parameters from distributions:
   model_pars$beta = c(model_pars$b0,
                       sample(c(rnorm(model_pars$n_lags, 0, 1),
@@ -74,12 +74,11 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL){
                       sample(c(rnorm(model_pars$n_beta, 0, 1),
                                rep(0, model_pars$beta_n - model_pars$n_beta)),
                              replace = FALSE))
-
   # do not allow a holdout size of greater than 30% of the data
   if(model_pars$holdout > 0.3 * model_pars$n){
     model_pars$holdout = floor(0.3) * model_pars$n
   }
-
+  
   ### generate the model matrix with some correlated variables ###
   # To create a covariance matrix, step one is to create an orthogonal matrix,
   # which can be done using QR decomposition of an arbitrary matrix
@@ -137,7 +136,6 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL){
     model_pars$phi = sample(c(runif(model_pars$n_phi, -1, 1),
                               rep(0, model_pars$p - model_pars$n_phi)),
                             replace = FALSE)
-
     result <- try({
       y <- sarima::sim_sarima(
         n = n,
@@ -197,7 +195,7 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL){
 
 fit_ARp_beta_model <- function(model_pars, fit_nr = TRUE){
   # compile stan model
-  arp_r <- rstan::stan_model(here("Stan/AR-p_FHS-p-beta.stan"))
+  arp_r <- rstan::stan_model("/project/modelscape/analyses/sponges/Stan/AR-p_FHS-p-beta.stan")
 
   # compile data (see Stan file for descriptions of each input)
   datlist <- list(
@@ -233,7 +231,7 @@ fit_ARp_beta_model <- function(model_pars, fit_nr = TRUE){
       X = model_pars$X[1:(model_pars$n - model_pars$holdout), ]
     )
 
-    arp_nr <- rstan::stan_model(here("Stan/AR-p.stan"))
+    arp_nr <- rstan::stan_model("/project/modelscape/analyses/sponges/Stan/AR-p.stan")
 
     mfit_arp_nr <- rstan::sampling(
       arp_nr,
