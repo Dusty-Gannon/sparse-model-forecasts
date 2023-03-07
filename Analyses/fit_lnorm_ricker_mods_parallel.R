@@ -50,7 +50,7 @@
     )
 
     if(is.null(cntrl_args)){
-      mfit <- sampling(
+      mfit <- rstan::sampling(
         stan_mod,
         data = datlist,
         cores = 3, chains = 3,
@@ -144,7 +144,7 @@
 
   # load simulated data
   datfp <- paste0("Data/terrestrial_sim_data/lnorm_ricker/", datfile)
-  sims <- readRDS(here(datfp))
+  sims <- readRDS(here::here(datfp))
 
   # compile stan model
   growth_mod <- rstan::stan_model(
@@ -154,9 +154,9 @@
   # apply the above wrapper to each simulated dataset
   cl <- makeCluster(20)
     clusterEvalQ(cl, expr = {
+      library(here); library(rstan)
       src_files <- list.files(here("R/"), pattern = "*.R", full.names = T);
       sapply(src_files, source, .GlobalEnv);
-      library(here); library(rstan)
     })
 
     results <- clusterLapply(
