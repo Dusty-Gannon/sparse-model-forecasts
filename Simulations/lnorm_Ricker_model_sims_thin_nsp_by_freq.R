@@ -10,7 +10,7 @@ devtools::load_all()
 # a Ricker population model for each competing species.
 # Demographic stochasticity enters in the exponent,
 # resulting in log-normally distributed errors. We assess, after
-# 100 time steps, which species are coexisting, then select a focal
+# 50 time steps, which species are coexisting, then select a focal
 # species and conduct targeted thinning of non-focal species
 ###################################################################
 
@@ -45,7 +45,8 @@ simulate_communities <- function(sim_params){
         A_mat = sim_params$A_mat[-ext, -ext],
         sigmas = sim_params$sigmas[-ext],
         start_thin = NA,
-        thin_freq = 0
+        thin_freq = 0,
+        prop_cthin = 0
       )
     ))
 
@@ -64,6 +65,9 @@ simulate_communities <- function(sim_params){
       )
     })
 
+    # name species for easier tracking
+    rownames(N_pre) <- 1:sim_params$nsp
+
     # get species that are not extinct after warmup
     nesp <- which(!(N_pre[, sim_params$init_steps] == 0))
     ext <- which(N_pre[, sim_params$init_steps] == 0)
@@ -79,14 +83,14 @@ simulate_communities <- function(sim_params){
       thin_order <- (2:nrow(N_pre_final))[
         order(temp_means, decreasing = T)
       ][1:nthin]
-      thin_levels <- (sort(temp_means, decreasing = T) * thin_factor)[1:nthin]
+      thin_sp_names <- rownames(N_pre_final)[thin_order]
+      thin_levels <- (sort(temp_means, decreasing = T) * sim_params$thin_factor)[1:nthin]
     } else{
       thin_order <- sample(2:nrow(N_pre_final), size = nthin)
-      thin_levels <- temp_means[thin_order] * thin_factor
+      thin_levels <- temp_means[thin_order] * sim_params$thin_factor
     }
 
-
-
+    # combine original list with newly created variables
     param_list_r2 <- c(
       list(
         N_pre = N_pre_final,
@@ -112,14 +116,20 @@ simulate_communities <- function(sim_params){
       )
     })
 
+    rownames(N_exp) <- rownames(N_pre_final)
+
     # find and remove any species that went extinct in the first 50 steps after thinning
     ext2 <- (2:nrow(N_exp))[which(apply(N_exp[-1, ], 1, function(x){
       mean(x == 0)
     }) > 0.7)]
 
+    # make some return objects
+    N = cbind(N_pre_final[-ext2, -sim_params$init_steps], N_exp[-ext2, ])
+    thinned_sp = which(rownames(N) %in% thin_sp_names)
 
     return(list(
-      N = cbind(N_pre_final[-ext2, -init_steps], N_exp[-ext2, ]),
+      N = N,
+      thinned_sp = thinned_sp,
       sim_params = list(
         lambdas = sim_params$lambdas[nesp][-ext2],
         A_mat = sim_params$A_mat[nesp, nesp][-ext2, -ext2],
@@ -133,13 +143,15 @@ simulate_communities <- function(sim_params){
 }
 
 
+
 ##### Defining ranges for parameter generation #####
 
   # some general simulation conditions
   set.seed(5254)
-  thin_freq <- 1:5
+  thin_freq <- 1:10
   prop_cthin <- seq(0.1, 1, by = 0.1)
   reps <- 500
+  target_reps <- 100
 
   # complete the factorial table
   freq_prop_df <- expand.grid(thin_freq, prop_cthin)
@@ -180,33 +192,45 @@ simulate_communities <- function(sim_params){
     params[[i]]$prop_cthin <- freq_prop_df$prop_cthin[i]
   }
 
-  sims <- lapply(
-    params,
-    FUN = simulate_communities
-  )
+# simulate in parallel
+  cl <- makeCluster(20)
+
+   # load functions on each node
+    clusterEvalQ(cl, expr = {
+       devtools::load_all()
+     })
+
+   # simulate
+    sims <- parLapply(
+      cl = cl,
+      params,
+      fun = simulate_communities
+    )
+
+  stopCluster(cl)
 
 # ##### Quick checks #####
- sapply(sims, function(x){sum(x$N_full[, steps] > 0)})
-
-  plot_comm <- function(N){
-    library(ggplot2)
-    nsp <- nrow(N)
-    steps <- ncol(N)
-
-    df <- data.frame(
-      t = rep(1:steps, each = nsp),
-      sp = as.factor(rep(1:nsp, steps)),
-      N = as.vector(N)
-    )
-
-    return(
-      ggplot(data = df, aes(x = t, y = N, color = sp)) +
-        geom_line() +
-        theme_classic()
-    )
-  }
-
- plot_comm(N)
+ # sapply(sims, function(x){sum(x$N_full[, steps] > 0)})
+ #
+ #  plot_comm <- function(N){
+ #    library(ggplot2)
+ #    nsp <- nrow(N)
+ #    steps <- ncol(N)
+ #
+ #    df <- data.frame(
+ #      t = rep(1:steps, each = nsp),
+ #      sp = as.factor(rep(1:nsp, steps)),
+ #      N = as.vector(N)
+ #    )
+ #
+ #    return(
+ #      ggplot(data = df, aes(x = t, y = N, color = sp)) +
+ #        geom_line() +
+ #        theme_classic()
+ #    )
+ #  }
+ #
+ # plot_comm(N)
 
 ##### Save the simulated datasets #####
 
@@ -223,11 +247,11 @@ simulate_communities <- function(sim_params){
   )
 
   # sample from good sims
-  grps <- length(sims) / reps_per_thin_freq
+  grps <- length(sims) / reps
   sub_ids <- vector(mode = "double")
   for(i in 1:grps){
 
-    good_ids <- to_keep[to_keep %in% ((i - 1) * reps_per_thin_freq + 1):(i * reps_per_thin_freq)]
+    good_ids <- to_keep[to_keep %in% ((i - 1) * reps + 1):(i * reps)]
     sub_ids <- c(
       sub_ids,
       sample(good_ids, target_reps)
@@ -239,10 +263,22 @@ simulate_communities <- function(sim_params){
   sims_final <- sims[sub_ids]
 
 
+  # sanity check
+  test_df <- data.frame(
+    thin_freq = purrr::map_dbl(
+      sims_final,
+      ~ .x$sim_params$thin_freq
+    ),
+    prop_cthin = purrr::map_dbl(
+      sims_final,
+      ~ .x$sim_params$prop_cthin
+    )
+  )
+
 ##### Save simulations #####
 
   fname <- paste0(
-    "lnorm_ricker_thin_sims_ordered",
+    "lnorm_ricker_thin_freq-by-nsp_ordered",
     "_S", num_ngs,
     "_s", nsp - num_ngs, ".rds"
   )
