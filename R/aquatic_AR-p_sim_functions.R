@@ -68,16 +68,16 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL){
 
   # draw parameters from distributions:
   model_pars$beta = c(model_pars$b0,
-                      sample(c(rnorm(model_pars$n_lags, 0, 1),
+                      sample(c(rnorm(model_pars$n_lags, 0, 3),
                                rep(0, model_pars$beta_p - model_pars$n_lags)),
                              replace = FALSE ),
-                      sample(c(rnorm(model_pars$n_beta, 0, 1),
-                               rep(0, model_pars$beta_n - model_pars$n_beta)),
+                      sample(c(rnorm(model_pars$n_beta, 0, 3),
+                               rnorm(model_pars$beta_n - model_pars$n_beta, 0, 0.05)),
                              replace = FALSE))
   # do not allow a holdout size of greater than 30% of the data
-  if(model_pars$holdout > 0.3 * model_pars$n){
-    model_pars$holdout = floor(0.3) * model_pars$n
-  }
+  # if(model_pars$holdout > 0.3 * model_pars$n){
+  #   model_pars$holdout = floor(0.3) * model_pars$n
+  # }
 
   ### generate the model matrix with some correlated variables ###
   # To create a covariance matrix, step one is to create an orthogonal matrix,
