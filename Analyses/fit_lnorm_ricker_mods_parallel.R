@@ -154,12 +154,12 @@
   # apply the above wrapper to each simulated dataset
   cl <- makeCluster(20)
     clusterEvalQ(cl, expr = {
-      library(here); library(rstan)
-      src_files <- list.files(here("R/"), pattern = "*.R", full.names = T);
-      sapply(src_files, source, .GlobalEnv);
+      library(here); library(rstan); devtools::load_all()
+      # src_files <- list.files(here("R/"), pattern = "*.R", full.names = T);
+      # sapply(src_files, source, .GlobalEnv);
     })
 
-    results <- clusterLapply(
+    results <- parLapply(
       cl,
       sims,
       fun = fit_n_summarize,
