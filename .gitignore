@@ -17,6 +17,7 @@ dist/
 *.log
 *.out 
 ricker_thintests
+ricker_thin2
 Simulations/slurmlogs
 
 # Package files
