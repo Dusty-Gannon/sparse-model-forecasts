@@ -1,14 +1,14 @@
 #!/bin/bash -l
 
 #SBATCH --account=modelscape
-#SBATCH --time=06:00:00
+#SBATCH --time=01:00:00
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=21
+#SBATCH --ntasks-per-node=26
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=8G
+#SBATCH --mem=20G
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=dgannon@uwyo.edu
-#SBATCH --array=1-101
+#SBATCH --array=3-202
 
 # Set the parameter combination to use and generate names of R scripts and log file
 Rscript=fit_lnorm_ricker_mods_parallel.R
@@ -24,8 +24,8 @@ module load arcc/1.0  gcc/12.2.0  r/4.2.2
 start=()
 stop=()
 for i in ${SLURM_ARRAY_TASK_ID[@]}; do
-  start+=$(( 100*(i-1)+1 ))
-  stop+=$(( 100*i ))
+  start+=$(( 50*(i-1)+1 ))
+  stop+=$(( 50*i ))
 done
 
 Rscript --vanilla $Rscript lnorm_ricker_thin_freq_x_nsp_ordered_S5_s55.rds 51 500 ${start} ${stop} "freq_x_nsp_thintests_${start}_${stop}.rds" > "$LogFile_pref${start}_${stop}"
