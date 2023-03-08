@@ -37,7 +37,7 @@
   )
 
   # apply the above wrapper to each simulated dataset
-  cl <- makeCluster(20)
+  cl <- makeCluster(25)
     clusterEvalQ(cl, expr = {
       library(here); library(rstan); devtools::load_all()
       # src_files <- list.files(here("R/"), pattern = "*.R", full.names = T);
