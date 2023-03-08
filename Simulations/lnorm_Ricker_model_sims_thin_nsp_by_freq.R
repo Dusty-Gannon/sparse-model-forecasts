@@ -109,7 +109,7 @@ simulate_communities <- function(sim_params){
         lambdas = lambdas[nesp],
         A_mat = A_mat[nesp, nesp],
         sigmas = sigmas[nesp],
-        steps = tot_steps - init_steps,
+        steps = tot_steps - init_steps + 1,
         thin_freq = thin_freq,
         thin_levels = thin_levels,
         thin_order = thin_order
@@ -278,7 +278,7 @@ simulate_communities <- function(sim_params){
 ##### Save simulations #####
 
   fname <- paste0(
-    "lnorm_ricker_thin_freq-by-nsp_ordered",
+    "lnorm_ricker_thin_freq_x_nsp_ordered",
     "_S", num_ngs,
     "_s", nsp - num_ngs, ".rds"
   )

@@ -20,10 +20,16 @@
   args <- commandArgs(trailingOnly = T)
   datfile <- args[1]
   tsteps <- as.numeric(args[2]):as.numeric(args[3])
+  sim_ids <- as.numeric(args[4]):as.numeric(args[5])
+
+  # print some things for the log file
+  print(
+    paste0("Starting on sims ", sim_ids[1], " to ", sim_ids[length(sim_ids)])
+  )
 
   # load simulated data
   datfp <- paste0("Data/terrestrial_sim_data/lnorm_ricker/", datfile)
-  sims <- readRDS(here::here(datfp))
+  sims <- readRDS(here::here(datfp))[sim_ids]
 
   # compile stan model
   growth_mod <- rstan::stan_model(
@@ -50,7 +56,7 @@
   stopCluster(cl)
 
   # save the results
-  outfp <- paste0("Data/terrestrial_sim_data/lnorm_ricker/", args[3])
+  outfp <- paste0("Data/terrestrial_sim_data/lnorm_ricker/", args[6])
   saveRDS(results, file = here(outfp))
 
 
