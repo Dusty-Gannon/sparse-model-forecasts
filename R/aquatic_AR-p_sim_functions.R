@@ -286,125 +286,125 @@ fit_ARp_beta_model <- function(model_pars, iter = 2000,
 #' @export
 #'
 
-
 unpack_ARp_fit <- function(fits, model_pars = NULL){
-
-  extract_predict_fit <- function(fit, reg = TRUE){
-      # Extract posterior estimates
-      if(reg){
-        alpha_post <- rstan::extract(fit, pars = "alpha")$alpha
-        beta_post <- cbind(alpha_post,
-                           rstan::extract(fit, pars = "beta")$beta)
-      }else{
-          beta_post <- rstan::extract(fit, pars = "beta")$beta
-
-      }
-
-      phi_post <- rstan::extract(fit, pars = "phi")$phi
-      sigma_post <- rstan::extract(fit, pars = "sigma")$sigma
-
-      beta_hat <- data.frame(
-        mean = apply(beta_post, 2, mean),
-        low = apply(beta_post, 2, quantile, probs = 0.025),
-        high = apply(beta_post, 2, quantile, probs = 0.975)
-      )
-
-      phi_hat <- data.frame(
-        mean = apply(phi_post, 2, mean),
-        low = apply(phi_post, 2, quantile, probs = 0.025),
-        high = apply(phi_post, 2, quantile, probs = 0.975)
-      )
-      # reverse the estimates to match input vector
-      phi_hat <- phi_hat[nrow(phi_hat):1,]
-
-      sigma_hat <- data.frame(
-        mean = mean(sigma_post),
-        low = quantile(sigma_post, probs = 0.025),
-        high = quantile(sigma_post, probs = 0.975)
-
-      )
-
-      par_ests <- list(beta_hat = beta_hat,
-                       phi_hat = phi_hat,
-                       sigma_hat = sigma_hat)
-      # forecast the held-out observations
-
-      y_rep <- rstan::extract(fit, pars = "y_rep")$y_rep
-      draws <- nrow(beta_post)
-
-      # matrix of draws from the posterior-predictive distribution
-      post_preds <- matrix(nrow = draws, ncol = model_pars$n)
-
-      # fill in first p observations that are considered fixed
-      post_preds[, 1:model_pars$p] <- matrix(
-        rep(model_pars$y[1:model_pars$p], each = draws),
-        nrow = draws, ncol = model_pars$p
-      )
-
-      # fill in post. pred. draws from stan
-      post_preds[, (model_pars$p + 1):(model_pars$n - model_pars$holdout)] <- y_rep
-
-      for(i in 1:draws){
-        for(t in (model_pars$n - model_pars$holdout + 1):model_pars$n){
-          # regularized model
-          y_past <- as.double(post_preds[i, (t - model_pars$p):(t - 1)])
-          post_preds[i, t] <- model_pars$X[t, ] %*% beta_post[i, ] +
-            phi_post[i, ] %*% y_past + rnorm(1, sd = sigma_post[i])
-        }
-      }
-
-      forecast <- data.frame(
-        time = 1:model_pars$n,
-        y = as.double(model_pars$y),
-        estim = apply(post_preds, 2, mean),
-        low = apply(post_preds, 2, quantile, probs = 0.025),
-        high = apply(post_preds, 2, quantile, probs = 0.975)
-      )
-
-      # compute prediction root mean squared error for each model
-      # RMSE_bayes() is a user-defined function in R/model_checking.R
-      rmse_forecast = RMSE_bayes(model_pars$y[(model_pars$n - model_pars$holdout + 1):model_pars$n],
-                        ppreds = post_preds[, (model_pars$n - model_pars$holdout + 1):model_pars$n])
-
-      rmse_beta = RMSE_bayes(model_pars$beta, beta_post)
-      rmse_phi = RMSE_bayes(model_pars$phi, phi_post)
-      rmse_sigma = RMSE_bayes(model_pars$sigma_e, sigma_post)
-
-      rmse <- list(rmse_forecast = rmse_forecast,
-                   rmse_beta = rmse_beta,
-                   rmse_phi = rmse_phi,
-                   rmse_sigma = rmse_sigma)
-
-      bad_fits <- stan_psum(fit)
-
-      mod_fit <- list(
-        par_ests = par_ests,
-        forecast = forecast,
-        rmse = rmse,
-        bad_fits = bad_fits)
-
-      return(mod_fit)
-
-  }
 
   stan_psum <- function(fit){
 
+    iter <- fit@stan_args[[1]]$iter
     s_init <- as.data.frame(summary(fit)$summary)
     s_init$pars <- row.names(s_init)
     s_init$n_eff_pct <- s_init$n_eff/iter  ## effective samples are the number of independent samples with the same estimation power as the N autocorrelated samples
     s_init$n_eff_less10pct <- ifelse(s_init$n_eff_pct < 0.10, yes = "true", no = "false") # 10% is often used as a threshold, below which the chains for a parameter did not properly converge
-    s <- s_init[,c("pars","Rhat","n_eff_less10pct")] %>%
-      filter(!grepl('^mu', row.names(s_init))) %>%
-      filter(Rhat > 1.1 | n_eff_less10pct == 'true')
+    s <- s_init[,c("pars","Rhat","n_eff_less10pct")]
+    s <- s[!grepl('^mu', row.names(s_init)),]
+    s <- s[s$Rhat > 1.1 | s$n_eff_less10pct == 'true',]
 
     return(s)
 
   }
 
+  extract_predict_fit <- function(fit, reg = TRUE){
+    # Extract posterior estimates
+    if(reg){
+      alpha_post <- rstan::extract(fit, pars = "alpha")$alpha
+      beta_post <- cbind(alpha_post,
+                         rstan::extract(fit, pars = "beta")$beta)
+    }else{
+      beta_post <- rstan::extract(fit, pars = "beta")$beta
+
+    }
+
+    phi_post <- rstan::extract(fit, pars = "phi")$phi
+    sigma_post <- rstan::extract(fit, pars = "sigma")$sigma
+
+    beta_hat <- data.frame(
+      mean = apply(beta_post, 2, mean),
+      low = apply(beta_post, 2, quantile, probs = 0.025),
+      high = apply(beta_post, 2, quantile, probs = 0.975)
+    )
+
+    phi_hat <- data.frame(
+      mean = apply(phi_post, 2, mean),
+      low = apply(phi_post, 2, quantile, probs = 0.025),
+      high = apply(phi_post, 2, quantile, probs = 0.975)
+    )
+    # reverse the estimates to match input vector
+    phi_hat <- phi_hat[nrow(phi_hat):1,]
+
+    sigma_hat <- data.frame(
+      mean = mean(sigma_post),
+      low = quantile(sigma_post, probs = 0.025),
+      high = quantile(sigma_post, probs = 0.975)
+
+    )
+
+    par_ests <- list(beta_hat = beta_hat,
+                     phi_hat = phi_hat,
+                     sigma_hat = sigma_hat)
+    # forecast the held-out observations
+
+    y_rep <- rstan::extract(fit, pars = "y_rep")$y_rep
+    draws <- nrow(beta_post)
+
+    # matrix of draws from the posterior-predictive distribution
+    post_preds <- matrix(nrow = draws, ncol = model_pars$n)
+
+    # fill in first p observations that are considered fixed
+    post_preds[, 1:model_pars$p] <- matrix(
+      rep(model_pars$y[1:model_pars$p], each = draws),
+      nrow = draws, ncol = model_pars$p
+    )
+
+    # fill in post. pred. draws from stan
+    post_preds[, (model_pars$p + 1):(model_pars$n - model_pars$holdout)] <- y_rep
+
+    for(i in 1:draws){
+      for(t in (model_pars$n - model_pars$holdout + 1):model_pars$n){
+        # regularized model
+        y_past <- as.double(post_preds[i, (t - model_pars$p):(t - 1)])
+        post_preds[i, t] <- model_pars$X[t, ] %*% beta_post[i, ] +
+          phi_post[i, ] %*% y_past + rnorm(1, sd = sigma_post[i])
+      }
+    }
+
+    forecast <- data.frame(
+      time = 1:model_pars$n,
+      y = as.double(model_pars$y),
+      estim = apply(post_preds, 2, mean),
+      low = apply(post_preds, 2, quantile, probs = 0.025),
+      high = apply(post_preds, 2, quantile, probs = 0.975)
+    )
+
+    # compute prediction root mean squared error for each model
+    # RMSE_bayes() is a user-defined function in R/model_checking.R
+    rmse_forecast = RMSE_bayes(model_pars$y[(model_pars$n - model_pars$holdout + 1):model_pars$n],
+                               ppreds = post_preds[, (model_pars$n - model_pars$holdout + 1):model_pars$n])
+
+    rmse_beta = RMSE_bayes(model_pars$beta, beta_post)
+    rmse_phi = RMSE_bayes(model_pars$phi, phi_post)
+    rmse_sigma = RMSE_bayes(model_pars$sigma_e, sigma_post)
+
+    rmse <- list(rmse_forecast = rmse_forecast,
+                 rmse_beta = rmse_beta,
+                 rmse_phi = rmse_phi,
+                 rmse_sigma = rmse_sigma)
+
+    bad_fits <- stan_psum(fit = fit)
+
+    mod_fit <- list(
+      par_ests = par_ests,
+      forecast = forecast,
+      rmse = rmse,
+      bad_fits = bad_fits)
+
+    return(mod_fit)
+
+  }
+
   if(is.list(fits)){
     model_pars <- fits$model_pars
-    mod_fit_r <- extract_predict_fit(fits$mfit_r, TRUE)
-    mod_fit_nr <- extract_predict_fit(fits$mfit_nr, FALSE)
+    mod_fit_r <- extract_predict_fit(fit = fits$mfit_r, TRUE)
+    mod_fit_nr <- extract_predict_fit(fit = fits$mfit_nr, FALSE)
 
     return(list(
       model_pars = model_pars,
