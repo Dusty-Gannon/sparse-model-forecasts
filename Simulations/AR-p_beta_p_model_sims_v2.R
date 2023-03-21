@@ -25,7 +25,7 @@ setwd("/project/modelscape/analyses/sponges/")
   i <- as.numeric(args[2])
   i <- 15*(i-1) + 1
 
-  for(j in 0:14){
+  for(j in 0:1){
   # add new lines to error and out file identifying which model this is
   write(paste('model number = ', i+j),
         stderr())
@@ -50,9 +50,9 @@ setwd("/project/modelscape/analyses/sponges/")
 
   ARp_beta_sims <- function(input_pars){
 
-    model_pars <- simulate_AR_p_beta_p_timeseries(input_pars, iter = 4000)
-    fits <- fit_ARp_beta_model(model_pars)
-    sim_list <- unpack_ARp_fit(fits)
+    model_pars <- simulate_AR_p_beta_p_timeseries(input_pars)
+    fits <- fit_ARp_beta_model(model_pars, iter = 4000)
+    sim_list <- unpack_ARp_fit(fits = fits)
     return(sim_list)
 
   }
