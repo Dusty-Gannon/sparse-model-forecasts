@@ -21,7 +21,7 @@ setwd("/project/modelscape/analyses/sponges/")
   
   ARp_beta_sims <- function(input_pars){
 
-    model_pars <- simulate_AR_p_beta_p_timeseries(input_pars)
+    model_pars <- simulate_AR_p_beta_p_timeseries(input_pars, draw_beta = 'zero', draw_phi = 'near_zero')
     fits <- fit_ARp_beta_model(model_pars, iter = 4000)
     sim_list <- unpack_ARp_fit(fits)
     return(sim_list)
