@@ -3,15 +3,15 @@
 #SBATCH --account=modelscape
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=3
+#SBATCH --cpus-per-task=4
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=acarte26@beartooth.arcc.uwyo.edu
 #SBATCH --job-name=ARp_sim1
-#SBATCH --mem=10G
+#SBATCH --mem=30G
 #SBATCH --time=07:00:00
-#SBATCH -o slurmlogs/slurm.out
-#SBATCH -e slurmlogs/slurm.err
-#SBATCH --array=1-4500
+#SBATCH -o slurmlogs/slurm_%A%a.out
+#SBATCH -e slurmlogs/slurm_%A%a.err
+#SBATCH --array=1-3
 
 # Set the parameter combination to use and generate names of R scripts and log file
 Rscript=AR-p_beta_p_model_sims_v2.R

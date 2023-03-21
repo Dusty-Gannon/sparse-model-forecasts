@@ -137,12 +137,22 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL){
                               rep(0, model_pars$p - model_pars$n_phi)),
                             replace = FALSE)
     result <- try({
-      y <- sarima::sim_sarima(
+      # y <- sarima::sim_sarima(
+      #   n = n,
+      #   model = list(mean = mu,
+      #                ar = model_pars$phi,
+      #                sigma2 = model_pars$sigma_e)
+      #   # mean = mu
+      # )
+
+      y <- astsa::sarima.sim(
+        ar = model_pars$phi,
         n = n,
-        model = list(ar = model_pars$phi),
+        burnin = 100,
         mean = mu,
-        sd = sigma_e
+        sd = model_pars$sigma_e
       )
+      y <- as.numeric(y)
     }, silent = TRUE)
 
     if(! inherits(result, 'try-error')) passed <- TRUE
@@ -193,7 +203,8 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL){
 #'
 
 
-fit_ARp_beta_model <- function(model_pars, fit_nr = TRUE){
+fit_ARp_beta_model <- function(model_pars, iter = 2000,
+                               fit_nr = TRUE){
   # compile stan model
   arp_r <- rstan::stan_model("Stan/AR-p_FHS-p-beta.stan")
 
@@ -216,7 +227,8 @@ fit_ARp_beta_model <- function(model_pars, fit_nr = TRUE){
   mfit_arp_r <- rstan::sampling(
     arp_r,
     data = datlist,
-    chains = 3, cores = 3
+    chains = 4, cores = 4,
+    iter = iter
   )
 
 
@@ -236,7 +248,8 @@ fit_ARp_beta_model <- function(model_pars, fit_nr = TRUE){
     mfit_arp_nr <- rstan::sampling(
       arp_nr,
       data = datlist_nr,
-      chains = 3, cores = 3
+      chains = 4, cores = 4,
+      iter = iter
     )
 
     return(list(
@@ -362,15 +375,31 @@ unpack_ARp_fit <- function(fits, model_pars = NULL){
                    rmse_phi = rmse_phi,
                    rmse_sigma = rmse_sigma)
 
+      bad_fits <- stan_psum(fit)
 
       mod_fit <- list(
         par_ests = par_ests,
         forecast = forecast,
-        rmse = rmse)
+        rmse = rmse,
+        bad_fits = bad_fits)
 
       return(mod_fit)
 
-    }
+  }
+
+  stan_psum <- function(fit){
+
+    s_init <- as.data.frame(summary(fit)$summary)
+    s_init$pars <- row.names(s_init)
+    s_init$n_eff_pct <- s_init$n_eff/iter  ## effective samples are the number of independent samples with the same estimation power as the N autocorrelated samples
+    s_init$n_eff_less10pct <- ifelse(s_init$n_eff_pct < 0.10, yes = "true", no = "false") # 10% is often used as a threshold, below which the chains for a parameter did not properly converge
+    s <- s_init[,c("pars","Rhat","n_eff_less10pct")] %>%
+      filter(!grepl('^mu', row.names(s_init))) %>%
+      filter(Rhat > 1.1 | n_eff_less10pct == 'true')
+
+    return(s)
+
+  }
 
   if(is.list(fits)){
     model_pars <- fits$model_pars
