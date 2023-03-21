@@ -22,9 +22,7 @@ setwd("/project/modelscape/analyses/sponges/")
   ARp_beta_sims <- function(input_pars){
 
     model_pars <- simulate_AR_p_beta_p_timeseries(input_pars)
-    write('model_pars function done', stderr())
     fits <- fit_ARp_beta_model(model_pars, iter = 4000)
-    write('model_fits_function done', stderr())
     sim_list <- unpack_ARp_fit(fits)
     return(sim_list)
 
@@ -38,14 +36,15 @@ setwd("/project/modelscape/analyses/sponges/")
   i <- 2*(i-1) + 1
 
   for(j in 0:1){
-  # add new lines to error and out file identifying which model this is
-  write(paste('model number = ', i+j),
-        stderr())
 
   nsteps <- sim_df$length[i+j]
   sigma <- sim_df$sigma[i+j]
 
-  # simulate AR-p data (will update in future to have variable inputs)
+  # add new lines to error and out file identifying which model this is
+  write(paste('model number = ', i+j, ', nsteps = ', nsteps, ', sigma = ', sigma),
+        stderr())
+  
+# simulate AR-p data (will update in future to have variable inputs)
   input_pars <- list(
     n = nsteps,   # length of time series
     p  = 16,      # number of AR lags to consider
@@ -64,11 +63,10 @@ setwd("/project/modelscape/analyses/sponges/")
 
   # Save the results
   fname <- paste0("/simdat_", i+j, ".rds")
-  print(fname)
-  write(fname, stdout())
+  write(paste0('file name = ', fname), stderr())
   fpath <- paste0("Data/aquatic_sim_data/", args[1], fname)
   print(fpath)
-  write(fpath, stdout())
+  write(paste0('file path = ', fpath), sterr())
   saveRDS(sim_dat, file = paste0("/project/modelscape/analyses/sponges/", fpath))
 
   }
