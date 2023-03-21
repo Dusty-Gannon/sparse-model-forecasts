@@ -9,7 +9,7 @@ setwd("/project/modelscape/analyses/sponges/")
 
 #### Simulate data and run regularized and non-regularized AR-p_beta models ####
 # store data inputs and model fits in a log file
-   nsims <- 3
+   nsims <- 300
    sigmas <- c(0.1, 1, 10)
    #lengths <- 100
    lengths <- c(65, 125, 185, 245, 370)
@@ -18,7 +18,7 @@ setwd("/project/modelscape/analyses/sponges/")
      sigma = rep(sigmas, each = nsims * length(lengths)),
      length = rep(rep(lengths, each = nsims), length(sigmas))
    )
-
+  
   ARp_beta_sims <- function(input_pars){
 
     model_pars <- simulate_AR_p_beta_p_timeseries(input_pars)
@@ -33,9 +33,9 @@ setwd("/project/modelscape/analyses/sponges/")
 
   #number of simulations to run:
   i <- as.numeric(args[2])
-  i <- 2*(i-1) + 1
+  i <- 30*(i-1) + 1
 
-  for(j in 0:1){
+  for(j in 0:29){
 
   nsteps <- sim_df$length[i+j]
   sigma <- sim_df$sigma[i+j]
@@ -60,15 +60,11 @@ setwd("/project/modelscape/analyses/sponges/")
   )
 
 
-=======
   sim_dat <- ARp_beta_sims(input_pars)
 
   # Save the results
   fname <- paste0("/simdat_", i+j, ".rds")
-  write(paste0('file name = ', fname), stderr())
   fpath <- paste0("Data/aquatic_sim_data/", args[1], fname)
-  print(fpath)
-  write(paste0('file path = ', fpath), sterr())
   saveRDS(sim_dat, file = paste0("/project/modelscape/analyses/sponges/", fpath))
 
   }

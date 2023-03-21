@@ -291,7 +291,7 @@ unpack_ARp_fit <- function(fits, model_pars = NULL){
   stan_psum <- function(fit){
 
     iter <- fit@stan_args[[1]]$iter
-    s_init <- as.data.frame(summary(fit)$summary)
+    s_init <- as.data.frame(rstan::summary(fit)$summary)
     s_init$pars <- row.names(s_init)
     s_init$n_eff_pct <- s_init$n_eff/iter  ## effective samples are the number of independent samples with the same estimation power as the N autocorrelated samples
     s_init$n_eff_less10pct <- ifelse(s_init$n_eff_pct < 0.10, yes = "true", no = "false") # 10% is often used as a threshold, below which the chains for a parameter did not properly converge
