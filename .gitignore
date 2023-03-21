@@ -18,6 +18,7 @@ dist/
 *.out
 Simulations/slurmlogs
 ricker_thin2
+Analyses/logfiles
 
 # Package files
 *.jar
