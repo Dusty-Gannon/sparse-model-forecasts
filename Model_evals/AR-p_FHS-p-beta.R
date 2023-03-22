@@ -12,16 +12,17 @@ library(ggplot2)
 library(devtools)
 devtools::load_all()
 
+
 #### Simulating the data ####
 
   # length of time series
-  n <- 300
+  n <- 150
 
   # time series parameters, constrained for stationarity
   phi <- c(0.6, rep(0, 4), -0.2, rep(0, 9), 0.3)
 
   # coefficient vector with two non-zero elements and the intercepts
-  beta <- c(0.5, 1, 2, rep(0, 48))
+  beta <- c(0.5, 1, 2, runif(48, min=0, max=0.05))
 
   ### generate the model matrix with some correlated variables ###
 
@@ -48,7 +49,7 @@ devtools::load_all()
 
   # mean of the process
   mu <- as.double(X %*% beta)
-  sigma_e <- 1
+  sigma_e <- 2
 
   # simulate the AR process
   y <- arima.sim(
@@ -306,7 +307,7 @@ devtools::load_all()
   # compute prediction root mean squared error for each model
   # RMSE_bayes() is a user-defined function in R/model_checking.R
   rmse_df <- data.frame(
-    model = rep(c("Regularized", "Non-regularized","Flat"), each = draws),
+    model = rep(c("Horseshoe", "Gaussian","Flat"), each = draws),
     rmse = c(
       RMSE_bayes(y[(n - holdout + 1):n], ppreds = post_preds_r[, (n - holdout + 1):n]),
       RMSE_bayes(y[(n - holdout + 1):n], ppreds = post_preds_nr[, (n - holdout + 1):n]),
@@ -315,29 +316,29 @@ devtools::load_all()
   )
 
   # Plots comparing simulated values against post. pred intervals
-  r_forecast <- ggplot(forecast_df[200:n, ], aes(x = time, y = y))+
+  r_forecast <- ggplot(forecast_df[50:n, ], aes(x = time, y = y))+
     geom_ribbon(aes(ymin = low_r, ymax = high_r), fill = "brown", alpha = 0.5) +
     geom_point() +
     geom_line(linetype = "dashed") +
-    geom_vline(xintercept = 250) +
+    geom_vline(xintercept = 100) +
     theme_classic() +
-    ggtitle("Regularized model")
+    ggtitle("Horseshoe priors")
 
-  nr_forecast <- ggplot(forecast_df[200:n, ], aes(x = time, y = y)) +
+  nr_forecast <- ggplot(forecast_df[50:n, ], aes(x = time, y = y)) +
     geom_ribbon(aes(ymin = low_nr, ymax = high_nr), fill = "brown", alpha = 0.5) +
     geom_point() +
     geom_line(linetype = "dashed") +
-    geom_vline(xintercept = 250) +
+    geom_vline(xintercept = 100) +
     theme_classic() +
-    ggtitle("Non-regularized model")
+    ggtitle("Gaussian Priors")
   
-  fl_forecast <- ggplot(forecast_df[200:n, ], aes(x = time, y = y)) +
+  fl_forecast <- ggplot(forecast_df[50:n, ], aes(x = time, y = y)) +
     geom_ribbon(aes(ymin = low_fl, ymax = high_fl), fill = "brown", alpha = 0.5) +
     geom_point() +
     geom_line(linetype = "dashed") +
-    geom_vline(xintercept = 250) +
+    geom_vline(xintercept = 100) +
     theme_classic() +
-    ggtitle("Flat Priors Model")
+    ggtitle("Flat Priors")
   
   
 
@@ -347,7 +348,8 @@ devtools::load_all()
     theme_classic() +
     scale_color_manual(values = c("black", "brown", "blue")) +
     scale_fill_manual(values = c("grey", "brown", "blue")) +
-    xlab("Forecasting RMSE")
+    xlab("Forecasting RMSE")+
+    xlim(0,10)
 
 # save the plot
   png(
