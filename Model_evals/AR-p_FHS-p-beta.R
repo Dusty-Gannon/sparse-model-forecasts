@@ -96,7 +96,9 @@ devtools::load_all()
   mfit_arp_r <- sampling(
     arp_r,
     data = datlist,
-    chains = 3, cores = 3
+    chains = 3,
+    cores = 3,
+    iter = 4000
   )
 
 
@@ -196,7 +198,8 @@ devtools::load_all()
     arp_nr,
     data = datlist_nr,
     chains = 3,
-    cores = 3
+    cores = 3,
+    iter = 4000
   )
 
 
@@ -218,7 +221,7 @@ devtools::load_all()
     data = datlist_fl,
     chains = 3,
     cores = 3,
-    iter = 6000,
+    iter = 4000,
     control = list(max_treedepth = 15)
   )
 
@@ -235,7 +238,7 @@ devtools::load_all()
   phi_post_fl <- rstan::extract(mfit_arp_fl, pars = "phi")$phi
   sigma_post_nr <- rstan::extract(mfit_arp_nr, pars = "sigma")$sigma
   sigma_post_r <- rstan::extract(mfit_arp_r, pars = "sigma")$sigma
-  sigma_post_fl <- rstan::extract(mfit_arp_r, pars = "sigma")$sigma
+  sigma_post_fl <- rstan::extract(mfit_arp_fl, pars = "sigma")$sigma
   y_rep_nr <- rstan::extract(mfit_arp_nr, pars = "y_rep")$y_rep
   y_rep_r <- rstan::extract(mfit_arp_r, pars = "y_rep")$y_rep
   y_rep_fl <- rstan::extract(mfit_arp_fl, pars = "y_rep")$y_rep
@@ -260,7 +263,7 @@ devtools::load_all()
     rep(y[1:datlist_nr$p], each = draws), nrow = draws, ncol = datlist_nr$p
   )
   post_preds_fl[, 1:datlist_fl$p] <- matrix(
-    rep(y[1:datlist_nr$p], each = draws), nrow = draws, ncol = datlist_nr$p
+    rep(y[1:datlist_fl$p], each = draws), nrow = draws, ncol = datlist_fl$p
   )
 
   # fill in post. pred. draws from stan
@@ -321,7 +324,7 @@ devtools::load_all()
     geom_point() +
     geom_line(linetype = "dashed") +
     geom_vline(xintercept = 100) +
-    ylim(c(-60,60)) +
+    ylim(c(-40,160)) +
     theme_classic() +
     ggtitle("Horseshoe priors")
 
@@ -330,7 +333,7 @@ devtools::load_all()
     geom_point() +
     geom_line(linetype = "dashed") +
     geom_vline(xintercept = 100) +
-    ylim(c(-60,60)) +
+    ylim(c(-40,160)) +
     theme_classic() +
     ggtitle("Gaussian Priors")
 
@@ -339,7 +342,7 @@ devtools::load_all()
     geom_point() +
     geom_line(linetype = "dashed") +
     geom_vline(xintercept = 100) +
-    ylim(c(-60,60)) +
+    ylim(c(-40,160)) +
     theme_classic() +
     ggtitle("Flat Priors")
 
@@ -353,7 +356,7 @@ devtools::load_all()
     scale_fill_manual(values = c( "#bebebeff", "#a52a2aff", "#33406fff"), guide = "none") +
     xlab("Forecasting RMSE") +
     ylab("Density of RMSE") +
-    xlim(0,15) ## not too sure how big to make this axis, because the highest RMSE is ~1400, which makes the violin plots impossible to read
+    xlim(0,20) ## not too sure how big to make this axis, because the highest RMSE is ~1400, which makes the violin plots impossible to read
 
 # save the plot
   png(
@@ -361,8 +364,9 @@ devtools::load_all()
     height = 3600, width = 1500,
     units = "px", res = 300
   )
-    gridExtra::grid.arrange(rmse,  r_forecast, nr_forecast, fl_forecast, ncol = 1, heights = c(.3, .2, .2, .2))
-  dev.off()
+    gridExtra::grid.arrange(rmse, r_forecast, nr_forecast, fl_forecast, ncol = 1, heights = c(.3, .23, .23, .23))
+
+    dev.off()
 
 
 
