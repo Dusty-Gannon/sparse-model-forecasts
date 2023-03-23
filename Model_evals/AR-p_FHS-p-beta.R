@@ -22,7 +22,7 @@ devtools::load_all()
   phi <- c(0.6, rep(0, 4), -0.2, rep(0, 9), 0.3)
 
   # coefficient vector with two non-zero elements and the intercepts
-  beta <- c(0.5, 1, 2, runif(48, min=0, max=0.05))
+  beta <- c(0.5, 1, 2, runif(48, min=0, max=0.1))
 
   ### generate the model matrix with some correlated variables ###
 
@@ -200,10 +200,8 @@ devtools::load_all()
   )
 
 
-  
-  
-  #### Compare forecasting to a model with flat priors (no priors) #####
-  
+#### Compare forecasting to a model with flat priors (no priors) #####
+
   # fitting the non-regularized AR model with flat priors
   datlist_fl <- list(
     N = n - holdout,
@@ -212,22 +210,22 @@ devtools::load_all()
     y = y[1:(n - holdout)],
     X = X[1:(n - holdout), ]
   )
-  
+
   arp_fl <- stan_model(here("Stan/AR-p_flat.stan"))
-  
+
   mfit_arp_fl <- sampling(
     arp_fl,
     data = datlist_fl,
     chains = 3,
     cores = 3
   )
-  
-  
-  
-  
-  
+
+
+
+
+
   # COMPARISON STARTS
-  
+
   # forecast the held-out observations
   beta_post_nr <- rstan::extract(mfit_arp_nr, pars = "beta")$beta
   beta_post_fl <- rstan::extract(mfit_arp_fl, pars = "beta")$beta
@@ -239,19 +237,19 @@ devtools::load_all()
   y_rep_nr <- rstan::extract(mfit_arp_nr, pars = "y_rep")$y_rep
   y_rep_r <- rstan::extract(mfit_arp_r, pars = "y_rep")$y_rep
   y_rep_fl <- rstan::extract(mfit_arp_fl, pars = "y_rep")$y_rep
-  
+
   draws <- nrow(beta_post_nr)
-  
+
   # matrix of draws from the posterior-predictive distribution
   # non-regularized model
   post_preds_nr <- matrix(nrow = draws, ncol = n)
-  
+
   # regularized model
   post_preds_r <- matrix(nrow = draws, ncol = n)
-  
+
   # flat model
   post_preds_fl <- matrix(nrow = draws, ncol = n)
-  
+
   # fill in first p observations that are considered fixed
   post_preds_r[, 1:datlist$p] <- matrix(
     rep(y[1:datlist$p], each = draws), nrow = draws, ncol = datlist$p
@@ -262,12 +260,12 @@ devtools::load_all()
   post_preds_fl[, 1:datlist_fl$p] <- matrix(
     rep(y[1:datlist_nr$p], each = draws), nrow = draws, ncol = datlist_nr$p
   )
-  
+
   # fill in post. pred. draws from stan
   post_preds_r[, (datlist$p + 1):(n - holdout)] <- y_rep_r
   post_preds_nr[, (datlist_nr$p + 1):(n - holdout)] <- y_rep_nr
   post_preds_fl[, (datlist_fl$p + 1):(n - holdout)] <- y_rep_fl
-  
+
   for(i in 1:draws){
     for(t in (n - holdout + 1):n){
       # regularized model
@@ -275,13 +273,13 @@ devtools::load_all()
       post_preds_r[i, t] <- alpha_post_r[i, 1] + X[t, -1] %*% beta_post_r[i, ] +
         phi_post_r[i, ] %*% y_past_r +
         rnorm(1, sd = sigma_post_r[i])
-      
+
       # non-regularized model
       y_past_nr <- as.double(post_preds_nr[i, (t - datlist_nr$p):(t - 1)])
       post_preds_nr[i, t] <- X[t, ] %*% beta_post_nr[i, ] +
         phi_post_nr[i, ] %*% y_past_nr +
         rnorm(1, sd = sigma_post_nr[i])
-      
+
       # flat model
       y_past_fl <- as.double(post_preds_fl[i, (t - datlist_fl$p):(t - 1)])
       post_preds_fl[i, t] <- X[t, ] %*% beta_post_fl[i, ] +
@@ -289,7 +287,7 @@ devtools::load_all()
         rnorm(1, sd = sigma_post_fl[i])
     }
   }
-  
+
   forecast_df <- data.frame(
     time = 1:n,
     y = as.double(y),
@@ -303,7 +301,7 @@ devtools::load_all()
     low_fl = apply(post_preds_fl, 2, quantile, probs = 0.025),
     high_fl = apply(post_preds_fl, 2, quantile, probs = 0.975)
   )
-  
+
   # compute prediction root mean squared error for each model
   # RMSE_bayes() is a user-defined function in R/model_checking.R
   rmse_df <- data.frame(
@@ -331,7 +329,7 @@ devtools::load_all()
     geom_vline(xintercept = 100) +
     theme_classic() +
     ggtitle("Gaussian Priors")
-  
+
   fl_forecast <- ggplot(forecast_df[50:n, ], aes(x = time, y = y)) +
     geom_ribbon(aes(ymin = low_fl, ymax = high_fl), fill = "brown", alpha = 0.5) +
     geom_point() +
@@ -339,8 +337,8 @@ devtools::load_all()
     geom_vline(xintercept = 100) +
     theme_classic() +
     ggtitle("Flat Priors")
-  
-  
+
+
 
   # posterior predictive distributions of RMSE
   rmse <- ggplot(rmse_df, aes(x = rmse, fill = model, color = model)) +
