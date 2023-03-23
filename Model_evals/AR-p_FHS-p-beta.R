@@ -217,7 +217,9 @@ devtools::load_all()
     arp_fl,
     data = datlist_fl,
     chains = 3,
-    cores = 3
+    cores = 3,
+    iter = 6000,
+    control = list(max_treedepth = 15)
   )
 
 
@@ -319,6 +321,7 @@ devtools::load_all()
     geom_point() +
     geom_line(linetype = "dashed") +
     geom_vline(xintercept = 100) +
+    ylim(c(-60,60)) +
     theme_classic() +
     ggtitle("Horseshoe priors")
 
@@ -327,6 +330,7 @@ devtools::load_all()
     geom_point() +
     geom_line(linetype = "dashed") +
     geom_vline(xintercept = 100) +
+    ylim(c(-60,60)) +
     theme_classic() +
     ggtitle("Gaussian Priors")
 
@@ -335,6 +339,7 @@ devtools::load_all()
     geom_point() +
     geom_line(linetype = "dashed") +
     geom_vline(xintercept = 100) +
+    ylim(c(-60,60)) +
     theme_classic() +
     ggtitle("Flat Priors")
 
@@ -347,7 +352,15 @@ devtools::load_all()
     scale_color_manual(values = c("black", "brown", "blue")) +
     scale_fill_manual(values = c("grey", "brown", "blue")) +
     xlab("Forecasting RMSE")+
-    xlim(0,10)
+    xlim(0,20)
+
+ rmse <-ggplot(rmse_df, aes(x = rmse, y = model, fill = model, color = model)) +
+    geom_violin( alpha = .05) +
+    theme_classic() +
+    scale_color_manual(values = c("black", "brown", "blue")) +
+    scale_fill_manual(values = c("grey", "brown", "blue")) +
+    xlab("Forecasting RMSE")+
+    xlim(0,30) ## not too sure how big to make this axis, because the highest RMSE is ~1400, which makes the violin plots impossible to read
 
 # save the plot
   png(
