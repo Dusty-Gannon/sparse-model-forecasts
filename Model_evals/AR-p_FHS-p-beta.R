@@ -317,7 +317,7 @@ devtools::load_all()
 
   # Plots comparing simulated values against post. pred intervals
   r_forecast <- ggplot(forecast_df[50:n, ], aes(x = time, y = y))+
-    geom_ribbon(aes(ymin = low_r, ymax = high_r), fill = "brown", alpha = 0.5) +
+    geom_ribbon(aes(ymin = low_r, ymax = high_r), fill = "#33406fff", alpha = 0.5) +
     geom_point() +
     geom_line(linetype = "dashed") +
     geom_vline(xintercept = 100) +
@@ -326,7 +326,7 @@ devtools::load_all()
     ggtitle("Horseshoe priors")
 
   nr_forecast <- ggplot(forecast_df[50:n, ], aes(x = time, y = y)) +
-    geom_ribbon(aes(ymin = low_nr, ymax = high_nr), fill = "brown", alpha = 0.5) +
+    geom_ribbon(aes(ymin = low_nr, ymax = high_nr), fill = "#a52a2aff", alpha = 0.5) +
     geom_point() +
     geom_line(linetype = "dashed") +
     geom_vline(xintercept = 100) +
@@ -335,7 +335,7 @@ devtools::load_all()
     ggtitle("Gaussian Priors")
 
   fl_forecast <- ggplot(forecast_df[50:n, ], aes(x = time, y = y)) +
-    geom_ribbon(aes(ymin = low_fl, ymax = high_fl), fill = "brown", alpha = 0.5) +
+    geom_ribbon(aes(ymin = low_fl, ymax = high_fl), fill = "#bebebeff", alpha = 0.5) +
     geom_point() +
     geom_line(linetype = "dashed") +
     geom_vline(xintercept = 100) +
@@ -346,21 +346,14 @@ devtools::load_all()
 
 
   # posterior predictive distributions of RMSE
-  rmse <- ggplot(rmse_df, aes(x = rmse, fill = model, color = model)) +
-    geom_density(alpha = 0.5) +
-    theme_classic() +
-    scale_color_manual(values = c("black", "brown", "blue")) +
-    scale_fill_manual(values = c("grey", "brown", "blue")) +
-    xlab("Forecasting RMSE")+
-    xlim(0,20)
-
  rmse <-ggplot(rmse_df, aes(x = rmse, y = model, fill = model, color = model)) +
-    geom_violin( alpha = .05) +
+    geom_violin( alpha = .3) +
     theme_classic() +
-    scale_color_manual(values = c("black", "brown", "blue")) +
-    scale_fill_manual(values = c("grey", "brown", "blue")) +
-    xlab("Forecasting RMSE")+
-    xlim(0,30) ## not too sure how big to make this axis, because the highest RMSE is ~1400, which makes the violin plots impossible to read
+    scale_color_manual(values = c( "black", "#a52a2aff", "#33406fff"), guide = "none") + # removed color key, since the y-axis is labeled now
+    scale_fill_manual(values = c( "#bebebeff", "#a52a2aff", "#33406fff"), guide = "none") +
+    xlab("Forecasting RMSE") +
+    ylab("Density of RMSE") +
+    xlim(0,15) ## not too sure how big to make this axis, because the highest RMSE is ~1400, which makes the violin plots impossible to read
 
 # save the plot
   png(
@@ -368,7 +361,7 @@ devtools::load_all()
     height = 3600, width = 1500,
     units = "px", res = 300
   )
-    gridExtra::grid.arrange(rmse, nr_forecast, r_forecast, fl_forecast, ncol = 1)
+    gridExtra::grid.arrange(rmse,  r_forecast, nr_forecast, fl_forecast, ncol = 1, heights = c(.3, .2, .2, .2))
   dev.off()
 
 
