@@ -199,7 +199,8 @@ devtools::load_all()
     data = datlist_nr,
     chains = 3,
     cores = 3,
-    iter = 4000
+    iter = 4000,
+    control = list(max_treedepth = 15)
   )
 
 
@@ -364,9 +365,8 @@ devtools::load_all()
     height = 3600, width = 1500,
     units = "px", res = 300
   )
-    gridExtra::grid.arrange(rmse, r_forecast, nr_forecast, fl_forecast, ncol = 1, heights = c(.3, .23, .23, .23))
-
-    dev.off()
+    gridExtra::grid.arrange(rmse,  r_forecast, nr_forecast, fl_forecast, ncol = 1, heights = c(.3, .23, .23, .23))
+  dev.off()
 
 
 
