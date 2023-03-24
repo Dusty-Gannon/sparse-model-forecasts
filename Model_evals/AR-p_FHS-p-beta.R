@@ -289,7 +289,7 @@ devtools::load_all()
       # flat model
       y_past_fl <- as.double(post_preds_fl[i, (t - datlist_fl$p):(t - 1)])
       post_preds_fl[i, t] <- X[t, ] %*% beta_post_fl[i, ] +
-        phi_post_nr[i, ] %*% y_past_nr +
+        phi_post_fl[i, ] %*% y_past_fl +
         rnorm(1, sd = sigma_post_fl[i])
     }
   }
