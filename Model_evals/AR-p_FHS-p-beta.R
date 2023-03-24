@@ -10,6 +10,7 @@ library(rstan)
 library(here)
 library(ggplot2)
 library(devtools)
+library(dplyr)
 devtools::load_all()
 
 
@@ -310,54 +311,75 @@ devtools::load_all()
 
   # compute prediction root mean squared error for each model
   # RMSE_bayes() is a user-defined function in R/model_checking.R
+  # n_xAxis is the maximum value of the x-axis (i.e. how many predicted observations are included in the figure)
+  n_xAxis <- 115
   rmse_df <- data.frame(
     model = rep(c("Horseshoe", "Gaussian","Flat"), each = draws),
     rmse = c(
-      RMSE_bayes(y[(n - holdout + 1):n], ppreds = post_preds_r[, (n - holdout + 1):n]),
-      RMSE_bayes(y[(n - holdout + 1):n], ppreds = post_preds_nr[, (n - holdout + 1):n]),
-      RMSE_bayes(y[(n - holdout + 1):n], ppreds = post_preds_fl[, (n - holdout + 1):n])
+      RMSE_bayes(y[(n - holdout + 1):n_xAxis], ppreds = post_preds_r[, (n - holdout + 1):n_xAxis]),
+      RMSE_bayes(y[(n - holdout + 1):n_xAxis], ppreds = post_preds_nr[, (n - holdout + 1):n_xAxis]),
+      RMSE_bayes(y[(n - holdout + 1):n_xAxis], ppreds = post_preds_fl[, (n - holdout + 1):n_xAxis])
     )
   )
 
+  # add values to the df for mean and SD of RMSE for each prior type
+  rmse_df <- rmse_df %>%
+    group_by(model) %>%
+    summarize(mean = mean(rmse),
+              sd = sd(rmse),
+              median = median(rmse)) %>%
+    right_join(y = rmse_df) %>%
+    mutate(low_sd = mean - 2*sd,
+           high_sd = mean + 2*sd)
+
   # Plots comparing simulated values against post. pred intervals
-  r_forecast <- ggplot(forecast_df[50:n, ], aes(x = time, y = y))+
+  # variables to determine spread of y-axis (min and max observed +/- rmse for flat prior model)
+  y_minVal <- min(forecast_df[50:n_xAxis, "low_fl"])
+  y_maxVal <- max(forecast_df[50:n_xAxis, "high_fl"])
+
+  r_forecast <- ggplot(forecast_df[50:n_xAxis, ], aes(x = time, y = y))+
     geom_ribbon(aes(ymin = low_r, ymax = high_r), fill = "#33406fff", alpha = 0.5) +
-    geom_point() +
+    #geom_point() +
     geom_line(linetype = "dashed") +
     geom_vline(xintercept = 100) +
-    ylim(c(-40,160)) +
+    ylim(c(y_minVal, y_maxVal)) +
+    xlim(c(50,n_xAxis)) +
     theme_classic() +
     ggtitle("Horseshoe priors")
 
-  nr_forecast <- ggplot(forecast_df[50:n, ], aes(x = time, y = y)) +
+  nr_forecast <- ggplot(forecast_df[50:n_xAxis, ], aes(x = time, y = y)) +
     geom_ribbon(aes(ymin = low_nr, ymax = high_nr), fill = "#a52a2aff", alpha = 0.5) +
-    geom_point() +
+    #geom_point() +
     geom_line(linetype = "dashed") +
     geom_vline(xintercept = 100) +
-    ylim(c(-40,160)) +
+    ylim(c(y_minVal, y_maxVal)) +
+    xlim(c(50,n_xAxis)) +
     theme_classic() +
     ggtitle("Gaussian Priors")
 
-  fl_forecast <- ggplot(forecast_df[50:n, ], aes(x = time, y = y)) +
+  fl_forecast <- ggplot(forecast_df[50:n_xAxis, ], aes(x = time, y = y)) +
     geom_ribbon(aes(ymin = low_fl, ymax = high_fl), fill = "#bebebeff", alpha = 0.5) +
-    geom_point() +
+    #geom_point() +
     geom_line(linetype = "dashed") +
     geom_vline(xintercept = 100) +
-    ylim(c(-40,160)) +
+    ylim(c(y_minVal, y_maxVal)) +
+    xlim(c(50,n_xAxis)) +
     theme_classic() +
     ggtitle("Flat Priors")
 
 
-
-  # posterior predictive distributions of RMSE
- rmse <-ggplot(rmse_df, aes(x = rmse, y = model, fill = model, color = model)) +
+# posterior predictive distributions of RMSE
+ #rmse <-
+   ggplot(rmse_df, aes(x = rmse, y = model, fill = model, color = model)) +
     geom_violin( alpha = .3) +
+    geom_point(aes(x =mean, fill = model), pch = 8) +
+    geom_ribbon(aes(xmin = low_sd, xmax = high_sd, fill = model)) +
     theme_classic() +
     scale_color_manual(values = c( "black", "#a52a2aff", "#33406fff"), guide = "none") + # removed color key, since the y-axis is labeled now
     scale_fill_manual(values = c( "#bebebeff", "#a52a2aff", "#33406fff"), guide = "none") +
     xlab("Forecasting RMSE") +
     ylab("Density of RMSE") +
-    xlim(0,20) ## not too sure how big to make this axis, because the highest RMSE is ~1400, which makes the violin plots impossible to read
+    xlim(0,30) ## not too sure how big to make this axis, because the highest RMSE is ~1400, which makes the violin plots impossible to read
 
 # save the plot
   png(
@@ -365,8 +387,10 @@ devtools::load_all()
     height = 3600, width = 1500,
     units = "px", res = 300
   )
-    gridExtra::grid.arrange(rmse,  r_forecast, nr_forecast, fl_forecast, ncol = 1, heights = c(.3, .23, .23, .23))
-  dev.off()
+
+    gridExtra::grid.arrange(rmse, r_forecast, nr_forecast, fl_forecast, ncol = 1, heights = c(.3, .23, .23, .23))
+
+     dev.off()
 
 
 
