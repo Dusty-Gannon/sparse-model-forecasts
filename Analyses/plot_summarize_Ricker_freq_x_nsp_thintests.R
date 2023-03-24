@@ -9,14 +9,22 @@ library(here)
 devtools::load_all()
 
 # load data sims and results from fits
-  sims <- readRDS(here("Data/terrestrial_sim_data/lnorm_ricker/lnorm_ricker_thin_freq_x_nsp_ordered_S5_s55.rds"))
+  args <- commandArgs(trailingOnly = T)
+  sims <- readRDS(here(
+    paste0("Data/terrestrial_sim_data/lnorm_ricker/", args[1])
+  ))
 
   file_list <- list.files(
-    here("Data/terrestrial_sim_data/lnorm_ricker/freq_x_nsp_results"),
+    here(
+      paste0("Data/terrestrial_sim_data/lnorm_ricker/freq_x_nsp_results/", args[2])
+    ),
     full.names = T
   )
   # put the file list in order
-  sort_pat <- as.numeric(stringr::str_extract(file_list, "[:digit:]+"))
+  sort_pat <- as.numeric(
+    stringr::str_extract(file_list, "thintests_[:digit:]+") %>%
+      stringr::str_extract(., "[:digit:]+")
+  )
   file_list <- file_list[order(sort_pat)]
 
   # loop through and add the components we want to a full list
@@ -118,7 +126,7 @@ devtools::load_all()
 
 
   # create the plots
-  tpr_plot <- ggplot(data = conf_df_sum, aes(x = thin_interval, y = prop_community)) +
+  conf_mets_plot <- ggplot(data = conf_df_sum, aes(x = thin_interval, y = prop_community)) +
     facet_wrap(vars(metric), nrow = 2) +
     geom_tile(aes(fill = value)) +
     theme(
@@ -130,8 +138,10 @@ devtools::load_all()
 
   # save the plot
   ggsave(
-    tpr_plot,
-    filename = here("Figures/confusion_metrics_freq_x_nsp_thin.png"),
+    conf_mets_plot,
+    filename = here(
+      paste0("Figures/confusion_metrics_freq_x_nsp_thin_", args[2], ".png")
+    ),
     width = 6, height = 5,
     units = "in"
   )
