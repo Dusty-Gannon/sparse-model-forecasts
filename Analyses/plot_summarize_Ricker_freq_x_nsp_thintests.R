@@ -10,6 +10,7 @@ devtools::load_all()
 
 # load data sims and results from fits
   args <- commandArgs(trailingOnly = T)
+  args
   sims <- readRDS(here(
     paste0("Data/terrestrial_sim_data/lnorm_ricker/", args[1])
   ))
@@ -75,21 +76,21 @@ devtools::load_all()
       data.frame(
         metric = c("TPR", "TNR", "Precision", "Accuracy"),
         value = c(
-          mat[1, 1] / sum(mat[1, ]),
-          mat[2, 2] / sum(mat[2, ]),
-          mat[1, 1] / sum(mat[, 1]),
+          if(sum(mat[1, ]) > 0){mat[1, 1] / sum(mat[1, ])} else {NA},
+          if(sum(mat[2, ]) > 0){mat[2, 2] / sum(mat[2, ])} else {NA},
+          if(sum(mat[, 1]) > 0){mat[1, 1] / sum(mat[, 1])} else {NA},
           sum(diag(mat)) / sum(mat)
         ),
         low = c(
-          binom.test(mat[1, 1], n = sum(mat[1, ]))$conf.int[1],
-          binom.test(mat[2, 2], n = sum(mat[2, ]))$conf.int[1],
-          binom.test(mat[1, 1], n = sum(mat[, 1]))$conf.int[1],
+          if(sum(mat[1, ]) > 0){binom.test(mat[1, 1], n = sum(mat[1, ]))$conf.int[1]} else {NA},
+          if(sum(mat[2, ]) > 0){binom.test(mat[2, 2], n = sum(mat[2, ]))$conf.int[1]} else {NA},
+          if(sum(mat[, 1]) > 0){binom.test(mat[1, 1], n = sum(mat[, 1]))$conf.int[1]} else {NA},
           binom.test(sum(diag(mat)), n = sum(mat))$conf.int[1]
         ),
         high = c(
-          binom.test(mat[1, 1], n = sum(mat[1, ]))$conf.int[2],
-          binom.test(mat[2, 2], n = sum(mat[2, ]))$conf.int[2],
-          binom.test(mat[1, 1], n = sum(mat[, 1]))$conf.int[2],
+          if(sum(mat[1, ]) > 0){binom.test(mat[1, 1], n = sum(mat[1, ]))$conf.int[2]} else {NA},
+          if(sum(mat[1, ]) > 0){binom.test(mat[2, 2], n = sum(mat[2, ]))$conf.int[2]} else {NA},
+          if(sum(mat[, 1]) > 0){binom.test(mat[1, 1], n = sum(mat[, 1]))$conf.int[2]} else {NA},
           binom.test(sum(diag(mat)), n = sum(mat))$conf.int[2]
         )
       )
