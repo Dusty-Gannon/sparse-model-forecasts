@@ -20,6 +20,12 @@
 #'   + n_beta (2): number of non-zero covariate parameters in addition to lagged covariate
 #'   + non_zero_coef_guess (0): guess for the number of non-zero coefficients
 #'   + holdout (50): number of observation to hold out for model evaluation
+#' @param draw_beta can be 'near_zero' or 'zero'. Indicates if the not-significant
+#' beta parameters should be drawn from a normal distribution that results in numbers
+#' that are near zero, or if they should just be set to zero
+#' @param draw_phi can be 'near_zero' or 'zero'. Indicates if the not-significant
+#' phi parameters should be drawn from a normal distribution that results in numbers
+#' that are near zero, or if they should just be set to zero.
 #'
 #' @return A list including input parameters or any default values used as well
 #' as a matrix of covariates, vectors of beta and phi parameters, and a simulated
@@ -46,7 +52,7 @@
 #' simulate_AR_p_beta_p_timeseries(input_pars)
 #'
 
-simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL){
+simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL, draw_beta = 'near_zero', draw_phi = 'zero'){
 
   model_pars <- list( # default parameters if any are not supplied
     n = 300,      # length of time series
@@ -67,13 +73,26 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL){
   }
 
   # draw parameters from distributions:
-  model_pars$beta = c(model_pars$b0,
+  if(draw_beta == 'near_zero'){
+   model_pars$beta = c(model_pars$b0,
                       sample(c(rnorm(model_pars$n_lags, 0, 3),
                                rep(0, model_pars$beta_p - model_pars$n_lags)),
                              replace = FALSE ),
                       sample(c(rnorm(model_pars$n_beta, 0, 3),
                                rnorm(model_pars$beta_n - model_pars$n_beta, 0, 0.05)),
                              replace = FALSE))
+  }
+
+  if(draw_beta == 'zero'){
+   model_pars$beta = c(model_pars$b0,
+                      sample(c(rnorm(model_pars$n_lags, 0, 3),
+                               rep(0, model_pars$beta_p - model_pars$n_lags)),
+                             replace = FALSE ),
+                      sample(c(rnorm(model_pars$n_beta, 0, 3),
+                             rep(0, model_pars$beta_n - model_pars$n_beta)),
+                             replace = FALSE))
+  }
+
   # do not allow a holdout size of greater than 30% of the data
   # if(model_pars$holdout > 0.3 * model_pars$n){
   #   model_pars$holdout = floor(0.3) * model_pars$n
@@ -132,10 +151,19 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL){
   # )
 
   passed <- FALSE
-  while(!passed){
-      model_pars$phi = sample(c(runif(model_pars$n_phi, -1, 1),
-                                rep(0, model_pars$p - model_pars$n_phi)),
-                                replace = FALSE)
+
+  while(! passed){
+
+      if(draw_phi == 'near_zero'){
+         model_pars$phi = sample(c(runif(model_pars$n_phi, -1, 1),
+                                 rnorm(model_pars$p - model_pars$n_phi, 0, 0.05)),
+                                 replace = FALSE)
+      }
+      if(draw_phi == 'zero'){
+         model_pars$phi = sample(c(runif(model_pars$n_phi, -1, 1),
+                                 rep(0, model_pars$p - model_pars$n_phi)),
+                                 replace = FALSE)
+      }
 
       result <- try({
             sarima::sim_sarima(
