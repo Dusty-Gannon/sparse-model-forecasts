@@ -22,10 +22,8 @@ setwd("/project/modelscape/analyses/sponges/")
   ARp_beta_sims <- function(input_pars){
 
     model_pars <- simulate_AR_p_beta_p_timeseries(input_pars)
-    write('model_pars function done', stderr())
-    fits <- fit_ARp_beta_model(model_pars, iter = 4000)
-    write('model_fits_function done', stderr())
-    sim_list <- unpack_ARp_fit(fits)
+    fits <- fit_ARp_beta_model(model_pars, iter = 2000)
+    sim_list <- unpack_ARp_fit(fits = fits)
     return(sim_list)
 
   }
@@ -60,8 +58,6 @@ setwd("/project/modelscape/analyses/sponges/")
     holdout = 30
   )
 
-
-=======
   sim_dat <- ARp_beta_sims(input_pars)
 
   # Save the results

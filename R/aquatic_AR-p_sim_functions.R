@@ -132,31 +132,26 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL){
   # )
 
   passed <- FALSE
-  while(! passed){
-    model_pars$phi = sample(c(runif(model_pars$n_phi, -1, 1),
-                              rep(0, model_pars$p - model_pars$n_phi)),
-                            replace = FALSE)
-    result <- try({
-      # y <- sarima::sim_sarima(
-      #   n = n,
-      #   model = list(mean = mu,
-      #                ar = model_pars$phi,
-      #                sigma2 = model_pars$sigma_e)
-      #   # mean = mu
-      # )
+  while(!passed){
+      model_pars$phi = sample(c(runif(model_pars$n_phi, -1, 1),
+                                rep(0, model_pars$p - model_pars$n_phi)),
+                                replace = FALSE)
 
-      y <- astsa::sarima.sim(
-        ar = model_pars$phi,
-        n = n,
-        burnin = 100,
-        mean = mu,
-        sd = model_pars$sigma_e
-      )
-      y <- as.numeric(y)
-    }, silent = TRUE)
-
-    if(! inherits(result, 'try-error')) passed <- TRUE
+      result <- try({
+            sarima::sim_sarima(
+              n = n,
+              model = list(ar = model_pars$phi)
+            )
+      }, silent = TRUE)
+      if(! inherits(result, 'try-error')) passed <- TRUE
   }
+
+  y <- sim_AR_timeseries(
+        mu = mu,
+        sigma = model_pars$sigma_e,
+        phi = model_pars$phi
+  )
+
 
   # compute prior guess for tau0 based on a guess of number of
   #  non-zero coefficients
@@ -168,6 +163,7 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL){
     N = n - model_pars$holdout,
     fam = "gaussian"
   )
+
   model_pars <- c(model_pars,
                   list(X = X,
                        y = y,
@@ -177,6 +173,38 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL){
   return(model_pars)
 
 }
+
+
+
+#' Simulate AR timseseries
+#'
+#' This function simulates an AR-p timeseries based on a time series
+#' mean, standard deviation of the random innovations, and AR coefficients.
+#' It is an internal function for the simulate_AR_p_beta_p_timeseries function.
+#'
+#' @param mu A vector of the underlying time series mean
+#' @param sigma The standard deviation of the random innovations
+#' @param phi A vector of the AR coefficients
+#'
+#'
+#' @return An time series vector
+#'
+#' @export
+#'
+
+sim_AR_timeseries <- function(mu, sigma, phi){
+  N <- length(mu)
+  p <- length(phi)
+  y <- rnorm(N, mu, sigma)
+
+  for(i in (p+1):N){
+      y[i] = mu[i] + rev(y[(i-p):(i-1)])%*%phi + rnorm(1,0,sigma)
+  }
+
+  return(y)
+
+}
+
 
 
 #' Fit AR-p_beta model
@@ -291,7 +319,7 @@ unpack_ARp_fit <- function(fits, model_pars = NULL){
   stan_psum <- function(fit){
 
     iter <- fit@stan_args[[1]]$iter
-    s_init <- as.data.frame(summary(fit)$summary)
+    s_init <- as.data.frame(rstan::summary(fit)$summary)
     s_init$pars <- row.names(s_init)
     s_init$n_eff_pct <- s_init$n_eff/iter  ## effective samples are the number of independent samples with the same estimation power as the N autocorrelated samples
     s_init$n_eff_less10pct <- ifelse(s_init$n_eff_pct < 0.10, yes = "true", no = "false") # 10% is often used as a threshold, below which the chains for a parameter did not properly converge
