@@ -72,6 +72,8 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL, draw_beta = 'near
     model_pars[[nm]] <- input_pars[[nm]]
   }
 
+  n <- model_pars$n*3 + model_pars$holdout + model_pars$beta_p
+
   # draw parameters from distributions:
   if(draw_beta == 'near_zero'){
    model_pars$beta = c(model_pars$b0,
@@ -115,29 +117,28 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL, draw_beta = 'near
 
   # then Cholesky decompose Sigma to multiply by independent standard normal draws
   # and create the matrix
-  X <- matrix(rnorm(n = model_pars$n * P),
-              nrow = model_pars$n, ncol = P) %*% chol(Sigma)
+  X <- matrix(rnorm(n = n * P),
+              nrow = n, ncol = P) %*% chol(Sigma)
 
 
   # generate lagged columns of beta 1
-  beta_1 <- matrix(rep(NA, model_pars$n * model_pars$beta_p),
-                   nrow = model_pars$n, ncol = model_pars$beta_p)
+  beta_1 <- matrix(rep(NA, n * model_pars$beta_p),
+                   nrow = n, ncol = model_pars$beta_p)
 
   for(i in 1:model_pars$beta_p){
     beta_1[,i] <- c(rep(NA, i), X[1:(nrow(X)-i),1])
   }
 
   X <- cbind(
-    rep(1, model_pars$n),
+    rep(1, n),
     beta_1,
     X[,2:ncol(X)]
   )
 
-  X <- X[(model_pars$beta_p+1):model_pars$n,]
+  X <- X[(model_pars$beta_p+1):n,]
 
   # reassign n because of days lost to beta_1 lag:
   n <- nrow(X)
-  model_pars$n <- n
 
   # mean of the process
   mu <- as.double(X %*% model_pars$beta)
@@ -180,15 +181,17 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL, draw_beta = 'near
         phi = model_pars$phi
   )
 
-
+  # remove the burnin period from y and X
+  y <- y[(2*model_pars$n+1):length(y)]
+  X <- X[(2*model_pars$n + 1):nrow(X), ]
   # compute prior guess for tau0 based on a guess of number of
   #  non-zero coefficients
   #  see ?tau0() for documentation
   tau_0 <- tau0(
-    y = y[1:(n - model_pars$holdout)],
+    y = y[1:model_pars$n],
     m0 = model_pars$non_zero_coef_guess,
     M = ncol(X) + model_pars$p,
-    N = n - model_pars$holdout,
+    N = model_pars$n,
     fam = "gaussian"
   )
 
@@ -266,25 +269,31 @@ fit_ARp_beta_model <- function(model_pars, iter = 2000,
 
   # compile data (see Stan file for descriptions of each input)
   datlist <- list(
-    N = model_pars$n - model_pars$holdout,
+    N = model_pars$n,
     P0 = 1,
     P = ncol(model_pars$X)-1,
     p = model_pars$p,
-    y = model_pars$y[1:(model_pars$n - model_pars$holdout)],
-    X_alpha = matrix(model_pars$X[1:(model_pars$n - model_pars$holdout), 1],
+    y = model_pars$y[1:model_pars$n],
+    X_alpha = matrix(model_pars$X[1:model_pars$n, 1],
                      ncol = 1),
-    X_beta = model_pars$X[1:(model_pars$n - model_pars$holdout), -1],
+    X_beta = model_pars$X[1:model_pars$n, -1],
     tau0 = model_pars$tau_0,
     slab_scl = 1,
     slab_df = 10
   )
+
+  ad = 0.8
+  if(model_pars$n <100) ad = 0.99
+  if(model_pars$n < 150) ad = 0.95
 
   # sample the posterior
   mfit_arp_r <- rstan::sampling(
     arp_r,
     data = datlist,
     chains = 4, cores = 4,
-    iter = iter
+    iter = iter,
+    control = list(adapt_delta = ad,
+                   max_treedepth = 12)
   )
 
 
@@ -292,20 +301,23 @@ fit_ARp_beta_model <- function(model_pars, iter = 2000,
   if(fit_nr){
 
     datlist_nr <- list(
-      N = model_pars$n - model_pars$holdout,
+      N = model_pars$n,
       P = ncol(model_pars$X),
       p = model_pars$p,
-      y = model_pars$y[1:(model_pars$n - model_pars$holdout)],
-      X = model_pars$X[1:(model_pars$n - model_pars$holdout), ]
+      y = model_pars$y[1:model_pars$n],
+      X = model_pars$X[1:model_pars$n, ]
     )
 
     arp_nr <- rstan::stan_model("Stan/AR-p.stan")
+
 
     mfit_arp_nr <- rstan::sampling(
       arp_nr,
       data = datlist_nr,
       chains = 4, cores = 4,
-      iter = iter
+      iter = iter,
+      control = list(adapt_delta = ad,
+                     max_treedepth = 12)
     )
 
     return(list(
@@ -354,8 +366,12 @@ unpack_ARp_fit <- function(fits, model_pars = NULL){
     s <- s_init[,c("pars","Rhat","n_eff_less10pct")]
     s <- s[!grepl('^mu', row.names(s_init)),]
     s <- s[s$Rhat > 1.1 | s$n_eff_less10pct == 'true',]
+    spars <- get_sampler_params(fit, inc_warmup = FALSE)
+    divtrans <- sum(sapply(spars, function(x) sum(x[,'divergent__'])))
 
-    return(s)
+    return(list(par_conv = s,
+                divergent = divtrans)
+    )
 
   }
 
@@ -403,7 +419,7 @@ unpack_ARp_fit <- function(fits, model_pars = NULL){
     draws <- nrow(beta_post)
 
     # matrix of draws from the posterior-predictive distribution
-    post_preds <- matrix(nrow = draws, ncol = model_pars$n)
+    post_preds <- matrix(nrow = draws, ncol = model_pars$n + model_pars$holdout)
 
     # fill in first p observations that are considered fixed
     post_preds[, 1:model_pars$p] <- matrix(
@@ -412,10 +428,10 @@ unpack_ARp_fit <- function(fits, model_pars = NULL){
     )
 
     # fill in post. pred. draws from stan
-    post_preds[, (model_pars$p + 1):(model_pars$n - model_pars$holdout)] <- y_rep
+    post_preds[, (model_pars$p + 1):model_pars$n] <- y_rep
 
     for(i in 1:draws){
-      for(t in (model_pars$n - model_pars$holdout + 1):model_pars$n){
+      for(t in (model_pars$n + 1):(model_pars$n + model_pars$holdout)){
         # regularized model
         y_past <- as.double(post_preds[i, (t - model_pars$p):(t - 1)])
         post_preds[i, t] <- model_pars$X[t, ] %*% beta_post[i, ] +
@@ -424,7 +440,7 @@ unpack_ARp_fit <- function(fits, model_pars = NULL){
     }
 
     forecast <- data.frame(
-      time = 1:model_pars$n,
+      time = 1:(model_pars$n + model_pars$holdout),
       y = as.double(model_pars$y),
       estim = apply(post_preds, 2, mean),
       low = apply(post_preds, 2, quantile, probs = 0.025),
@@ -433,8 +449,8 @@ unpack_ARp_fit <- function(fits, model_pars = NULL){
 
     # compute prediction root mean squared error for each model
     # RMSE_bayes() is a user-defined function in R/model_checking.R
-    rmse_forecast = RMSE_bayes(model_pars$y[(model_pars$n - model_pars$holdout + 1):model_pars$n],
-                               ppreds = post_preds[, (model_pars$n - model_pars$holdout + 1):model_pars$n])
+    rmse_forecast = RMSE_bayes(model_pars$y[(model_pars$n + 1):(model_pars$n + model_pars$holdout)],
+                               ppreds = post_preds[, (model_pars$n + 1):(model_pars$n + model_pars$holdout)])
 
     rmse_beta = RMSE_bayes(model_pars$beta, beta_post)
     rmse_phi = RMSE_bayes(model_pars$phi, phi_post)
