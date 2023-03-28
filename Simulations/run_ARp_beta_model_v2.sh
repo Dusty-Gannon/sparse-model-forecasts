@@ -11,7 +11,7 @@
 #SBATCH --time=07:00:00
 #SBATCH -o slurmlogs/slurm_%A%a.out
 #SBATCH -e slurmlogs/slurm_%A%a.err
-#SBATCH --array=1-150
+#SBATCH --array=1-15
 
 # Set the parameter combination to use and generate names of R scripts and log file
 Rscript=AR-p_beta_p_model_sims_v2.R
