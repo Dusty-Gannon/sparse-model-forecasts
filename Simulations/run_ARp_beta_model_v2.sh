@@ -8,7 +8,7 @@
 #SBATCH --mail-user=acarte26@beartooth.arcc.uwyo.edu
 #SBATCH --job-name=ARp_sim1
 #SBATCH --mem=40G
-#SBATCH --time=07:00:00
+#SBATCH --time=15:00:00
 #SBATCH -o slurmlogs/slurm_%A%a.out
 #SBATCH -e slurmlogs/slurm_%A%a.err
 #SBATCH --array=1-300
