@@ -29,7 +29,7 @@ for i in ${SLURM_ARRAY_TASK_ID[@]}; do
   stop+=$(( 20*i ))
 done
 
-Rscript --vanilla $Rscript lnorm_ricker_thin_freq_x_nsp_ordered_S5_s55.rds 51 150 ${start} ${stop} "freq_x_nsp_thintests_${start}_${stop}.rds" > "$LogFile_pref${start}_${stop}"
+Rscript --vanilla $Rscript lnorm_ricker_thin_freq_x_nsp_ordered_S5_s55.rds 51 250 ${start} ${stop} "freq_x_nsp_results/round3/freq_x_nsp_thintests_${start}_${stop}.rds" > "$LogFile_pref${start}_${stop}"
 
 
 
