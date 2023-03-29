@@ -21,9 +21,9 @@ for(i in 1:length(filelist)){
 
  out <- readRDS(filelist[i])
 
- up_r <- paste(out$mod_fit_r$bad_fits$par_cov$pars)
+ up_r <- paste(out$mod_fit_r$bad_fits$par_conv$pars, collapse = ', ')
  if(is.null(up_r)) up_r <- NA_character_
- up_nr <- c(out$mod_fit_nr$bad_fits$par_cov$pars)
+ up_nr <- paste(out$mod_fit_nr$bad_fits$par_conv$pars, collapse = ', ')
  if(is.null(up_nr)) up_nr <- NA_character_
 
  dd <- data.frame(

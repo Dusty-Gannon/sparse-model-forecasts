@@ -13,12 +13,16 @@ dist/
 # Compiled Python bytecode
 *.py[cod]
 
+# Compiled Stan files
+Stan/*.rds
+
 # Log files
 *.log
 *.out 
 ricker_thintests
 ricker_thin2
 Simulations/slurmlogs
+Analyses/logfiles
 
 # Package files
 *.jar
