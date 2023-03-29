@@ -6,6 +6,7 @@
 
 library(tidyverse)
 library(here)
+library(patchwork)
 devtools::load_all()
 
 # load data sims and results from fits
@@ -30,7 +31,7 @@ devtools::load_all()
 
   # loop through and add the components we want to a full list
   conf_mats <- vector(mode = "list")
-  rmse <- vector(mode = "list")
+  # rmse <- vector(mode = "list")
   for(i in 1:length(file_list)){
     l_i <- readRDS(file_list[i])
     conf_mats_i <- purrr::map(
@@ -38,11 +39,11 @@ devtools::load_all()
       ~ .x$conf_summaries$conf_mat
     )
     conf_mats <- c(conf_mats, conf_mats_i)
-    rmse_i <- purrr::map(
-      l_i,
-      ~ .x$conf_summaries$rmse
-    )
-    rmse <- c(rmse, rmse_i)
+    # rmse_i <- purrr::map(
+    #   l_i,
+    #   ~ .x$conf_summaries$rmse
+    # )
+    # rmse <- c(rmse, rmse_i)
   }
 
 # create dataframe with thinning interval and proportion of community thinned
@@ -120,30 +121,60 @@ devtools::load_all()
     high = NA
   )
   conf_df_sum <- rbind(
-    conf_df_sum[1:reps, ],
+    conf_df_sum[1:4, ],
     empties,
-    conf_df_sum[(reps + 1):nrow(conf_df_sum), ]
+    conf_df_sum[5:nrow(conf_df_sum), ]
   )
 
 
   # create the plots
-  conf_mets_plot <- ggplot(data = conf_df_sum, aes(x = thin_interval, y = prop_community)) +
-    facet_wrap(vars(metric), nrow = 2) +
-    geom_tile(aes(fill = value)) +
-    theme(
-      panel.background = element_blank(),
-      axis.line = element_line(color = "darkgrey", size = 0.1)
-    ) +
-    scale_fill_gradient(low = "grey", high = "brown", na.value = "white")
+  plot_hm <- function(df, title){
+    library(ggplot2)
+    ggplot(data = df, aes(x = thin_interval, y = prop_community)) +
+      geom_tile(aes(fill = value)) +
+      theme(
+        panel.background = element_blank(),
+        axis.line = element_line(color = "darkgrey", size = 0.1),
+        legend.title = element_blank()
+      ) +
+      scale_fill_gradient(low = "grey", high = "brown", na.value = "white") +
+      ggtitle(title) +
+      xlab("") +
+      ylab("")
+  }
 
+  dat_nest <- conf_df_sum %>%
+    group_by(metric) %>%
+    nest()
+
+  plots <- map2(
+    dat_nest$metric,
+    dat_nest$data,
+    ~ plot_hm(.y, .x)
+  )
+
+  xlabel <- ggplot(data.frame(l = "Thinning interval", x = 1, y = 1)) +
+    geom_text(aes(x, y, label = l), size = 5) +
+    theme_void()
+  ylabel <- ggplot(data.frame(l = "Proportion of community thinned", x = 1, y = 1)) +
+    geom_text(aes(x, y, label = l), angle = 90, size = 5) +
+    theme_void()
+
+  # layout
+  lo <- '
+    ABC
+    ADE
+    #FF
+  '
 
   # save the plot
   ggsave(
-    conf_mets_plot,
+    ylabel + plots[[1]] + plots[[2]] + plots[[3]] + plots[[4]] + xlabel +
+      plot_layout(design = lo, widths = unit(c(0.75, 4, 4), "cm"), heights = unit(c(4, 4, 0.75), "cm")),
     filename = here(
       paste0("Figures/confusion_metrics_freq_x_nsp_thin_", args[2], ".png")
     ),
-    width = 6, height = 5,
+    height = 7, width = 7,
     units = "in"
   )
 
