@@ -10,6 +10,9 @@ ricker_ts_lnorm(
   A_mat,
   sigmas,
   steps,
+  dist_prob = 0,
+  dist_int = 0,
+  prop_cdist = 0,
   thin_freq = 0,
   thin_factor = 0.1,
   thin_order = NULL,
@@ -27,6 +30,11 @@ ricker_ts_lnorm(
 
 \item{steps}{Number of time steps}
 
+\item{dist_prob}{Probability the community is disturbed in a given year.}
+
+\item{dist_int}{Disturbance intensity, on the unit interval. An intensity of 0.5 translates
+to a disturbance that, on average, reduces 50\% of the species to 50\% of their density.}
+
 \item{thin_freq}{Frequency of thinning treatments. \code{thin_freq = 0} will proceed without
 thinning treatment, while a value of \code{thin_freq = c} with c > 0, will perform a
 thinning treatment every c years.}
@@ -39,7 +47,8 @@ generated at random}
 }
 \value{
 Matrix with as many rows as there are species in the simulation and as many columns
-as steps.
+as steps. If the communities had natural disturbance, a list of which species were disturbed
+and when is also returned.
 }
 \description{
 Full community Ricker simulations
