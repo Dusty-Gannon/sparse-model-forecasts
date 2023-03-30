@@ -121,24 +121,44 @@ simulate_communities <- function(sim_params){
     # find and remove any species that went extinct in the first 50 steps after thinning
     ext2 <- (2:nrow(N_exp))[which(apply(N_exp[-1, ], 1, function(x){
       mean(x == 0)
-    }) > 0.7)]
+    }) > 1)]
 
     # make some return objects
-    N = cbind(N_pre_final[-ext2, -sim_params$init_steps], N_exp[-ext2, ])
-    thinned_sp = which(rownames(N) %in% thin_sp_names)
+    if(length(ext2) > 0){
+      N = cbind(N_pre_final[-ext2, -sim_params$init_steps], N_exp[-ext2, ])
+      thinned_sp = which(rownames(N) %in% thin_sp_names)
 
-    return(list(
-      N = N,
-      thinned_sp = thinned_sp,
-      sim_params = list(
-        lambdas = sim_params$lambdas[nesp][-ext2],
-        A_mat = sim_params$A_mat[nesp, nesp][-ext2, -ext2],
-        sigmas = sim_params$sigmas[nesp][-ext2],
-        start_thin = sim_params$init_steps + 1,
-        thin_freq = sim_params$thin_freq,
-        prop_cthin = sim_params$prop_cthin
-      )
-    ))
+      return(list(
+        N = N,
+        thinned_sp = thinned_sp,
+        sim_params = list(
+          lambdas = sim_params$lambdas[nesp][-ext2],
+          A_mat = sim_params$A_mat[nesp, nesp][-ext2, -ext2],
+          sigmas = sim_params$sigmas[nesp][-ext2],
+          start_thin = sim_params$init_steps + 1,
+          thin_freq = sim_params$thin_freq,
+          prop_cthin = sim_params$prop_cthin
+        )
+      ))
+    } else{
+
+      N = cbind(N_pre_final[, -sim_params$init_steps], N_exp)
+      thinned_sp = which(rownames(N) %in% thin_sp_names)
+
+      return(list(
+        N = N,
+        thinned_sp = thinned_sp,
+        sim_params = list(
+          lambdas = sim_params$lambdas[nesp],
+          A_mat = sim_params$A_mat[nesp, nesp],
+          sigmas = sim_params$sigmas[nesp],
+          start_thin = sim_params$init_steps + 1,
+          thin_freq = sim_params$thin_freq,
+          prop_cthin = sim_params$prop_cthin
+        )
+      ))
+
+    }
   }
 }
 
@@ -151,14 +171,14 @@ simulate_communities <- function(sim_params){
   thin_freq <- 1:10
   prop_cthin <- seq(0.1, 1, by = 0.1)
   reps <- 1000
-  target_reps <- 500
+  target_reps <- 100
 
   # complete the factorial table
   freq_prop_df <- expand.grid(thin_freq, prop_cthin)
   names(freq_prop_df) <- c("thin_freq", "prop_cthin")
   # add a row for no thinning at all
   freq_prop_df <- rbind(c(0,0), freq_prop_df)
-  freq_prop_df <- freq_prop_df[rep(1:nrow(freq_prop_df), each = reps), ]
+  freq_prop_df <- freq_prop_df[rep(1:nrow(freq_prop_df), reps), ]
 
   nsp <- 60; init_steps <- 50; tot_steps = 500
   num_ngs <- 5; sigma_rng <- c(0.1, 0.3);
@@ -184,7 +204,7 @@ simulate_communities <- function(sim_params){
     )
   )
 
-# now expand the parameter list to repeat each set of parameters for each combination of
+  # now expand the parameter list to repeat each set of parameters for each combination of
   # thinning frequency and proportion of cummunity that gets thinned
   params <- params[rep(1:length(params), each = nrow(unique(freq_prop_df)))]
   for(i in 1:length(params)){
@@ -192,88 +212,66 @@ simulate_communities <- function(sim_params){
     params[[i]]$prop_cthin <- freq_prop_df$prop_cthin[i]
   }
 
-# simulate in parallel
+  # simulate in parallel
   cl <- makeCluster(20)
 
-   # load functions on each node
-    clusterEvalQ(cl, expr = {
-       devtools::load_all()
-     })
+  # load functions on each node
+  clusterEvalQ(cl, expr = {
+    devtools::load_all()
+  })
 
-   # simulate
-    sims <- parLapply(
-      cl = cl,
-      params,
-      fun = simulate_communities
-    )
+  # simulate
+  sims <- parLapply(
+    cl = cl,
+    params,
+    fun = simulate_communities
+  )
 
   stopCluster(cl)
 
-# ##### Quick checks #####
- # sapply(sims, function(x){sum(x$N_full[, steps] > 0)})
- #
- #  plot_comm <- function(N){
- #    library(ggplot2)
- #    nsp <- nrow(N)
- #    steps <- ncol(N)
- #
- #    df <- data.frame(
- #      t = rep(1:steps, each = nsp),
- #      sp = as.factor(rep(1:nsp, steps)),
- #      N = as.vector(N)
- #    )
- #
- #    return(
- #      ggplot(data = df, aes(x = t, y = N, color = sp)) +
- #        geom_line() +
- #        theme_classic()
- #    )
- #  }
- #
- # plot_comm(N)
+  # collect a list of replicated sim params for which the focal
+  # did not go extinct in any treatment combo
+  r <- 1
+  good_reps <- 0
+  while(good_reps < target_reps & r <= reps){
 
-##### Save the simulated datasets #####
+    # get sim ids with same starting parameters
+    ids <- (n_trtmnts * (r - 1) + 1):(n_trtmnts * r)
 
-  # find and remove any cases where the focal went extinct
-  to_keep <- which(
-    {
-      as.vector(sapply(sims, function(x){sum(is.na(x$N))})) +
-      as.vector(sapply(sims, function(x){
-          if(nrow(x$N) == 0){return(1)} else{
-            sum(is.nan(x$N[1, ]) | x$N[1, ] == 0)
-          }
-      }))
-    } == 0
-  )
+    # loop through and check for issues, stop if one is
+    # encountered and move on
+    prblms <- 0
+    i <- 1
+    while(prblms == 0 & i <= length(ids)){
+      if(nrow(sims[[ids[i]]]$N) > 0){
+        prblms <- prblms +
+          sum(is.infinite(sims[[ids[i]]]$N[1, ])) +
+          sum(sims[[ids[i]]]$N[1, ] == 0)
+      } else {
+        prblms <- prblms + 1
+      }
+      i <- i + 1
+    }
 
-  # sample from good sims
-  grps <- length(sims) / reps
-  sub_ids <- vector(mode = "double")
-  for(i in 1:grps){
+    if(prblms == 0){
+      # add the sims if there were no issues
+      sims_final <- c(sims_final, sims[ids])
+      good_reps <- good_reps + 1
+    }
+    r <- r + 1
 
-    good_ids <- to_keep[to_keep %in% ((i - 1) * reps + 1):(i * reps)]
-    sub_ids <- c(
-      sub_ids,
-      sample(good_ids, target_reps)
-    )
   }
 
-  sub_ids <- sub_ids[order(sub_ids)]
+  # remove sims
+  rm(sims)
 
-  sims_final <- sims[sub_ids]
-
-
-  # sanity check
-  test_df <- data.frame(
-    thin_freq = purrr::map_dbl(
-      sims_final,
-      ~ .x$sim_params$thin_freq
-    ),
-    prop_cthin = purrr::map_dbl(
-      sims_final,
-      ~ .x$sim_params$prop_cthin
+  sims_final_sort <- sims_final[
+    order(
+      purrr::map_dbl(sims_final, ~.x$sim_params$prop_cthin),
+      purrr::map_dbl(sims_final, ~.x$sim_params$thin_freq)
     )
-  )
+  ]
+
 
 ##### Save simulations #####
 
@@ -288,7 +286,7 @@ simulate_communities <- function(sim_params){
     fname
   )
 
-  saveRDS(sims_final, file = here(fp))
+  saveRDS(sims_final_sort, file = here(fp))
 
 
 
