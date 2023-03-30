@@ -121,7 +121,7 @@ simulate_communities <- function(sim_params){
     # find and remove any species that went extinct in the first 50 steps after thinning
     ext2 <- (2:nrow(N_exp))[which(apply(N_exp[-1, ], 1, function(x){
       mean(x == 0)
-    }) > 1)]
+    }) > 0.7)]
 
     # make some return objects
     if(length(ext2) > 0){
@@ -170,7 +170,7 @@ simulate_communities <- function(sim_params){
   set.seed(5254)
   thin_freq <- 1:10
   prop_cthin <- seq(0.1, 1, by = 0.1)
-  reps <- 1000
+  reps <- 500
   target_reps <- 100
 
   # complete the factorial table
@@ -233,6 +233,8 @@ simulate_communities <- function(sim_params){
   # did not go extinct in any treatment combo
   r <- 1
   good_reps <- 0
+  n_trtmnts <- nrow(unique(freq_prop_df))
+  sims_final <- vector(mode = "list")
   while(good_reps < target_reps & r <= reps){
 
     # get sim ids with same starting parameters
