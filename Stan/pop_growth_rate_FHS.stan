@@ -1,14 +1,16 @@
 ///////////////////////////////////////////////////////////////
 // This Stan program fits a Ricker competition model with
 // regularized horseshoe priors on the effects for species
-// assuming conditionally Poisson-distributed demographic noise
+// assuming log-normal demographic stochasticity
 ///////////////////////////////////////////////////////////////
 
 data {
 
   int<lower = 0> N;             // length of the time series
+  int<lower = 0> P0;            // number of non-shrinking effects
   int<lower = 0> P;             // number of heterospecific species effects
   vector<lower = 0>[N] y;       // vector of responses
+  matrix[N, P0] X_alpha;        // model matrix for non-shrinking effects
   matrix[N, P] X_beta;          // standardized model matrix for shrinking effects
   real<lower = 0> error_scl;    // prior guess for the scale of demographic stochasticity
   real<lower = 0> tau0;         // scale for global shrinkage parameter
@@ -23,9 +25,6 @@ transformed data{
   real slab_scl2 = square(slab_scl);
   real half_slab_df = 0.5 * slab_df;
 
-  // scale the ys
-  vector[N] y_std = (y - mean(y)) / sd(y);
-
   // convert counts to growth rates
   vector[N - 1] r = log(y[2:N] ./ y[1:(N - 1)]);
 
@@ -34,7 +33,7 @@ transformed data{
 
 parameters{
 
-  real<upper = 0> alpha_std;           // standardized intra-specific competition
+  vector[P0] alpha_std;                // standardized intra-specific competition
   vector[P] beta_std;                  // standardized coefficients before shrinkage
   real<lower = 0> lambda;              // intrinsic growth of the focal species
   real<lower = 0> sigma;               // demographic stochasticity
@@ -65,12 +64,12 @@ transformed parameters{
   vector[P] beta = tau * local_scale_tilde .* beta_std;
 
   // scale alpha
-  real alpha = alpha_std * 0.25;
+  vector[P0] alpha = alpha_std * 1;
 
   // construct linear predictors
   for(t in 1:(N - 1)){
     // mean   //intrinsic growth  //intra       //inter
-    eta[t] = log(lambda) + alpha * y_std[t] + X_beta[t, ] * beta;
+    eta[t] = log(lambda) + X_alpha[t, ] * alpha + X_beta[t, ] * beta;
 
   }
 

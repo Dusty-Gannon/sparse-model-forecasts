@@ -4,7 +4,7 @@
 \alias{fit_n_summarize}
 \title{Wrapper to fit and summarize log-normal growth models}
 \usage{
-fit_n_summarize(X, stan_mod, tsteps = 51:100, pip = 0.9)
+fit_n_summarize(X, stan_mod, tsteps = 51:100, pip = 0.9, dist = F)
 }
 \arguments{
 \item{X}{List with matrix of abundances called N in it}
@@ -14,6 +14,9 @@ fit_n_summarize(X, stan_mod, tsteps = 51:100, pip = 0.9)
 \item{tsteps}{Vector of time steps to use as data}
 
 \item{pip}{Posterior inclusion probability}
+
+\item{dist}{Logical indicating whether disturbances that affect the
+focal species should be accounted for in the model}
 }
 \value{
 List with summaries and posterior draws

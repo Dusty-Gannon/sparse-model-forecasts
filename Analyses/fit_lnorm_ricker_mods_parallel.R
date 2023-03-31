@@ -22,6 +22,13 @@
   tsteps <- as.numeric(args[2]):as.numeric(args[3])
   sim_ids <- as.numeric(args[4]):as.numeric(args[5])
 
+  # test if disturbance is specified
+  if(length(args) > 6 & args[7] == "dist"){
+    dist <- T
+  } else{
+    dist <- F
+  }
+
   # print some things for the log file
   print(
     paste0("Starting on sims ", sim_ids[1], " to ", sim_ids[length(sim_ids)])
@@ -50,7 +57,8 @@
       fun = fit_n_summarize,
       stan_mod = growth_mod,
       tsteps = tsteps,
-      pip = 0.9
+      pip = 0.9,
+      dist = dist
     )
 
   stopCluster(cl)
