@@ -171,7 +171,8 @@ simulate_communities <- function(sim_params){
   thin_freq <- 1:10
   prop_cthin <- seq(0.1, 1, by = 0.1)
   reps <- 500
-  target_reps <- 100
+  target_reps <- 200
+  round <- 2
 
   # complete the factorial table
   freq_prop_df <- expand.grid(thin_freq, prop_cthin)
@@ -279,6 +280,7 @@ simulate_communities <- function(sim_params){
 
   fname <- paste0(
     "lnorm_ricker_thin_freq_x_nsp_ordered",
+    "_round", round,
     "_S", num_ngs,
     "_s", nsp - num_ngs, ".rds"
   )
