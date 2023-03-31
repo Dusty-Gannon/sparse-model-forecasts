@@ -13,6 +13,7 @@ ricker_ts_lnorm(
   dist_prob = 0,
   dist_int = 0,
   prop_cdist = 0,
+  dist_min_thresh = 1,
   thin_freq = 0,
   thin_factor = 0.1,
   thin_order = NULL,

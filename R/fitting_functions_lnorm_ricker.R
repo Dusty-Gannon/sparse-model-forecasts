@@ -10,11 +10,13 @@
 #' @param N Matrix of community abundances, one species per row, with time over columns
 #' @param stan_mod compiled stan model to fit
 #' @param tsteps Vector of time steps to use
+#' @param dist Logical indicating whether a covariate for disturbance times should be
+#' included in the model.
 #' @param ... Extra arguments to the control list for Stan
 #'
 #' @return Matrix of posterior draws for the competition coefficients
 #'
-fit_growth_models <- function(N, stan_mod, tsteps, ...){
+fit_growth_models <- function(N, stan_mod, tsteps, dist_vec = NULL, ...){
 
   # get list of control arguments
   cntrl_args <- list(...)
@@ -31,11 +33,24 @@ fit_growth_models <- function(N, stan_mod, tsteps, ...){
     N = n - 1,
     fam = "gaussian"
   )
+  if(is.null(dist_vec)){
+    X_alpha <- matrix(
+      data = as.double(scale(N_foc)),
+      ncol = 1
+    )
+  } else{
+    X_alpha <- cbind(
+      as.double(scale(N_foc)),
+      dist_vec
+    )
+  }
 
   datlist <- list(
     N = n,
+    P0 = ncol(X_alpha),
     P = ncol(N_het),
     y = N_foc,
+    X_alpha = X_alpha,
     X_beta = N_het_std,
     error_scl = 0.5,
     tau0 = tau_0,
@@ -51,7 +66,7 @@ fit_growth_models <- function(N, stan_mod, tsteps, ...){
       control = list(adapt_delta = 0.99, max_treedepth = 15)
     )
   } else {
-    mfit <- sampling(
+    mfit <- rstan::sampling(
       stan_mod,
       data = datlist,
       cores = 3, chains = 3,
@@ -120,16 +135,27 @@ conf_mat_summaries <- function(beta_post, A_mat, pip = 0.9){
 #' @param stan_mod Compiled stan model to fit
 #' @param tsteps Vector of time steps to use as data
 #' @param pip Posterior inclusion probability
+#' @param dist Logical indicating whether disturbances that affect the
+#' focal species should be accounted for in the model
 #'
 #' @return List with summaries and posterior draws
 #'
-fit_n_summarize <- function(X, stan_mod, tsteps = 51:100, pip = 0.9){
+fit_n_summarize <- function(X, stan_mod, tsteps = 51:100, pip = 0.9, dist = F){
 
-  beta_post <- fit_growth_models(
-    N = X$N,
-    stan_mod = stan_mod,
-    tsteps = tsteps
-  )
+  if(dist & X$sim_params$dist_prob > 0){
+    beta_post <- fit_growth_models(
+      N = X$N,
+      stan_mod = stan_mod,
+      tsteps = tsteps,
+      dist_vec = X$dist_foc
+    )
+  } else{
+    beta_post <- fit_growth_models(
+      N = X$N,
+      stan_mod = stan_mod,
+      tsteps = tsteps
+    )
+  }
 
   summaries <- list(
     beta_post = beta_post,

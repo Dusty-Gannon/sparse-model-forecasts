@@ -4,7 +4,7 @@
 \alias{fit_growth_models}
 \title{Fitting log-normal growth models}
 \usage{
-fit_growth_models(N, stan_mod, tsteps, ...)
+fit_growth_models(N, stan_mod, tsteps, dist_vec = NULL, ...)
 }
 \arguments{
 \item{N}{Matrix of community abundances, one species per row, with time over columns}
@@ -14,6 +14,9 @@ fit_growth_models(N, stan_mod, tsteps, ...)
 \item{tsteps}{Vector of time steps to use}
 
 \item{...}{Extra arguments to the control list for Stan}
+
+\item{dist}{Logical indicating whether a covariate for disturbance times should be
+included in the model.}
 }
 \value{
 Matrix of posterior draws for the competition coefficients

@@ -9,9 +9,11 @@ devtools::load_all()
 # This script simulates competitive communities using
 # a Ricker population model for each competing species.
 # Demographic stochasticity enters in the exponent,
-# resulting in log-normally distributed errors. We assess, after
-# 50 time steps, which species are coexisting, then select a focal
-# species and conduct targeted thinning of non-focal species
+# resulting in log-normally distributed errors. Stochastic
+# disturbances can be introduced with the frequency of disturbance,
+# disturbance intensity, and the proportion of the community the
+# disturbance impacts controlled by simulation parameters.
+# see ?ricker_ts_lnorm()
 ###################################################################
 
 
@@ -33,38 +35,83 @@ simulate_communities <- function(sim_params){
 
     # which species were extinct for more than 70% of the time?
     if(sim_params$dist_prob > 0){
-      ext <- which(apply(sims_pre$N, 1, function(x){
-        mean(x == 0)
-      }) > 0.7)
+      ext <- which(
+        apply(
+          sims_pre$N, 1,
+          function(x){
+            mean(x == 0)
+          }
+        ) > 0.7 | apply(
+          sims_pre$N, 1,
+          function(x){
+            sum(is.infinite(x))
+          }
+        ) > 0
+      )
       N <- sims_pre$N[-ext, ]
+
+      # rearrange and make only surviving species the focal
+      surv <- which(N[, sim_params$steps] > 0)
+      if(length(surv) > 1 & surv[1] != 1){
+        new_ord <- c(
+          surv[1],
+          1:(surv[1] - 1),
+          (surv[1] + 1):nrow(N)
+        )
+      } else{
+        new_ord <- 1:nrow(N)
+      }
 
       # when was the focal disturbed?
       dist_foc <- sapply(
         sims_pre$disturbances,
-        FUN = function(x, ext){
-          as.numeric(x[-ext][1] != 0)
+        FUN = function(x, ext, ord){
+          as.numeric(x[-ext][ord[1]] != 0)
         },
-        ext = ext
+        ext = ext,
+        ord = new_ord
       )
     } else{
-      ext <- which(apply(sims_pre, 1, function(x){
-        mean(x == 0)
-      }) > 0.7)
+      ext <- ext <- which(
+        apply(
+          sims_pre, 1,
+          function(x){
+            mean(x == 0)
+          }
+        ) > 0.7 | apply(
+          sims_pre, 1,
+          function(x){
+            sum(is.infinite(x))
+          }
+        ) > 0
+      )
       N <- sims_pre[-ext, ]
+
+      # rearrange and make only surviving species the focal
+      surv <- which(N[, sim_params$steps] > 0)
+      if(length(surv) > 1 & surv[1] != 1){
+        new_ord <- c(
+          surv[1],
+          1:(surv[1] - 1),
+          (surv[1] + 1):nrow(N)
+        )
+      } else{
+        new_ord <- 1:nrow(N)
+      }
 
       dist_foc <- NA
     }
 
     return(list(
-      N = N,
+      N = N[new_ord, ],
       dist_foc = dist_foc,
       sim_params = list(
-        lambdas = sim_params$lambdas[-ext],
-        A_mat = sim_params$A_mat[-ext, -ext],
-        sigmas = sim_params$sigmas[-ext],
+        lambdas = sim_params$lambdas[-ext][new_ord],
+        A_mat = sim_params$A_mat[-ext, -ext][new_ord, new_ord],
+        sigmas = sim_params$sigmas[-ext][new_ord],
         dist_prob = sim_params$dist_prob,
         dist_int = sim_params$dist_int,
-        prop_cdist = sim_param$prop_cdist
+        prop_cdist = sim_params$prop_cdist
       )
     ))
 
@@ -77,20 +124,24 @@ simulate_communities <- function(sim_params){
 
   # some general simulation conditions
   set.seed(6528)
-  dist_prob <- seq(0.05, 0.5, length.out = 10)
+  dist_prob <- seq(0.05, 0.25, length.out = 10)
   prop_cdist <- seq(0.1, 1, by = 0.1)
   dist_int <- c(0.5, 0.9)
-  reps <- 10
+  reps <- 500
   target_reps <- 100
+  round <- 1
 
   # complete the factorial table
   trt_df <- expand.grid(dist_prob, prop_cdist, dist_int)
   names(trt_df) <- c("dist_prob", "prop_cdist", "dist_int")
   # add a row for no disturbance
   trt_df <- rbind(c(0, 0, 0), trt_df)
+  # store number of treatments
+  n_trtmnts <- nrow(trt_df)
+  # now expand df
   trt_df <- trt_df[rep(1:nrow(trt_df), reps), ]
 
-  nsp <- 60; steps <- 300
+  nsp <- 60; steps <- 200
   num_ngs <- 5; sigma_rng <- c(0.1, 0.3);
   alpha_rng <- c(0.01, 0.05); lambda_rng <- c(1.2, 1.6);
   ng_range <- c(0.1, 0.5); rho <- 0; mean_init_abund <- 50
@@ -110,8 +161,8 @@ simulate_communities <- function(sim_params){
   )
 
 # now expand the parameter list to repeat each set of parameters for each combination of
-  # thinning frequency and proportion of cummunity that gets thinned
-  params <- params[rep(1:length(params), each = nrow(unique(trt_df)))]
+  # disturbance parameters
+  params <- params[rep(1:length(params), each = n_trtmnts)]
   for(i in 1:length(params)){
     params[[i]]$dist_prob <- trt_df$dist_prob[i]
     params[[i]]$prop_cdist <- trt_df$prop_cdist[i]
@@ -136,53 +187,62 @@ simulate_communities <- function(sim_params){
   stopCluster(cl)
 
 
-##### Save the simulated datasets #####
+##### Get a list of successful sims #####
 
-  # find and remove any cases where the focal went extinct
-  to_keep <- which(
-    {
-      as.vector(sapply(sims, function(x){sum(is.na(x$N))})) +
-      as.vector(sapply(sims, function(x){
-          if(nrow(x$N) == 0){return(1)} else{
-            sum(is.nan(x$N[1, ]) | x$N[1, ] == 0)
-          }
-      }))
-    } == 0
-  )
+  # collect a list of replicated sim params for which the focal
+  # did not go extinct in any treatment combo
+  r <- 1
+  good_reps <- 0
+  sims_final <- vector(mode = "list")
+  while(good_reps < target_reps & r <= reps){
 
-  # sample from good sims
-  grps <- length(sims) / reps
-  sub_ids <- vector(mode = "double")
-  for(i in 1:grps){
+    # get sim ids with same starting parameters
+    ids <- (n_trtmnts * (r - 1) + 1):(n_trtmnts * r)
 
-    good_ids <- to_keep[to_keep %in% ((i - 1) * reps + 1):(i * reps)]
-    sub_ids <- c(
-      sub_ids,
-      sample(good_ids, target_reps)
-    )
+    # loop through and check for issues, stop if one is
+    # encountered and move on
+    prblms <- 0
+    i <- 1
+    while(prblms == 0 & i <= length(ids)){
+      if(!is.null(nrow(sims[[ids[i]]]$N))){
+        if(nrow(sims[[ids[i]]]$N) > 1){
+          prblms <- prblms +
+            sum(is.infinite(sims[[ids[i]]]$N[1, ])) +
+            sims[[ids[i]]]$N[1, steps] == 0
+        }
+      } else {
+        prblms <- prblms + 1
+      }
+      i <- i + 1
+    }
+
+    if(prblms == 0){
+      # add the sims if there were no issues
+      sims_final <- c(sims_final, sims[ids])
+      good_reps <- good_reps + 1
+    }
+    r <- r + 1
+
   }
 
-  sub_ids <- sub_ids[order(sub_ids)]
+  # remove sims
+  rm(sims)
 
-  sims_final <- sims[sub_ids]
-
-
-  # sanity check
-  test_df <- data.frame(
-    thin_freq = purrr::map_dbl(
-      sims_final,
-      ~ .x$sim_params$thin_freq
-    ),
-    prop_cthin = purrr::map_dbl(
-      sims_final,
-      ~ .x$sim_params$prop_cthin
+  sims_final_sort <- sims_final[
+    order(
+      purrr::map_dbl(sims_final, ~.x$sim_params$dist_prob),
+      purrr::map_dbl(sims_final, ~.x$sim_params$prop_cdist),
+      purrr::map_dbl(sims_final, ~.x$sim_params$dist_int)
     )
-  )
+  ]
+
+
 
 ##### Save simulations #####
 
   fname <- paste0(
-    "lnorm_ricker_thin_freq_x_nsp_ordered",
+    "lnorm_ricker_dist_freq_x_nsp_x_int",
+    "_round", round,
     "_S", num_ngs,
     "_s", nsp - num_ngs, ".rds"
   )
@@ -192,7 +252,7 @@ simulate_communities <- function(sim_params){
     fname
   )
 
-  saveRDS(sims_final, file = here(fp))
+  saveRDS(sims_final_sort, file = here(fp))
 
 
 

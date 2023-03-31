@@ -442,8 +442,8 @@ ricker_ts_lnorm_foc <- function(N_0, lambda, A_i, sigma_i, N_het, steps = 300, h
 ricker_ts_lnorm <- function(
     N_0, lambdas, A_mat, sigmas, steps,
     dist_prob = 0, dist_int = 0, prop_cdist = 0,
-    thin_freq = 0, thin_factor = 0.1, thin_order = NULL,
-    thin_levels = NULL
+    dist_min_thresh = 1, thin_freq = 0, thin_factor = 0.1,
+    thin_order = NULL, thin_levels = NULL
 ){
 
   nsp <- length(N_0)
@@ -549,7 +549,8 @@ ricker_ts_lnorm <- function(
       N[extinct, t - 1] <- 0
 
       # disturb if it was a disturbance year
-      N[, t - 1] <- N[, t - 1] * (1 - dist[t - 1]) + N[, t - 1] * dist[t - 1] * dist_vecs[[t - 1]]
+      N_tm1 <- N[, t - 1] * (1 - dist[t - 1]) + N[, t - 1] * dist[t - 1] * dist_vecs[[t - 1]]
+
 
       # step the process forward
       nesp <- (1:nsp)[-extinct]
