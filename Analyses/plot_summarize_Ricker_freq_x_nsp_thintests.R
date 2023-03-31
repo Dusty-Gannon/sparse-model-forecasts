@@ -1,7 +1,8 @@
 ##########################################################
 # This script takes output from fitting the Ricker models,
 # with different thinning intervals and proportion of the
-# community thinned.
+# community thinned, and plots confusion metrics in a
+# heatmap.
 ##########################################################
 
 library(tidyverse)
@@ -167,7 +168,7 @@ devtools::load_all()
     #FF
   '
 
-  # save the plot
+  # save the plots
   ggsave(
     ylabel + plots[[1]] + plots[[2]] + plots[[3]] + plots[[4]] + xlabel +
       plot_layout(design = lo, widths = unit(c(0.75, 4, 4), "cm"), heights = unit(c(4, 4, 0.75), "cm")),
