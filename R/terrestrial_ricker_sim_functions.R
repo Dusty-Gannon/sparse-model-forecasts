@@ -347,7 +347,7 @@ generate_sim_params_dist <- function(
     sigma_rng = c(0.1, 0.5), alpha_rng = c(0.005, 0.01),
     lambda_rng = c(1.2, 1.8), ng_range = c(0.2, 0.4), rho = 0,
     mean_init_abund = 20, comp_matrix_type = 2, dist_prob = 0,
-    dist_int = 0, prop_cdist = 0
+    dist_int = 0, prop_cdist = 0, dist_min_thresh = 1
 ){
 
   # generate competition matrix
@@ -374,7 +374,7 @@ generate_sim_params_dist <- function(
       lambdas = runif(nsp, min = lambda_rng[1], max = lambda_rng[2]),
       N_0 = rpois(nsp, lambda = mean_init_abund),
       dist_prob = dist_prob, dist_int = dist_int,
-      prop_cdist = prop_cdist
+      prop_cdist = prop_cdist, dist_min_thresh = dist_min_thresh
     )
   )
 
@@ -544,12 +544,24 @@ ricker_ts_lnorm <- function(
     # now proceed with simulations
     for(t in 2:steps){
 
-      # tracking extinct species
-      extinct <- which(round(as.double(N[, t - 1])) == 0)
-      N[extinct, t - 1] <- 0
-
       # disturb if it was a disturbance year
       N_tm1 <- N[, t - 1] * (1 - dist[t - 1]) + N[, t - 1] * dist[t - 1] * dist_vecs[[t - 1]]
+
+      # tracking extinct species
+      extinct_pre <- which(round(as.double(N_tm1)) == 0)
+      N_tm1[extinct_pre] <- 0
+
+      # Some species may stochastically recolonize
+      N_tm1_plus <- ifelse(
+        N_tm1 == 0,
+        rgamma(nsp, shape = 2, scale = 1) * purrr::rbernoulli(nsp, p = 0.02),
+        N_tm1
+      )
+      N[, t - 1] <- N_tm1_plus
+
+      # tracking extinct species
+      extinct <- which(as.double(N[, t - 1]) == 0)
+      N[extinct, t - 1] <- 0
 
 
       # step the process forward

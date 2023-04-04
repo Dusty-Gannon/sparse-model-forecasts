@@ -33,9 +33,10 @@ simulate_communities <- function(sim_params){
       )
     })
 
-    # which species were extinct for more than 70% of the time?
+
+    # which species were extinct for more than 50% of the time?
     if(sim_params$dist_prob > 0){
-      ext <- which(
+      ext <- ext <- which(
         apply(
           sims_pre$N, 1,
           function(x){
@@ -51,22 +52,27 @@ simulate_communities <- function(sim_params){
       N <- sims_pre$N[-ext, ]
 
       # rearrange and make only surviving species the focal
-      surv <- which(N[, sim_params$steps] > 0)
-      if(length(surv) > 1 & surv[1] != 1){
-        new_ord <- c(
-          surv[1],
-          1:(surv[1] - 1),
-          (surv[1] + 1):nrow(N)
-        )
-      } else{
+      ma <- which.min(apply(N, 1, function(x){sum(x == 0)}))
+      if(ma == 1){
         new_ord <- 1:nrow(N)
+      } else if(ma == nrow(N)){
+        new_ord <- c(
+          ma,
+          1:(nrow(N) - 1)
+        )
+      } else {
+        new_ord <- c(
+          ma[1],
+          1:(ma[1] - 1),
+          (ma[1] + 1):nrow(N)
+        )
       }
 
       # when was the focal disturbed?
       dist_foc <- sapply(
         sims_pre$disturbances,
         FUN = function(x, ext, ord){
-          as.numeric(x[-ext][ord[1]] != 0)
+          as.numeric(x[-ext][ord][1] != 0)
         },
         ext = ext,
         ord = new_ord
@@ -88,7 +94,7 @@ simulate_communities <- function(sim_params){
       N <- sims_pre[-ext, ]
 
       # rearrange and make only surviving species the focal
-      surv <- which(N[, sim_params$steps] > 0)
+      surv <- which(apply(N, 1, function(x){sum(x == 0)}) == 0)
       if(length(surv) > 1 & surv[1] != 1){
         new_ord <- c(
           surv[1],
@@ -96,24 +102,33 @@ simulate_communities <- function(sim_params){
           (surv[1] + 1):nrow(N)
         )
       } else{
-        new_ord <- 1:nrow(N)
+        ma <- which.min(apply(N, 1, function(x){sum(x == 0)}))
+        new_ord <- c(
+          ma[1],
+          1:(ma[1] - 1),
+          (ma[1] + 1):nrow(N)
+        )
       }
 
       dist_foc <- NA
     }
 
-    return(list(
-      N = N[new_ord, ],
-      dist_foc = dist_foc,
-      sim_params = list(
-        lambdas = sim_params$lambdas[-ext][new_ord],
-        A_mat = sim_params$A_mat[-ext, -ext][new_ord, new_ord],
-        sigmas = sim_params$sigmas[-ext][new_ord],
-        dist_prob = sim_params$dist_prob,
-        dist_int = sim_params$dist_int,
-        prop_cdist = sim_params$prop_cdist
-      )
-    ))
+    if(is.null(nrow(N))){
+      return(list(N = NULL))
+    } else{
+      return(list(
+        N = N[new_ord, ],
+        dist_foc = dist_foc,
+        sim_params = list(
+          lambdas = sim_params$lambdas[-ext][new_ord],
+          A_mat = sim_params$A_mat[-ext, -ext][new_ord, new_ord],
+          sigmas = sim_params$sigmas[-ext][new_ord],
+          dist_prob = sim_params$dist_prob,
+          dist_int = sim_params$dist_int,
+          prop_cdist = sim_params$prop_cdist
+        )
+      ))
+    }
 
 }
 
@@ -124,9 +139,9 @@ simulate_communities <- function(sim_params){
 
   # some general simulation conditions
   set.seed(6528)
-  dist_prob <- seq(0.05, 0.25, length.out = 10)
+  dist_prob <- seq(0.05, 0.1, length.out = 10)
   prop_cdist <- seq(0.1, 1, by = 0.1)
-  dist_int <- c(0.5, 0.9)
+  dist_int <- c(0.5, 0.8)
   reps <- 500
   target_reps <- 100
   round <- 1
@@ -156,7 +171,8 @@ simulate_communities <- function(sim_params){
         sigma_rng = sigma_rng, alpha_rng = alpha_rng,
         lambda_rng = lambda_rng, ng_range = ng_range,
         rho = rho, mean_init_abund = mean_init_abund,
-        dist_prob = 0, dist_int = 0, prop_cdist = 0
+        dist_prob = 0, dist_int = 0, prop_cdist = 0,
+        dist_min_thresh = 1
     )
   )
 
@@ -186,6 +202,10 @@ simulate_communities <- function(sim_params){
 
   stopCluster(cl)
 
+sims <- vector(mode = "list", length = length(params))
+for(i in 182:length(sims)){
+  sims[[i]] <- simulate_communities(params[[i]])
+}
 
 ##### Get a list of successful sims #####
 
@@ -204,11 +224,11 @@ simulate_communities <- function(sim_params){
     prblms <- 0
     i <- 1
     while(prblms == 0 & i <= length(ids)){
-      if(!is.null(nrow(sims[[ids[i]]]$N))){
+      if(!is.null(sims[[ids[i]]]$N)){
         if(nrow(sims[[ids[i]]]$N) > 1){
           prblms <- prblms +
             sum(is.infinite(sims[[ids[i]]]$N[1, ])) +
-            sims[[ids[i]]]$N[1, steps] == 0
+            (mean(sims[[ids[i]]]$N[1,] == 0) > 0.05)
         }
       } else {
         prblms <- prblms + 1
@@ -230,9 +250,9 @@ simulate_communities <- function(sim_params){
 
   sims_final_sort <- sims_final[
     order(
-      purrr::map_dbl(sims_final, ~.x$sim_params$dist_prob),
+      purrr::map_dbl(sims_final, ~.x$sim_params$dist_int),
       purrr::map_dbl(sims_final, ~.x$sim_params$prop_cdist),
-      purrr::map_dbl(sims_final, ~.x$sim_params$dist_int)
+      purrr::map_dbl(sims_final, ~.x$sim_params$dist_prob)
     )
   ]
 
