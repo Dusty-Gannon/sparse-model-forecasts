@@ -8,7 +8,7 @@
 #SBATCH --mem=20G
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=dgannon@uwyo.edu
-#SBATCH --array=1-1010%10
+#SBATCH --array=1-2020%10
 #SBATCH --out=./logfiles/slurm-%A_%a.out
 
 # Set the parameter combination to use and generate names of R scripts and log file
@@ -29,7 +29,7 @@ for i in ${SLURM_ARRAY_TASK_ID[@]}; do
   stop+=$(( 10*i ))
 done
 
-Rscript --vanilla $Rscript lnorm_ricker_thin_freq_x_nsp_ordered_S5_s55.rds 51 150 ${start} ${stop} "freq_x_nsp_results/freq_x_nsp_thintests_${start}_${stop}.rds" > "$LogFile_pref${start}_${stop}"
+Rscript --vanilla $Rscript lnorm_ricker_thin_freq_x_nsp_ordered_round2_S5_s55.rds 51 250 ${start} ${stop} "freq_x_nsp_results/round2/freq_x_nsp_thintests_${start}_${stop}.rds" > "$LogFile_pref${start}_${stop}"
 
 
 
