@@ -26,32 +26,51 @@ fit_growth_models <- function(N, stan_mod, tsteps, dist_vec = NULL, ...){
   N_het_std <- scale(N_het)
   N_foc <- as.double(N[1, tsteps])
   n <- length(tsteps)
+  y <- log(N_foc[2:n] / N_foc[1:(n - 1)])
+
+  # determine if the focal went extinct at any point and
+  # create an indicator vector for when present in the
+  # community
+  z <- 1 - as.numeric(
+    is.infinite(y) | is.nan(y)
+  )
+
+  # replace the ys that will not get used
+  if(sum(z) < length(z)){
+    y[which(z == 0)] <- 1
+  }
+
+  # determine global shrinkage prior
   tau_0 <- tau0(
-    y = log(N_foc[2:n] / N_foc[1:(n - 1)]),
+    y = y,
     m0 = min(5, ncol(N_het) - 1),
     M = ncol(N_het),
     N = n - 1,
     fam = "gaussian"
   )
+
+  # compile non-shrinking variables
   if(is.null(dist_vec)){
     X_alpha <- matrix(
-      data = as.double(scale(N_foc)),
+      data = as.double(scale(N_foc[1:(n - 1)])),
       ncol = 1
     )
   } else{
     X_alpha <- cbind(
-      as.double(scale(N_foc)),
-      dist_vec
+      as.double(scale(N_foc[1:(n - 1)])),
+      dist_vec[tsteps][1:(n - 1)]
     )
   }
 
   datlist <- list(
-    N = n,
+    N = n - 1,
     P0 = ncol(X_alpha),
     P = ncol(N_het),
-    y = N_foc,
+    y = y,
+    z = z,
+    dens_foc = N_foc[1:(n - 1)],
     X_alpha = X_alpha,
-    X_beta = N_het_std,
+    X_beta = N_het_std[1:(n - 1), ],
     error_scl = 0.5,
     tau0 = tau_0,
     slab_scl = 0.25,
@@ -76,9 +95,8 @@ fit_growth_models <- function(N, stan_mod, tsteps, dist_vec = NULL, ...){
 
 
   beta_post <- rstan::extract(mfit, pars = "beta")$beta
-  beta_post %*% solve(diag(apply(N_het, 2, sd)))
 
-  return(beta_post)
+  return(beta_post %*% solve(diag(apply(N_het, 2, sd))))
 
 }
 
@@ -142,13 +160,15 @@ conf_mat_summaries <- function(beta_post, A_mat, pip = 0.9){
 #'
 fit_n_summarize <- function(X, stan_mod, tsteps = 51:100, pip = 0.9, dist = F){
 
-  if(dist & X$sim_params$dist_prob > 0){
-    beta_post <- fit_growth_models(
-      N = X$N,
-      stan_mod = stan_mod,
-      tsteps = tsteps,
-      dist_vec = X$dist_foc
-    )
+  if(dist){
+    if(X$sim_params$dist_prob > 0){
+      beta_post <- fit_growth_models(
+        N = X$N,
+        stan_mod = stan_mod,
+        tsteps = tsteps,
+        dist_vec = X$dist_foc[2:length(X$dist_foc)]
+      )
+    }
   } else{
     beta_post <- fit_growth_models(
       N = X$N,

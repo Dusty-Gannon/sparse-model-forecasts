@@ -40,7 +40,7 @@
 
   # compile stan model
   growth_mod <- rstan::stan_model(
-    here("Stan/pop_growth_rate_FHS.stan")
+    here::here("Stan/pop_growth_rate_FHS.stan")
   )
 
   # apply the above wrapper to each simulated dataset
