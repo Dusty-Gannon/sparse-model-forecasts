@@ -30,6 +30,9 @@
   }
 
   # print some things for the log file
+  print(paste0(
+    "Arguments: ", args
+  ))
   print(
     paste0("Starting on sims ", sim_ids[1], " to ", sim_ids[length(sim_ids)])
   )
@@ -43,7 +46,7 @@
     here::here("Stan/pop_growth_rate_FHS.stan")
   )
 
-  # apply the above wrapper to each simulated dataset
+  # apply the wrapper to each simulated dataset
   cl <- makeCluster(length(sim_ids))
     clusterEvalQ(cl, expr = {
       library(here); library(rstan); devtools::load_all()

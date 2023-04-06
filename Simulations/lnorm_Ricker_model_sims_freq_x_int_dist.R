@@ -62,9 +62,9 @@ simulate_communities <- function(sim_params){
         )
       } else {
         new_ord <- c(
-          ma[1],
-          1:(ma[1] - 1),
-          (ma[1] + 1):nrow(N)
+          ma,
+          1:(ma - 1),
+          (ma + 1):nrow(N)
         )
       }
 
@@ -78,7 +78,7 @@ simulate_communities <- function(sim_params){
         ord = new_ord
       )
     } else{
-      ext <- ext <- which(
+      ext <- which(
         apply(
           sims_pre, 1,
           function(x){
@@ -95,19 +95,34 @@ simulate_communities <- function(sim_params){
 
       # rearrange and make only surviving species the focal
       surv <- which(apply(N, 1, function(x){sum(x == 0)}) == 0)
-      if(length(surv) > 1 & surv[1] != 1){
-        new_ord <- c(
-          surv[1],
-          1:(surv[1] - 1),
-          (surv[1] + 1):nrow(N)
-        )
+      if(length(surv) >= 1){
+        if(surv[1] == 1){
+          new_ord <- 1:nrow(N)
+        } else if(surv[1] == nrow(N)){
+          new_ord <- c(nrow(N), 1:(nrow(N) - 1))
+        } else{
+          new_ord <- c(
+            surv[1],
+            1:(surv[1] - 1),
+            (surv[1] + 1):nrow(N)
+          )
+        }
       } else{
         ma <- which.min(apply(N, 1, function(x){sum(x == 0)}))
-        new_ord <- c(
-          ma[1],
-          1:(ma[1] - 1),
-          (ma[1] + 1):nrow(N)
-        )
+        if(ma == 1){
+          new_ord <- 1:nrow(N)
+        } else if(ma == nrow(N)){
+          new_ord <- c(
+            ma,
+            1:(nrow(N) - 1)
+          )
+        } else {
+          new_ord <- c(
+            ma,
+            1:(ma - 1),
+            (ma + 1):nrow(N)
+          )
+        }
       }
 
       dist_foc <- NA
@@ -202,10 +217,10 @@ simulate_communities <- function(sim_params){
 
   stopCluster(cl)
 
-sims <- vector(mode = "list", length = length(params))
-for(i in 182:length(sims)){
-  sims[[i]] <- simulate_communities(params[[i]])
-}
+# sims <- vector(mode = "list", length = length(params))
+# for(i in 182:length(sims)){
+#   sims[[i]] <- simulate_communities(params[[i]])
+# }
 
 ##### Get a list of successful sims #####
 

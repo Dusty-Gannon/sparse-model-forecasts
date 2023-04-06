@@ -16,10 +16,10 @@
 #'
 #' @return Matrix of posterior draws for the competition coefficients
 #'
-fit_growth_models <- function(N, stan_mod, tsteps, dist_vec = NULL, ...){
+fit_growth_models <- function(N, stan_mod, tsteps, dist_vec = NULL){
 
   # get list of control arguments
-  cntrl_args <- list(...)
+  # cntrl_args <- list(...)
 
   # compile data to feed into Stan
   N_het <- t(N[-1, tsteps])
@@ -38,14 +38,20 @@ fit_growth_models <- function(N, stan_mod, tsteps, dist_vec = NULL, ...){
   # replace the ys that will not get used
   if(sum(z) < length(z)){
     y[which(z == 0)] <- 1
+    y_full <- y[-which(z == 0)]
+    N_foc_aug <- N_foc
+    N_foc_aug[which(N_foc_aug == 0)] <- min(N_foc[N_foc != 0])
+  } else{
+    y_full <- y
+    N_foc_aug <- N_foc
   }
 
   # determine global shrinkage prior
   tau_0 <- tau0(
-    y = y,
+    y = y_full,
     m0 = min(5, ncol(N_het) - 1),
     M = ncol(N_het),
-    N = n - 1,
+    N = length(y_full),
     fam = "gaussian"
   )
 
@@ -68,7 +74,7 @@ fit_growth_models <- function(N, stan_mod, tsteps, dist_vec = NULL, ...){
     P = ncol(N_het),
     y = y,
     z = z,
-    dens_foc = N_foc[1:(n - 1)],
+    dens_foc = N_foc_aug[1:(n - 1)],
     X_alpha = X_alpha,
     X_beta = N_het_std[1:(n - 1), ],
     error_scl = 0.5,
@@ -77,21 +83,21 @@ fit_growth_models <- function(N, stan_mod, tsteps, dist_vec = NULL, ...){
     slab_df = 6
   )
 
-  if(is.null(cntrl_args)){
+  # if(is.null(cntrl_args)){
     mfit <- rstan::sampling(
       stan_mod,
       data = datlist,
       cores = 3, chains = 3,
       control = list(adapt_delta = 0.99, max_treedepth = 15)
     )
-  } else {
-    mfit <- rstan::sampling(
-      stan_mod,
-      data = datlist,
-      cores = 3, chains = 3,
-      control = cntrl_args
-    )
-  }
+  # } else {
+  #   mfit <- rstan::sampling(
+  #     stan_mod,
+  #     data = datlist,
+  #     cores = 3, chains = 3,
+  #     control = cntrl_args
+  #   )
+  # }
 
 
   beta_post <- rstan::extract(mfit, pars = "beta")$beta
