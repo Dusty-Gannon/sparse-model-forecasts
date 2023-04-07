@@ -16,10 +16,10 @@
 #'
 #' @return Matrix of posterior draws for the competition coefficients
 #'
-fit_growth_models <- function(N, stan_mod, tsteps, dist_vec = NULL){
+fit_growth_models <- function(N, stan_mod, tsteps, dist_vec = NULL, ...){
 
   # get list of control arguments
-  # cntrl_args <- list(...)
+  cntrl_args <- list(...)
 
   # compile data to feed into Stan
   N_het <- t(N[-1, tsteps])
@@ -83,21 +83,21 @@ fit_growth_models <- function(N, stan_mod, tsteps, dist_vec = NULL){
     slab_df = 6
   )
 
-  # if(is.null(cntrl_args)){
+   if(length(cntrl_args) > 0){
     mfit <- rstan::sampling(
       stan_mod,
       data = datlist,
       cores = 3, chains = 3,
-      control = list(adapt_delta = 0.99, max_treedepth = 15)
+      control = cntrl_args
     )
-  # } else {
-  #   mfit <- rstan::sampling(
-  #     stan_mod,
-  #     data = datlist,
-  #     cores = 3, chains = 3,
-  #     control = cntrl_args
-  #   )
-  # }
+    } else {
+      mfit <- rstan::sampling(
+        stan_mod,
+        data = datlist,
+        cores = 3, chains = 3,
+        control = list(adapt_delta = 0.99, max_treedepth = 15)
+      )
+    }
 
 
   beta_post <- rstan::extract(mfit, pars = "beta")$beta
