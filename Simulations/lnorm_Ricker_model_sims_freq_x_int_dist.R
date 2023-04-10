@@ -279,13 +279,15 @@ args <- commandArgs(trailingOnly = T)
     ) > 0)
     if(length(ext3) > 0){
       sims_final[[i]]$N <- N[-ext3, ]
-      sims_final[[i]]$dist_foc <- sims_final[[i]]$dist_foc[-ext3, ][1, ]
-      # convert to 0 and 1
-      sims_final[[i]]$dist_foc[sims_final[[i]]$dist_foc != 0] <- 1
       sims_final[[i]]$sim_params$lambdas <- sims_final[[i]]$sim_params$lambdas[-ext3]
       sims_final[[i]]$sim_params$sigmas <- sims_final[[i]]$sim_params$sigmas[-ext3]
       sims_final[[i]]$sim_params$A_mat <- sims_final[[i]]$sim_params$A_mat[-ext3, -ext3]
-    } else{
+      if(!is.na(sims_final[[i]]$dist_foc)){
+        sims_final[[i]]$dist_foc <- sims_final[[i]]$dist_foc[-ext3, ][1, ]
+        # convert to 0 and 1
+        sims_final[[i]]$dist_foc[sims_final[[i]]$dist_foc != 0] <- 1
+      }
+    } else if(!is.na(sims_final[[i]]$dist_foc)){
       sims_final[[i]]$dist_foc <- sims_final[[i]]$dist_foc[1, ]
       # convert to 0 and 1
       sims_final[[i]]$dist_foc[sims_final[[i]]$dist_foc != 0] <- 1
