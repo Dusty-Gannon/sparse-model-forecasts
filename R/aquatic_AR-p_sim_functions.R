@@ -282,9 +282,10 @@ fit_ARp_beta_model <- function(model_pars, iter = 2000,
     slab_df = 10
   )
 
-  ad = 0.8
+  mtd = 15
+  ad = 0.95
   if(model_pars$n <100) ad = 0.99
-  if(model_pars$n < 150) ad = 0.95
+#  if(model_pars$n < 150) ad = 0.95
 
   # sample the posterior
   mfit_arp_r <- rstan::sampling(
@@ -293,7 +294,7 @@ fit_ARp_beta_model <- function(model_pars, iter = 2000,
     chains = 4, cores = 4,
     iter = iter,
     control = list(adapt_delta = ad,
-                   max_treedepth = 12)
+                   max_treedepth = mtd)
   )
 
 
@@ -317,7 +318,7 @@ fit_ARp_beta_model <- function(model_pars, iter = 2000,
       chains = 4, cores = 4,
       iter = iter,
       control = list(adapt_delta = ad,
-                     max_treedepth = 12)
+                     max_treedepth = mtd)
     )
 
     return(list(

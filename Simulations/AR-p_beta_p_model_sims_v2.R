@@ -3,13 +3,13 @@
 library(rstan)
 #library(here)
 devtools::load_all()
-rstan_options(auto_write = TRUE)
+#rstan_options(auto_write = TRUE)
 setwd("/project/modelscape/analyses/sponges/")
 # setwd("C:/Users/alice.carter/git/sponges/")
 
 #### Simulate data and run regularized and non-regularized AR-p_beta models ####
 # store data inputs and model fits in a log file
-   nsims <- 5
+   nsims <- 100
    sigmas <- c(0.1, 1, 10)
    #lengths <- 100
    lengths <- c(50, 100, 150, 250, 300)
@@ -34,16 +34,16 @@ setwd("/project/modelscape/analyses/sponges/")
 
   #number of simulations to run:
   i <- as.numeric(args[2])
-  i <- 5*(i-1) + 1
+  j <- 5*(i-1) + 1
 
-  for(j in 0:4){
+  for(k in 0:4){
 
-  nsteps <- sim_df$length[i+j]
-  sigma <- sim_df$sigma[i+j]
+  nsteps <- sim_df$length[j+k]
+  sigma <- sim_df$sigma[j+k]
 
   # add new lines to error and out file identifying which model this is
-  # write(paste('model number = ', i+j, ', nsteps = ', nsteps, ', sigma = ', sigma),
-  #       stderr())
+   write(paste('model number = ', k+j, ', nsteps = ', nsteps, ', sigma = ', sigma),
+         stderr())
 
 # simulate AR-p data (will update in future to have variable inputs)
   input_pars <- list(
@@ -63,7 +63,7 @@ setwd("/project/modelscape/analyses/sponges/")
   sim_dat <- ARp_beta_sims(input_pars)
 
   # Save the results
-  fname <- paste0("/simdat_", i+j, ".rds")
+  fname <- paste0("/simdat_run", j+k, ".rds")
   # fpath <- paste0("Data/aquatic_sim_data/test", fname)
   fpath <- paste0("Data/aquatic_sim_data/", args[1], fname)
   saveRDS(sim_dat, file = paste0("/project/modelscape/analyses/sponges/", fpath))
