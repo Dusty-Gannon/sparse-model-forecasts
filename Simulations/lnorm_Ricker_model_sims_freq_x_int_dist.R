@@ -285,6 +285,10 @@ args <- commandArgs(trailingOnly = T)
       sims_final[[i]]$sim_params$lambdas <- sims_final[[i]]$sim_params$lambdas[-ext3]
       sims_final[[i]]$sim_params$sigmas <- sims_final[[i]]$sim_params$sigmas[-ext3]
       sims_final[[i]]$sim_params$A_mat <- sims_final[[i]]$sim_params$A_mat[-ext3, -ext3]
+    } else{
+      sims_final[[i]]$dist_foc <- sims_final[[i]]$dist_foc[1, ]
+      # convert to 0 and 1
+      sims_final[[i]]$dist_foc[sims_final[[i]]$dist_foc != 0] <- 1
     }
 
   }

@@ -1,7 +1,7 @@
 #!/bin/bash -l
 
 #SBATCH --account=modelscape
-#SBATCH --time=06:00:00
+#SBATCH --time=01:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=11
 #SBATCH --cpus-per-task=1
@@ -13,7 +13,7 @@
 
 # Set the parameter combination to use and generate names of R scripts and log file
 Rscript=lnorm_Ricker_model_sims_freq_x_int_dist.R
-LogFile=dist_sims_rep
+LogFile=./logfiles/dist_sims_rep
 
 # Change to the relevant working directory
 cd /project/modelscape/analyses/sponges/Simulations
@@ -27,7 +27,7 @@ for i in ${SLURM_ARRAY_TASK_ID[@]}; do
   job+=$i
 done
 
-Rscript --vanilla $Rscript ${job} "Data/terrestrial_sim_data/lnorm_ricker/dist_sims/" > "$LogFile_pref${job}.out"
+Rscript --vanilla $Rscript ${job} "Data/terrestrial_sim_data/lnorm_ricker/dist_sims/" > "$LogFile_pref_${job}"
 
 
 
