@@ -5,12 +5,13 @@
 # comparing the fits of regularized and not regularized models
 
 library(tidyverse)
-dd <- read_csv('Data/aquatic_sim_data/ARp_sims_variable_sigmas_steps_condensed.csv')
+dd <- read_csv('Data/aquatic_sim_data/AR_p_sims_model_output_condensed.csv')
 
 dat <- dd %>%
+  # filter(divergent_trans < 20) %>%
   mutate(siglab = factor(paste0('sigma = ', sigma),
                          levels = c('sigma = 10', 'sigma = 1', 'sigma = 0.1'))) %>%
-  select(-rmse_sigma) %>%
+  select(-rmse_sigma, -unconverged_pars, -divergent_trans) %>%
   pivot_longer(cols = starts_with('rmse'),
                names_to = 'parameter', values_to = 'rmse',
                names_pattern = 'rmse_([a-z]+)') %>%
@@ -21,10 +22,10 @@ datnr <- filter(dat, model == 'not_reg')
 p <- datr %>%
   filter(rmse <50) %>%
 ggplot(aes(n, rmse)) +
-  geom_violin(aes(group = cut_width(n, 60)), alpha = 0.5, col = 'brown',
+  geom_violin(aes(group = cut_width(n, 50)), alpha = 0.5, col = 'brown',
               fill =  'brown', position = 'dodge', scale = "width") +
   geom_violin(data = filter(datnr, rmse <50),
-              aes(group = cut_width(n, 60)), alpha = 0.5, col = 'grey',
+              aes(group = cut_width(n, 50)), alpha = 0.5, col = 'grey',
               fill =  'grey', position = 'dodge', scale = "width") +
   facet_grid(siglab~parameter)+
   scale_y_log10()+
@@ -53,7 +54,7 @@ dev.off()
 length(which(dat$rmse_forecast >20))/nrow(dat)
 # which models ran successfully?
 plot(density(dd$rmse_forecast), xlim = c(0, 20))
-plot(density(dd$n[dat$sigma == 0.1]))
+plot(density(dd$n[dat$sigma == 0.1], na.rm = T))
 lines(density(dd$n[dat$sigma == 1]), col = 2)
 lines(density(dd$n[dat$sigma == 10]), col = 3)
 
@@ -67,3 +68,6 @@ dd %>%
   scale_fill_brewer(palette = 'Blues')+
   ylab('Number of simulations') + xlab('Time series length')+
   theme_minimal()
+
+
+# quantify divergent transitions
