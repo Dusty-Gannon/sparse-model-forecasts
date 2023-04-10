@@ -144,16 +144,21 @@ simulate_communities <- function(sim_params){
 
 
 
+##### Getting command line args #####
+
+args <- commandArgs(trailingOnly = T)
+
+
 ##### Defining ranges for parameter generation #####
 
   # some general simulation conditions
-  set.seed(6528)
+  # set.seed(6528)
   dist_prob <- seq(0.05, 0.1, length.out = 10)
   prop_cdist <- seq(0.1, 1, by = 0.1)
   dist_int <- c(0.5, 0.8)
-  reps <- 400
-  target_reps <- 100
-  round <- 1
+  reps <- 10
+  target_reps <- 1
+  # round <- 1
 
   # complete the factorial table
   trt_df <- expand.grid(dist_prob, prop_cdist, dist_int)
@@ -195,7 +200,7 @@ simulate_communities <- function(sim_params){
   }
 
 # simulate in parallel
-  cl <- makeCluster(20)
+  cl <- makeCluster(reps)
 
    # load functions on each node
     clusterEvalQ(cl, expr = {
@@ -287,13 +292,13 @@ simulate_communities <- function(sim_params){
   # remove sims
   rm(sims)
 
-  sims_final_sort <- sims_final[
-    order(
-      purrr::map_dbl(sims_final, ~.x$sim_params$dist_int),
-      purrr::map_dbl(sims_final, ~.x$sim_params$prop_cdist),
-      purrr::map_dbl(sims_final, ~.x$sim_params$dist_prob)
-    )
-  ]
+  # sims_final_sort <- sims_final[
+  #   order(
+  #     purrr::map_dbl(sims_final, ~.x$sim_params$dist_int),
+  #     purrr::map_dbl(sims_final, ~.x$sim_params$prop_cdist),
+  #     purrr::map_dbl(sims_final, ~.x$sim_params$dist_prob)
+  #   )
+  # ]
 
 
 
@@ -301,16 +306,14 @@ simulate_communities <- function(sim_params){
 
   fname <- paste0(
     "lnorm_ricker_dist_freq_x_nsp_x_int",
-    "_round", round,
-    "_S", num_ngs,
-    "_s", nsp - num_ngs, ".rds"
+    "_rep_", args[1], ".rds"
   )
 
   fp <- paste0(
-    "Data/terrestrial_sim_data/lnorm_ricker/",
+    args[2],
     fname
   )
 
-  saveRDS(sims_final_sort, file = here(fp))
+  saveRDS(sims_final, file = here(fp))
 
 
