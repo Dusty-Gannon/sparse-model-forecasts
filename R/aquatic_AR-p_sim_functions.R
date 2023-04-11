@@ -26,6 +26,7 @@
 #' @param draw_phi can be 'near_zero' or 'zero'. Indicates if the not-significant
 #' phi parameters should be drawn from a normal distribution that results in numbers
 #' that are near zero, or if they should just be set to zero.
+#' @param burnin number of steps to run the AR timeseries simulation before using numbers
 #'
 #' @return A list including input parameters or any default values used as well
 #' as a matrix of covariates, vectors of beta and phi parameters, and a simulated
@@ -52,14 +53,17 @@
 #' simulate_AR_p_beta_p_timeseries(input_pars)
 #'
 
-simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL, draw_beta = 'near_zero', draw_phi = 'zero'){
+simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL,
+                                            draw_beta = 'near_zero',
+                                            draw_phi = 'zero',
+                                            burnin = 500){
 
   model_pars <- list( # default parameters if any are not supplied
     n = 300,      # length of time series
     p  = 16,      # number of AR lags to consider
     beta_p = 5,   # number of beta lags to consider in lagged covariate (beta_1)
     beta_n = 45,  # number of additional covariates to include
-    b0 = 0.5,     # intercept
+    b0 = 0,     # intercept
     n_phi = 3,    # number of non-zero autoregressive terms
     n_lags = 2,   # number of non-zero lags in covariate
     n_beta = 2,   # number of non-zero covariate parameters
@@ -72,7 +76,7 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL, draw_beta = 'near
     model_pars[[nm]] <- input_pars[[nm]]
   }
 
-  n <- model_pars$n*3 + model_pars$holdout + model_pars$beta_p
+  n <- burnin + model_pars$n + model_pars$holdout + model_pars$beta_p
 
   # draw parameters from distributions:
   if(draw_beta == 'near_zero'){
@@ -81,7 +85,7 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL, draw_beta = 'near
                                rep(0, model_pars$beta_p - model_pars$n_lags)),
                              replace = FALSE ),
                       sample(c(rnorm(model_pars$n_beta, 0, 3),
-                               rnorm(model_pars$beta_n - model_pars$n_beta, 0, 0.05)),
+                               rnorm(model_pars$beta_n - model_pars$n_beta, 0, 0.03)),
                              replace = FALSE))
   }
 
@@ -167,18 +171,17 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL, draw_beta = 'near
   }
 
   if(draw_phi == 'near_zero'){
-     phi <- c(rnorm(model_pars$p, 0, 0.05)) # yearly cycles
+     phi <- c(rnorm(model_pars$p, 0, 0.03))
   }
   if(draw_phi == 'zero'){
-     phi <- c(rep(0, model_pars$p)) # yearly cycles
+     phi <- c(rep(0, model_pars$p))
   }
 
   # add seasonality to the ts:
-  # phi[12] <- 2*rbeta(1, 2, 2)-1
+  # phi[12] <- runif(1,0.2, 0.8)
   # add some other AR parameters to the beginning
   phi[1:model_pars$n_phi] <- ar_param_sim(model_pars$n_phi)
 
-  phi <- sample(phi, length(phi), replace = FALSE)
   model_pars$phi <- phi
   # passed <- FALSE
   #
@@ -223,8 +226,8 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL, draw_beta = 'near
   )
 
   # remove the burnin period from y and X
-  y <- y[(2*model_pars$n+1):length(y)]
-  X <- X[(2*model_pars$n + 1):nrow(X), ]
+  y <- y[(burnin+1):length(y)]
+  X <- X[(burnin + 1):nrow(X), ]
   # compute prior guess for tau0 based on a guess of number of
   #  non-zero coefficients
   #  see ?tau0() for documentation
@@ -321,7 +324,7 @@ fit_ARp_beta_model <- function(model_pars, iter = 2000,
     slab_df = 10
   )
 
-  mtd = 15
+  mtd = 18
   ad = 0.95
   if(model_pars$n <=100) ad = 0.99
 #  if(model_pars$n < 150) ad = 0.95
@@ -513,8 +516,9 @@ unpack_ARp_fit <- function(fits, model_pars = NULL){
 
   }
 
-  if(is.list(fits)){
-    model_pars <- fits$model_pars
+  model_pars <- fits$model_pars
+
+  if('mfit_nr' %in% names(fits)){
     mod_fit_r <- extract_predict_fit(fit = fits$mfit_r, TRUE)
     mod_fit_nr <- extract_predict_fit(fit = fits$mfit_nr, FALSE)
 
@@ -525,10 +529,10 @@ unpack_ARp_fit <- function(fits, model_pars = NULL){
     ))
   }
 
-  mod_fit_r <- extract_predict_fit(fits, TRUE)
+  mod_fit_r <- extract_predict_fit(fits$mfit_r, TRUE)
 
   return(list(
-    model_pars = model_pars,
+    model_pars = fits$model_pars ,
     mod_fit_r = mod_fit_r
   ))
 

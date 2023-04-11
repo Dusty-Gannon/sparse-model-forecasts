@@ -23,12 +23,12 @@ setwd("/project/modelscape/analyses/sponges/")
 
   ARp_beta_sims <- function(input_pars){
 
-    model_pars <- simulate_AR_p_beta_p_timeseries(input_pars, draw_beta = 'zero',
-                                                  draw_phi = 'near_zero')
+    model_pars <- simulate_AR_p_beta_p_timeseries(input_pars, draw_beta = 'near_zero',
+                                                  draw_phi = 'zero')
     fits <- fit_ARp_beta_model(model_pars, iter = 4000, fit_nr = FALSE)
     sim_list <- unpack_ARp_fit(fits = fits)
 
-    return(list(fit = fits, sim_list = sim_list))
+    return(list(fits = fits, sim_list = sim_list))
 
   }
   # ARp_beta_sims <- function(input_pars){
@@ -66,7 +66,7 @@ setwd("/project/modelscape/analyses/sponges/")
     p  = 16,      # number of AR lags to consider
     beta_p = 5,   # number of beta lags to consider in lagged covariate (beta_1)
     beta_n = 45,  # number of additional covariates to include
-    b0 = 0.5,     # intercept
+    b0 = 0,       # intercept
     n_phi = 3,    # number of non-zero autoregressive terms
     n_lags = 2,   # number of non-zero lags in covariate
     n_beta = 2,   # number of non-zero covariate parameters
@@ -76,7 +76,7 @@ setwd("/project/modelscape/analyses/sponges/")
   )
 
   sim_dat <- ARp_beta_sims(input_pars)
-
+  pairs(sim_dat$fits$mfit_r, pars = c('sigma', 'lp__'))
   # Save the results
   fname <- paste0("/simdat_run", j+k, ".rds")
   fpath <- paste0("Data/aquatic_sim_data/test", fname)
