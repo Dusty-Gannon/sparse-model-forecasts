@@ -174,6 +174,13 @@ fit_n_summarize <- function(X, stan_mod, tsteps = 51:100, pip = 0.9, dist = F){
         tsteps = tsteps,
         dist_vec = X$dist_foc[2:length(X$dist_foc)]
       )
+    } else{
+      beta_post <- fit_growth_models(
+        N = X$N,
+        stan_mod = stan_mod,
+        tsteps = tsteps,
+        dist_vec = NULL
+      )
     }
   } else{
     beta_post <- fit_growth_models(

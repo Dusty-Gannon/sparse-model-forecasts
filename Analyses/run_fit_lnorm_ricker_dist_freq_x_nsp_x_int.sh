@@ -8,7 +8,7 @@
 #SBATCH --mem=20G
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=dgannon@uwyo.edu
-#SBATCH --array=1-2010%10
+#SBATCH --array=1-4020%10
 #SBATCH --out=./logfiles/slurm-%A_%a.out
 
 # Set the parameter combination to use and generate names of R scripts and log file
@@ -25,8 +25,8 @@ module load arcc/1.0  gcc/12.2.0  r/4.2.2
 start=()
 stop=()
 for i in ${SLURM_ARRAY_TASK_ID[@]}; do
-  start+=$(( 20*(i-1)+1 ))
-  stop+=$(( 20*i ))
+  start+=$(( 10*(i-1)+1 ))
+  stop+=$(( 10*i ))
 done
 
 Rscript --vanilla $Rscript lnorm_ricker_dist_freq_x_nsp_x_int_round1.rds 51 250 ${start} ${stop} "disturb_results/round1/disturb_tests_${start}_${stop}.rds" dist > "$LogFile_pref${start}_${stop}"
