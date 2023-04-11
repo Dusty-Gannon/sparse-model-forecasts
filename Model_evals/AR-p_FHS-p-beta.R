@@ -9,18 +9,21 @@
 library(rstan)
 library(here)
 library(ggplot2)
+library(devtools)
+library(dplyr)
 devtools::load_all()
+
 
 #### Simulating the data ####
 
   # length of time series
-  n <- 300
+  n <- 150
 
   # time series parameters, constrained for stationarity
   phi <- c(0.6, rep(0, 4), -0.2, rep(0, 9), 0.3)
 
   # coefficient vector with two non-zero elements and the intercepts
-  beta <- c(0.5, 1, 2, rep(0, 48))
+  beta <- c(0.5, 1, 2, runif(48, min=0, max=0.1))
 
   ### generate the model matrix with some correlated variables ###
 
@@ -47,7 +50,7 @@ devtools::load_all()
 
   # mean of the process
   mu <- as.double(X %*% beta)
-  sigma_e <- 1
+  sigma_e <- 2
 
   # simulate the AR process
   y <- arima.sim(
@@ -94,7 +97,9 @@ devtools::load_all()
   mfit_arp_r <- sampling(
     arp_r,
     data = datlist,
-    chains = 3, cores = 3
+    chains = 3,
+    cores = 3,
+    iter = 4000
   )
 
 
@@ -179,7 +184,7 @@ devtools::load_all()
 
 #### Compare forecasting to a non-regularized fitted model #####
 
-  # fitting the non-regularized AR model
+  # fitting the non-regularized AR model Gaussian priors
   datlist_nr <- list(
     N = n - holdout,
     P = P + 1,
@@ -194,17 +199,51 @@ devtools::load_all()
     arp_nr,
     data = datlist_nr,
     chains = 3,
-    cores = 3
+    cores = 3,
+    iter = 4000,
+    control = list(max_treedepth = 15)
   )
 
 
+#### Compare forecasting to a model with flat priors (no priors) #####
+
+  # fitting the non-regularized AR model with flat priors
+  datlist_fl <- list(
+    N = n - holdout,
+    P = P + 1,
+    p = 20,
+    y = y[1:(n - holdout)],
+    X = X[1:(n - holdout), ]
+  )
+
+  arp_fl <- stan_model(here("Stan/AR-p_flat.stan"))
+
+  mfit_arp_fl <- sampling(
+    arp_fl,
+    data = datlist_fl,
+    chains = 3,
+    cores = 3,
+    iter = 4000,
+    control = list(max_treedepth = 15)
+  )
+
+
+
+
+
+  # COMPARISON STARTS
+
   # forecast the held-out observations
   beta_post_nr <- rstan::extract(mfit_arp_nr, pars = "beta")$beta
+  beta_post_fl <- rstan::extract(mfit_arp_fl, pars = "beta")$beta
   phi_post_nr <- rstan::extract(mfit_arp_nr, pars = "phi")$phi
+  phi_post_fl <- rstan::extract(mfit_arp_fl, pars = "phi")$phi
   sigma_post_nr <- rstan::extract(mfit_arp_nr, pars = "sigma")$sigma
   sigma_post_r <- rstan::extract(mfit_arp_r, pars = "sigma")$sigma
+  sigma_post_fl <- rstan::extract(mfit_arp_fl, pars = "sigma")$sigma
   y_rep_nr <- rstan::extract(mfit_arp_nr, pars = "y_rep")$y_rep
   y_rep_r <- rstan::extract(mfit_arp_r, pars = "y_rep")$y_rep
+  y_rep_fl <- rstan::extract(mfit_arp_fl, pars = "y_rep")$y_rep
 
   draws <- nrow(beta_post_nr)
 
@@ -215,6 +254,9 @@ devtools::load_all()
   # regularized model
   post_preds_r <- matrix(nrow = draws, ncol = n)
 
+  # flat model
+  post_preds_fl <- matrix(nrow = draws, ncol = n)
+
   # fill in first p observations that are considered fixed
   post_preds_r[, 1:datlist$p] <- matrix(
     rep(y[1:datlist$p], each = draws), nrow = draws, ncol = datlist$p
@@ -222,10 +264,14 @@ devtools::load_all()
   post_preds_nr[, 1:datlist_nr$p] <- matrix(
     rep(y[1:datlist_nr$p], each = draws), nrow = draws, ncol = datlist_nr$p
   )
+  post_preds_fl[, 1:datlist_fl$p] <- matrix(
+    rep(y[1:datlist_fl$p], each = draws), nrow = draws, ncol = datlist_fl$p
+  )
 
   # fill in post. pred. draws from stan
   post_preds_r[, (datlist$p + 1):(n - holdout)] <- y_rep_r
   post_preds_nr[, (datlist_nr$p + 1):(n - holdout)] <- y_rep_nr
+  post_preds_fl[, (datlist_fl$p + 1):(n - holdout)] <- y_rep_fl
 
   for(i in 1:draws){
     for(t in (n - holdout + 1):n){
@@ -240,6 +286,12 @@ devtools::load_all()
       post_preds_nr[i, t] <- X[t, ] %*% beta_post_nr[i, ] +
         phi_post_nr[i, ] %*% y_past_nr +
         rnorm(1, sd = sigma_post_nr[i])
+
+      # flat model
+      y_past_fl <- as.double(post_preds_fl[i, (t - datlist_fl$p):(t - 1)])
+      post_preds_fl[i, t] <- X[t, ] %*% beta_post_fl[i, ] +
+        phi_post_fl[i, ] %*% y_past_fl +
+        rnorm(1, sd = sigma_post_fl[i])
     }
   }
 
@@ -251,43 +303,83 @@ devtools::load_all()
     high_r = apply(post_preds_r, 2, quantile, probs = 0.975),
     estim_nr = apply(post_preds_nr, 2, mean),
     low_nr = apply(post_preds_nr, 2, quantile, probs = 0.025),
-    high_nr = apply(post_preds_nr, 2, quantile, probs = 0.975)
+    high_nr = apply(post_preds_nr, 2, quantile, probs = 0.975),
+    estim_fl = apply(post_preds_fl, 2, mean),
+    low_fl = apply(post_preds_fl, 2, quantile, probs = 0.025),
+    high_fl = apply(post_preds_fl, 2, quantile, probs = 0.975)
   )
 
   # compute prediction root mean squared error for each model
   # RMSE_bayes() is a user-defined function in R/model_checking.R
+  # n_xAxis is the maximum value of the x-axis (i.e. how many predicted observations are included in the figure)
+  n_xAxis <- 115
   rmse_df <- data.frame(
-    model = rep(c("Regularized", "Non-regularized"), each = draws),
+    model = rep(c("Horseshoe", "Gaussian","Flat"), each = draws),
     rmse = c(
-      RMSE_bayes(y[(n - holdout + 1):n], ppreds = post_preds_r[, (n - holdout + 1):n]),
-      RMSE_bayes(y[(n - holdout + 1):n], ppreds = post_preds_nr[, (n - holdout + 1):n])
+      RMSE_bayes(y[(n - holdout + 1):n_xAxis], ppreds = post_preds_r[, (n - holdout + 1):n_xAxis]),
+      RMSE_bayes(y[(n - holdout + 1):n_xAxis], ppreds = post_preds_nr[, (n - holdout + 1):n_xAxis]),
+      RMSE_bayes(y[(n - holdout + 1):n_xAxis], ppreds = post_preds_fl[, (n - holdout + 1):n_xAxis])
     )
   )
 
+  # add values to the df for mean and SD of RMSE for each prior type
+  rmse_df <- rmse_df %>%
+    group_by(model) %>%
+    summarize(mean = mean(rmse),
+              sd = sd(rmse),
+              median = median(rmse)) %>%
+    right_join(y = rmse_df) %>%
+    mutate(low_sd = mean - 2*sd,
+           high_sd = mean + 2*sd)
+
   # Plots comparing simulated values against post. pred intervals
-  r_forecast <- ggplot(forecast_df[200:n, ], aes(x = time, y = y))+
-    geom_ribbon(aes(ymin = low_r, ymax = high_r), fill = "brown", alpha = 0.5) +
-    geom_point() +
-    geom_line(linetype = "dashed") +
-    geom_vline(xintercept = 250) +
-    theme_classic() +
-    ggtitle("Regularized model")
+  # variables to determine spread of y-axis (min and max observed +/- rmse for flat prior model)
+  y_minVal <- min(forecast_df[50:n_xAxis, "low_fl"])
+  y_maxVal <- max(forecast_df[50:n_xAxis, "high_fl"])
 
-  nr_forecast <- ggplot(forecast_df[200:n, ], aes(x = time, y = y)) +
-    geom_ribbon(aes(ymin = low_nr, ymax = high_nr), fill = "brown", alpha = 0.5) +
-    geom_point() +
+  r_forecast <- ggplot(forecast_df[50:n_xAxis, ], aes(x = time, y = y))+
+    geom_ribbon(aes(ymin = low_r, ymax = high_r), fill = "#33406fff", alpha = 0.5) +
+    #geom_point() +
     geom_line(linetype = "dashed") +
-    geom_vline(xintercept = 250) +
+    geom_vline(xintercept = 100) +
+    ylim(c(y_minVal, y_maxVal)) +
+    xlim(c(50,n_xAxis)) +
     theme_classic() +
-    ggtitle("Non-regularized model")
+    ggtitle("Horseshoe priors")
 
-  # posterior predictive distributions of RMSE
-  rmse <- ggplot(rmse_df, aes(x = rmse, fill = model, color = model)) +
-    geom_density(alpha = 0.5) +
+  nr_forecast <- ggplot(forecast_df[50:n_xAxis, ], aes(x = time, y = y)) +
+    geom_ribbon(aes(ymin = low_nr, ymax = high_nr), fill = "#a52a2aff", alpha = 0.5) +
+    #geom_point() +
+    geom_line(linetype = "dashed") +
+    geom_vline(xintercept = 100) +
+    ylim(c(y_minVal, y_maxVal)) +
+    xlim(c(50,n_xAxis)) +
     theme_classic() +
-    scale_color_manual(values = c("black", "brown")) +
-    scale_fill_manual(values = c("grey", "brown")) +
-    xlab("Forecasting RMSE")
+    ggtitle("Gaussian Priors")
+
+  fl_forecast <- ggplot(forecast_df[50:n_xAxis, ], aes(x = time, y = y)) +
+    geom_ribbon(aes(ymin = low_fl, ymax = high_fl), fill = "#bebebeff", alpha = 0.5) +
+    #geom_point() +
+    geom_line(linetype = "dashed") +
+    geom_vline(xintercept = 100) +
+    ylim(c(y_minVal, y_maxVal)) +
+    xlim(c(50,n_xAxis)) +
+    theme_classic() +
+    ggtitle("Flat Priors")
+
+
+# posterior predictive distributions of RMSE
+ #rmse <-
+   ggplot(rmse_df, aes(x = rmse, y = model, fill = model, color = model)) +
+    geom_violin( alpha = .3) +
+    geom_point(aes(x =mean, fill = model), pch = 8) +
+    geom_ribbon(aes(xmin = low_sd, xmax = high_sd, fill = model)) +
+    theme_classic() +
+    scale_color_manual(values = c( "black", "#a52a2aff", "#33406fff"), guide = "none") + # removed color key, since the y-axis is labeled now
+    scale_fill_manual(values = c( "#bebebeff", "#a52a2aff", "#33406fff"), guide = "none") +
+    xlab("Forecasting RMSE") +
+    ylab("Density of RMSE") +
+    xlim(0,30) ## not too sure how big to make this axis, because the highest RMSE is ~1400, which makes the violin plots impossible to read
 
 # save the plot
   png(
@@ -295,8 +387,10 @@ devtools::load_all()
     height = 3600, width = 1500,
     units = "px", res = 300
   )
-    gridExtra::grid.arrange(rmse, nr_forecast, r_forecast, ncol = 1)
-  dev.off()
+
+    gridExtra::grid.arrange(rmse, r_forecast, nr_forecast, fl_forecast, ncol = 1, heights = c(.3, .23, .23, .23))
+
+     dev.off()
 
 
 
