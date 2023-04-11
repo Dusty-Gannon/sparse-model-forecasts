@@ -29,7 +29,7 @@ for i in ${SLURM_ARRAY_TASK_ID[@]}; do
   stop+=$(( 20*i ))
 done
 
-Rscript --vanilla $Rscript lnorm_ricker_dist_freq_x_nsp_x_int_round1.rds 51 200 ${start} ${stop} "disturb_results/round1/disturb_tests_${start}_${stop}.rds" dist > "$LogFile_pref${start}_${stop}"
+Rscript --vanilla $Rscript lnorm_ricker_dist_freq_x_nsp_x_int_round1.rds 51 250 ${start} ${stop} "disturb_results/round1/disturb_tests_${start}_${stop}.rds" dist > "$LogFile_pref${start}_${stop}"
 
 
 
