@@ -143,38 +143,79 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL, draw_beta = 'near
   # mean of the process
   mu <- as.double(X %*% model_pars$beta)
 
-  # simulate the AR process
-  # y <- arima.sim(
-  #   n = n,
-  #   model = list(ar = model_pars$phi),
-  #   mean = mu,
-  #   sd = sigma_e
-  # )
+  # function to draw AR parameters from the stationarity region in p-dimensional space
+  ar_param_sim <- function(p){
 
-  passed <- FALSE
+    # shape parameters for beta dist. draws
+    a <- floor(0.5 * (1:p + 1))
+    b <- floor(0.5 * (1:p) + 1)
 
-  while(! passed){
+    # generate partial autocorrelations
+    r <- rbeta(p, shape1 = a, shape2 = b)
 
-      if(draw_phi == 'near_zero'){
-         model_pars$phi = sample(c(runif(model_pars$n_phi, -1, 1),
-                                 rnorm(model_pars$p - model_pars$n_phi, 0, 0.05)),
-                                 replace = FALSE)
+    # transform to phi
+    y <- diag(r)
+
+    for(k in 2:p){
+      for(i in 1:(k - 1)){
+        y[i, k] <- y[i, (k - 1)] - r[k] * y[(k - i), (k - 1)]
       }
-      if(draw_phi == 'zero'){
-         model_pars$phi = sample(c(runif(model_pars$n_phi, -1, 1),
-                                 rep(0, model_pars$p - model_pars$n_phi)),
-                                 replace = FALSE)
-      }
+    }
 
-      result <- try({
-            sarima::sim_sarima(
-              n = n,
-              model = list(ar = model_pars$phi)
-            )
-      }, silent = TRUE)
-      if(! inherits(result, 'try-error')) passed <- TRUE
+    return(as.double(y[, p]))
+
   }
 
+  if(draw_phi == 'near_zero'){
+     phi <- c(rnorm(model_pars$p, 0, 0.05)) # yearly cycles
+  }
+  if(draw_phi == 'zero'){
+     phi <- c(rep(0, model_pars$p)) # yearly cycles
+  }
+
+  # add seasonality to the ts:
+  # phi[12] <- 2*rbeta(1, 2, 2)-1
+  # add some other AR parameters to the beginning
+  phi[1:model_pars$n_phi] <- ar_param_sim(model_pars$n_phi)
+
+  phi <- sample(phi, length(phi), replace = FALSE)
+  model_pars$phi <- phi
+  # passed <- FALSE
+  #
+  # while(! passed){
+  #
+  # if(draw_phi == 'near_zero'){
+  #        model_pars$phi = sample(c(runif(model_pars$n_phi, -1, 1),
+  #                                rnorm(model_pars$p - model_pars$n_phi, 0, 0.05)),
+  #                                replace = FALSE)
+  #     }
+  #     if(draw_phi == 'zero'){
+  #        model_pars$phi = sample(c(runif(model_pars$n_phi, -1, 1),
+  #                                rep(0, model_pars$p - model_pars$n_phi)),
+  #                                replace = FALSE)
+  #     }
+  #
+  #     result <- try({
+  #           sarima::sim_sarima(
+  #             n = n,
+  #             model = list(ar = model_pars$phi)
+  #           )
+  #     }, silent = TRUE)
+  #     if(! inherits(result, 'try-error')) passed <- TRUE
+  # }
+
+  # burnin <- 100
+  # t <- 120
+  # n <- burnin + t
+  # p <- length(phi)
+  # y <- vector(mode = "double", length = n)
+  # y[1:length(phi)] <- 0
+  # for(t in (p + 1):n){
+  #   y[t] <- y[(t - p):(t - 1)] %*% phi + rnorm(1)
+  # }
+  # plot(y[-(1:burnin)], type = "l")
+
+  # simulate the process
   y <- sim_AR_timeseries(
         mu = mu,
         sigma = model_pars$sigma_e,
@@ -236,8 +277,6 @@ sim_AR_timeseries <- function(mu, sigma, phi){
 
 }
 
-
-
 #' Fit AR-p_beta model
 #'
 #' This function fits an AR-p_beta model on a simulated dataset with the option
@@ -284,7 +323,7 @@ fit_ARp_beta_model <- function(model_pars, iter = 2000,
 
   mtd = 15
   ad = 0.95
-  if(model_pars$n <100) ad = 0.99
+  if(model_pars$n <=100) ad = 0.99
 #  if(model_pars$n < 150) ad = 0.95
 
   # sample the posterior
