@@ -1,19 +1,28 @@
-///////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////
 // This Stan program fits a Ricker competition model with
 // regularized horseshoe priors on the effects for species
-// assuming conditionally Poisson-distributed demographic noise
-///////////////////////////////////////////////////////////////
+// assuming log-normal demographic stochasticity. The response,
+// y[t], is equal to log(y[t+1] / y[t]), and the predictors are
+// indexed by t. Such that t = 1, 2, ..., T - 1, where T is the
+// length of the original time series. We treat stretches of 0
+// density as "missing data" to handle the undefined steps of
+// infinite growth
+////////////////////////////////////////////////////////////////////
 
 data {
 
-  int<lower = 0> N;             // length of the time series
-  int<lower = 0> P;             // number of heterospecific species effects
-  vector<lower = 0>[N] y;       // vector of responses
-  matrix[N, P] X_beta;          // standardized model matrix for shrinking effects
-  real<lower = 0> error_scl;    // prior guess for the scale of demographic stochasticity
-  real<lower = 0> tau0;         // scale for global shrinkage parameter
-  real<lower = 0> slab_scl;     // scale for non-zero coefficients
-  real<lower = 0> slab_df;      // degrees of freedom for non-zero coefficients
+  int<lower = 0> N;                 // length of the sliced time series
+  int<lower = 0> P0;                // number of non-shrinking effects
+  int<lower = 0> P;                 // number of heterospecific species effects
+  vector[N] y;                      // vector of responses
+  int<lower = 0, upper = 1> z[N];   // indicator vector for whether an observation is non-missing
+  vector<lower = 0>[N] dens_foc;    // density of the focal at time t
+  matrix[N, P0] X_alpha;            // model matrix for non-shrinking effects
+  matrix[N, P] X_beta;              // standardized model matrix for shrinking effects
+  real<lower = 0> error_scl;        // prior guess for the scale of demographic stochasticity
+  real<lower = 0> tau0;             // scale for global shrinkage parameter
+  real<lower = 0> slab_scl;         // scale for non-zero coefficients
+  real<lower = 0> slab_df;          // degrees of freedom for non-zero coefficients
 
 }
 
@@ -23,18 +32,12 @@ transformed data{
   real slab_scl2 = square(slab_scl);
   real half_slab_df = 0.5 * slab_df;
 
-  // scale the ys
-  vector[N] y_std = (y - mean(y)) / sd(y);
-
-  // convert counts to growth rates
-  vector[N - 1] r = log(y[2:N] ./ y[1:(N - 1)]);
-
 }
 
 
 parameters{
 
-  real<upper = 0> alpha_std;           // standardized intra-specific competition
+  vector[P0] alpha_std;                // standardized intra-specific competition
   vector[P] beta_std;                  // standardized coefficients before shrinkage
   real<lower = 0> lambda;              // intrinsic growth of the focal species
   real<lower = 0> sigma;               // demographic stochasticity
@@ -49,7 +52,7 @@ parameters{
 
 transformed parameters{
 
-  vector[N - 1] eta;                // declare vector of linear predictors
+  vector[N] eta;                       // declare vector of linear predictors
 
   // scale c2: c2 ~ inv_gamma(half_slab_df, half_slab_df * slab_scl2)
   real c2 = slab_scl2 * c2_std;
@@ -65,12 +68,12 @@ transformed parameters{
   vector[P] beta = tau * local_scale_tilde .* beta_std;
 
   // scale alpha
-  real alpha = alpha_std * 0.25;
+  vector[P0] alpha = alpha_std * 1;
 
   // construct linear predictors
-  for(t in 1:(N - 1)){
+  for(t in 1:N){
     // mean   //intrinsic growth  //intra       //inter
-    eta[t] = log(lambda) + alpha * y_std[t] + X_beta[t, ] * beta;
+    eta[t] = log(lambda) + X_alpha[t, ] * alpha + X_beta[t, ] * beta;
 
   }
 
@@ -91,8 +94,10 @@ model{
   c2_std ~ inv_gamma(half_slab_df, half_slab_df);
 
   // likelihood
-   for(t in 1:(N - 1)){
-     r[t] ~ normal(eta[t], sigma / sqrt(y[t]));
+   for(t in 1:N){
+     if(z[t] == 1){
+       target += normal_lpdf(y[t] | eta[t], sigma / sqrt(dens_foc[t]));
+     }
    }
 
 }

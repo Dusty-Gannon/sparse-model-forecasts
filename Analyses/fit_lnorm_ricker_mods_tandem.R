@@ -98,23 +98,19 @@
 ##### Wrapper function to fit and summarize #####
   fit_n_summarize <- function(X, stan_mod, tsteps = 51:100, pip = 0.9){
 
-    N_list <- c(
-      list(N_full = X$N_full),
-      X$N_vrtests
-    )
-
-    beta_posts <- lapply(
-      N_list,
-      FUN = fit_growth_models,
+    beta_post <- fit_growth_models(
+      N = X$N,
       stan_mod = stan_mod,
       tsteps = tsteps
     )
 
-    summaries <- lapply(
-      beta_posts,
-      conf_mat_summaries,
-      A_mat = X$sim_params$A_mat,
-      pip = pip
+    summaries <- list(
+      beta_post = beta_post,
+      conf_summaries = conf_mat_summaries(
+        beta_post = beta_post,
+        A_mat = X$sim_params$A_mat,
+        pip = pip
+      )
     )
 
     return(summaries)

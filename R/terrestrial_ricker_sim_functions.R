@@ -292,17 +292,18 @@ generate_sim_params_vrtests <- function(
 #' @param thin_freq Frequency of thinning treatments. \code{thin_freq = 0} will proceed without
 #' thinning treatments, while a value of \code{thin_freq = c} with c > 0, will perform a
 #' thinning treatment every c years.
+#' @param prop_cthin Proportion of the community that should be thinned throughout the time series.
 #' @param thin_factor Factor by which to thin a species. \code{thin_freq = 0.1} with thin a
 #' species to 10 percent of its population density in the previous year.
 #'
 #' @return List of simulation parameters
 #'
 generate_sim_params_thin <- function(
-    x, nsp = 40, init_steps = 100, tot_steps = 500, num_ngs = 3,
+    nsp = 40, init_steps = 100, tot_steps = 500, num_ngs = 3,
     sigma_rng = c(0.1, 0.5), alpha_rng = c(0.005, 0.01),
     lambda_rng = c(1.2, 1.8), ng_range = c(0.2, 0.4), rho = 0,
     mean_init_abund = 20, comp_matrix_type = 2, thin_freq = 2,
-    thin_factor = 0.1, target_thin = TRUE
+    prop_cthin = 1, thin_factor = 0.1, target_thin = TRUE
 ){
 
   # generate competition matrix
@@ -330,7 +331,7 @@ generate_sim_params_thin <- function(
       lambdas = runif(nsp, min = lambda_rng[1], max = lambda_rng[2]),
       N_0 = rpois(nsp, lambda = mean_init_abund),
       thin_factor = thin_factor, thin_freq = thin_freq,
-      target_thin = target_thin
+      prop_cthin = prop_cthin, target_thin = target_thin
     )
   )
 
@@ -339,6 +340,45 @@ generate_sim_params_thin <- function(
 
 
 
+
+
+generate_sim_params_dist <- function(
+    nsp = 40, steps = 500, num_ngs = 5,
+    sigma_rng = c(0.1, 0.5), alpha_rng = c(0.005, 0.01),
+    lambda_rng = c(1.2, 1.8), ng_range = c(0.2, 0.4), rho = 0,
+    mean_init_abund = 20, comp_matrix_type = 2, dist_prob = 0,
+    dist_int = 0, prop_cdist = 0, dist_min_thresh = 1
+){
+
+  # generate competition matrix
+  alpha <- runif(nsp, min = alpha_rng[1], max = alpha_rng[2])
+  if(comp_matrix_type == 1){
+    A_mat <- sponges::comp_matrix(
+      n_sp = nsp, rho = rho, alpha = alpha,
+      num_ngs = num_ngs, ng_range = ng_range
+    )
+  }
+  if(comp_matrix_type == 2){
+    A_mat <- sponges::comp_matrix2(
+      n_sp = nsp, rho = rho, alpha = alpha,
+      num_ngs = num_ngs, ng_range = ng_range
+    )
+  }
+
+  # compile list of return objects
+  return(
+    list(
+      nsp = nsp, steps = steps,
+      sigmas = runif(nsp, min = sigma_rng[1], max = sigma_rng[2]),
+      A_mat = A_mat,
+      lambdas = runif(nsp, min = lambda_rng[1], max = lambda_rng[2]),
+      N_0 = rpois(nsp, lambda = mean_init_abund),
+      dist_prob = dist_prob, dist_int = dist_int,
+      prop_cdist = prop_cdist, dist_min_thresh = dist_min_thresh
+    )
+  )
+
+}
 
 
 
@@ -383,6 +423,9 @@ ricker_ts_lnorm_foc <- function(N_0, lambda, A_i, sigma_i, N_het, steps = 300, h
 #' @param A_mat Competition matrix
 #' @param sigmas Vector of scales of demographic stochasticity
 #' @param steps Number of time steps
+#' @param dist_prob Probability the community is disturbed in a given year.
+#' @param dist_int Disturbance intensity, on the unit interval. An intensity of 0.5 translates
+#' to a disturbance that, on average, reduces 50% of the species to 50% of their density.
 #' @param thin_freq Frequency of thinning treatments. \code{thin_freq = 0} will proceed without
 #' thinning treatment, while a value of \code{thin_freq = c} with c > 0, will perform a
 #' thinning treatment every c years.
@@ -392,17 +435,24 @@ ricker_ts_lnorm_foc <- function(N_0, lambda, A_i, sigma_i, N_het, steps = 300, h
 #' generated at random
 #'
 #' @return Matrix with as many rows as there are species in the simulation and as many columns
-#' as steps.
+#' as steps. If the communities had natural disturbance, a list of which species were disturbed
+#' and when is also returned.
 #'
 #'
-ricker_ts_lnorm <- function(N_0, lambdas, A_mat, sigmas, steps, thin_freq = 0, thin_factor = 0.1, thin_order = NULL){
+ricker_ts_lnorm <- function(
+    N_0, lambdas, A_mat, sigmas, steps,
+    dist_prob = 0, dist_int = 0, prop_cdist = 0,
+    dist_min_thresh = 1, thin_freq = 0, thin_factor = 0.1,
+    thin_order = NULL, thin_levels = NULL
+){
 
   nsp <- length(N_0)
   # initialize tracking matrix
   N <- matrix(0, nrow = nsp, ncol = steps)
   N[, 1] <- N_0
 
-  if(thin_freq == 0){
+  ### No thinning or disturbance ###
+  if(thin_freq == 0 & dist_prob == 0){
     for(t in 2:steps){
 
       # tracking extinct species
@@ -419,17 +469,23 @@ ricker_ts_lnorm <- function(N_0, lambdas, A_mat, sigmas, steps, thin_freq = 0, t
     }
   }
 
-  if(thin_freq > 0){
+  ### Thinning but no disturbance ###
+  if(thin_freq > 0 & dist_prob == 0){
 
     # create vector of thinning factors
     thin <- rep(1, steps)
-    thin[thin_freq * c(1:floor(steps/thin_freq))] <- thin_factor
+    if(is.null(thin_levels)){
+      thin[thin_freq * c(1:floor(steps/thin_freq))] <- thin_factor
+    } else{
+      thin[thin_freq * c(1:floor(steps/thin_freq))] <- 0
+    }
+
 
     # create vector that cycles through the thinning order
     if(is.null(thin_order)){thin_order <- sample(1:nsp)}
     sp2thin <- rep(
       rep(thin_order, each = thin_freq),
-      ceiling(steps / (thin_freq * nsp))
+      ceiling(steps / (thin_freq * length(thin_order)))
     )
 
     # now proceed with simulations
@@ -440,7 +496,14 @@ ricker_ts_lnorm <- function(N_0, lambdas, A_mat, sigmas, steps, thin_freq = 0, t
       N[extinct, t - 1] <- 0
 
       # thin species if it was a thinning year
-      N[sp2thin[t - 1], t - 1] <- N[sp2thin[t - 1], t - 1] * thin[t - 1]
+      if(is.null(thin_levels)){
+        N[sp2thin[t - 1], t - 1] <- N[sp2thin[t - 1], t - 1] * thin[t - 1]
+      } else{
+        thinsp_id <- which(thin_order == sp2thin[t - 1])
+        if(thin[t - 1] == 0){
+          N[sp2thin[t - 1], t - 1] <- min(N[sp2thin[t - 1], t - 1], thin_levels[thinsp_id])
+        }
+      }
 
       # step the process forward
       nesp <- (1:nsp)[-extinct]
@@ -455,8 +518,116 @@ ricker_ts_lnorm <- function(N_0, lambdas, A_mat, sigmas, steps, thin_freq = 0, t
 
   }
 
-  return(N)
 
+  ### Disturbance but no thinning ###
+  if(thin_freq == 0 & dist_prob > 0){
+
+    # create vector of disturbance events
+    dist <- as.numeric(purrr::rbernoulli(steps, p = dist_prob))
+
+    # create vectors for which species get disturbed
+    dist_vecs <- purrr::map(
+      1:steps,
+      ~ as.numeric(purrr::rbernoulli(nsp, p = 1 - prop_cdist))
+    )
+
+    # change the disturbed values to a multiplier
+    dist_vecs <- lapply(
+      dist_vecs,
+      FUN = function(x, p){
+        x[x == 0] <- p
+        x
+      },
+      p = (1 - dist_int)
+    )
+
+    # now proceed with simulations
+    for(t in 2:steps){
+
+      # disturb if it was a disturbance year
+      N_tm1 <- N[, t - 1] * (1 - dist[t - 1]) + N[, t - 1] * dist[t - 1] * dist_vecs[[t - 1]]
+
+      # tracking extinct species
+      extinct_pre <- which(round(as.double(N_tm1)) == 0)
+      N_tm1[extinct_pre] <- 0
+
+      # Some species may stochastically recolonize
+      N_tm1_plus <- ifelse(
+        N_tm1 == 0,
+        rgamma(nsp, shape = 2, scale = 1) * purrr::rbernoulli(nsp, p = 0.02),
+        N_tm1
+      )
+      N[, t - 1] <- N_tm1_plus
+
+      # tracking extinct species
+      extinct <- which(as.double(N[, t - 1]) == 0)
+      N[extinct, t - 1] <- 0
+
+
+      # step the process forward
+      nesp <- (1:nsp)[-extinct]
+      if(length(extinct) > 0){
+        N[nesp, t] <- N[nesp, t - 1] * lambdas[nesp] *
+          exp(- A_mat[nesp, nesp] %*% N[nesp, t - 1] + rnorm(length(nesp)) * sigmas[nesp] / sqrt(N[nesp, t - 1]))
+      } else{
+        N[, t] <- N[, t - 1] * lambdas * exp(- A_mat %*% N[, t - 1] + rnorm(nsp) * sigmas / sqrt(N[, t - 1]))
+      }
+
+    }
+
+  }
+
+  if(dist_prob > 0){
+    return(list(
+      N = N,
+      disturbances = lapply(
+        1:steps,
+        FUN = function(x, dvecs, indic){
+          (1 - dvecs[[x]]) * indic[x]
+        },
+        dvecs = dist_vecs,
+        indic = dist
+      )
+    ))
+  } else{
+    return(N)
+  }
 
 }
+
+
+
+
+
+
+
+
+
+#' Plot a simulated community
+#'
+#' @param N The matrix of species densities in rows through time over columns.
+#'
+#' @return ggplot
+#'
+plot_comm <- function(N){
+  library(ggplot2)
+  nsp <- nrow(N)
+  steps <- ncol(N)
+
+  df <- data.frame(
+    t = rep(1:steps, each = nsp),
+    sp = as.factor(rep(1:nsp, steps)),
+    N = as.vector(N)
+  )
+
+  return(
+    ggplot(data = df, aes(x = t, y = N, color = sp)) +
+      geom_line() +
+      theme_classic()
+  )
+}
+
+
+
+
 
