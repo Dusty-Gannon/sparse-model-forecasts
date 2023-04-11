@@ -18,7 +18,7 @@ The general workflow in the repo is:
 
   1. Modular functions for generating data and fitting models are written in `.R`, `.stan`, or `.jags` files and stored in the `/R/`, `/Stan/`, or `/JAGS/` directories (respectively).
   
-  2. For more complicated simulations, the modular functions are used to generate / simulate data that is then stored in an untracked data directory on Beartooth. The data directory is untracked due to the size of some data files. These wrapper scripts are stored in `/Simulations/`.
+  2. For more complicated simulations, the modular functions are used to generate / simulate data that are then stored in an untracked data directory on Beartooth. The data directory is untracked due to the size of some data files. These wrapper scripts are stored in `/Simulations/`.
   
   3. Code used to fit sparse models to simulated data and visualize results are stored in `/Analyses/`.
 
