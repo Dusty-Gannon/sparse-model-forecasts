@@ -1,7 +1,7 @@
 #!/bin/bash -l
 
 # Set the parameter combination to use and generate names of R scripts and log file
-OutDir='AR_p_sims_model_output'
+OutDir='AR_p_sims_model_output_4_11'
 
 module load arcc/1.0 gcc/12.2.0 r/4.2.2
 
