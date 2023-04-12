@@ -8,14 +8,14 @@
 #SBATCH --mail-user=acarte26@beartooth.arcc.uwyo.edu
 #SBATCH --job-name=ARp_sim1
 #SBATCH --mem=40G
-#SBATCH --time=15:00:00
+#SBATCH --time=24:00:00
 #SBATCH -o slurmlogs/slurm_%A%a.out
 #SBATCH -e slurmlogs/slurm_%A%a.err
 #SBATCH --array=1-300
 
 # Set the parameter combination to use and generate names of R scripts and log file
 Rscript=AR-p_beta_p_model_sims.R
-LogFile=ARpmod_sims.log
+LogFile=ARpmod_sims22.log
 # OutDir=ARp_sims_test
 
 # Change to the relevant working directory

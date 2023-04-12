@@ -304,7 +304,7 @@ sim_AR_timeseries <- function(mu, sigma, phi){
 #'
 
 
-fit_ARp_beta_model <- function(model_pars, iter = 2000,
+fit_ARp_beta_model <- function(model_pars, iter = 2000, warmup = 1000,
                                fit_nr = TRUE){
   # compile stan model
   arp_r <- rstan::stan_model("Stan/AR-p_FHS-p-beta.stan")
@@ -334,7 +334,7 @@ fit_ARp_beta_model <- function(model_pars, iter = 2000,
     arp_r,
     data = datlist,
     chains = 4, cores = 4,
-    iter = iter,
+    iter = iter, warmup = warmup,
     control = list(adapt_delta = ad,
                    max_treedepth = mtd)
   )
@@ -358,7 +358,7 @@ fit_ARp_beta_model <- function(model_pars, iter = 2000,
       arp_nr,
       data = datlist_nr,
       chains = 4, cores = 4,
-      iter = iter,
+      iter = 4000, 
       control = list(adapt_delta = ad,
                      max_treedepth = mtd)
     )

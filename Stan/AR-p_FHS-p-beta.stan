@@ -98,7 +98,7 @@ model{
   local_scale_phi ~ cauchy(0, 1);
   c2_std ~ inv_gamma(half_slab_df, half_slab_df);
 
-  sigma ~ cauchy(0, 1);
+  sigma ~ normal(0, 2);
 
   // likelihood
   y[(p + 1):N] ~ normal(mu[(p + 1):N], sigma);
