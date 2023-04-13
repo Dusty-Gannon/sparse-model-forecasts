@@ -20,11 +20,13 @@ sim_df <- data.frame(
     length = rep(rep(lengths, each = nsims), length(sigmas))
 )
 
+sim_df[sample(1:nrow(sim_df), nrow(sim_df), replace = FALSE), ]
+
 ARp_beta_sims <- function(input_pars){
 
     model_pars <- simulate_AR_p_beta_p_timeseries(input_pars, draw_beta = 'near_zero',
                                                   draw_phi = 'zero')
-    fits <- fit_ARp_beta_model(model_pars, iter = 5000, warmup = 3000)
+    fits <- fit_ARp_beta_model(model_pars, iter = 6000, warmup = 4000)
     sim_list <- unpack_ARp_fit(fits = fits)
 
     return(sim_list)
