@@ -1,5 +1,18 @@
 
 
+#' Simulate seasonal AR time series
+#'
+#' @param n Length of the simulated time series
+#' @param ar Vector of non-seasonal autoregressive parameters (phi).
+#' @param sar Vector or scalar of seasonal autoregressive parameters.
+#' @param S Length of the seasons (e.g., 12 time steps for monthly data)
+#' @param sd Standard deviation of the random innovations
+#' @param X n x K covariate matrix
+#' @param beta K-vector of regression coefficients
+#' @param burnin Length of the burnin period for the process
+#'
+#' @return List with y as the response and the parameters used to generate the series
+#'
 sim_sAR_p <- function(n, ar, sar, S, sd = 1, X = NULL, beta = NULL, burnin = NULL){
 
   # some useful variables
@@ -58,7 +71,7 @@ sim_sAR_p <- function(n, ar, sar, S, sd = 1, X = NULL, beta = NULL, burnin = NUL
     y <- vector(mode = "double", length = burnin + n)
     y[1:p2] <- X_burn[1:p2, ] %*% beta
     for(t in (p2 + 1):length(y)){
-      y[t] <- X2
+      y[t] <- X2 %*% beta + y[(t - 1):(t - p2)] %*% phi + rnorm(1, sd = sd)
     }
   }
 
