@@ -4,16 +4,20 @@
 #'
 #' @param n Length of the simulated time series
 #' @param ar Vector of non-seasonal autoregressive parameters (phi).
-#' @param sar Vector or scalar of seasonal autoregressive parameters.
-#' @param S Length of the seasons (e.g., 12 time steps for monthly data)
+#' @param sar Vector or scalar of seasonal autoregressive parameters. For a non-seasonal
+#' AR model, set to \code{sar = 0}.
+#' @param S Length of the seasons (e.g., 12 time steps for monthly data). For a non-seasonal
+#' AR model, set to \code{S = 1}.
 #' @param sd Standard deviation of the random innovations
-#' @param X n x K covariate matrix
-#' @param beta K-vector of regression coefficients
-#' @param burnin Length of the burnin period for the process
+#' @param X n x K covariate matrix. For an intercept only model, this should be
+#' a 1-column matrix of 1s.
+#' @param beta K-vector of regression coefficients. The first element in this
+#' vector should be the mean if different from zero.
+#' @param burnin Length of the burnin period for the process.
 #'
 #' @return List with y as the response and the parameters used to generate the series
 #'
-sim_sAR_p <- function(n, ar, sar, S, sd = 1, X = NULL, beta = NULL, burnin = NULL){
+sim_sARp <- function(n, ar, sar = 0, S = 1, sd = 1, X = NULL, beta = NULL, burnin = NULL){
 
   # some useful variables
   p <- length(ar); P <- length(sar)
@@ -69,12 +73,27 @@ sim_sAR_p <- function(n, ar, sar, S, sd = 1, X = NULL, beta = NULL, burnin = NUL
     X_burn <- apply(X, 2, FUN = sample, size = burnin, replace = T)
     X2 <- rbind(X_burn, X)
     y <- vector(mode = "double", length = burnin + n)
-    y[1:p2] <- X_burn[1:p2, ] %*% beta
-    for(t in (p2 + 1):length(y)){
-      y[t] <- X2 %*% beta + y[(t - 1):(t - p2)] %*% phi + rnorm(1, sd = sd)
+    if(length(beta) == 1){
+      y[1:p2] <- X_burn[1:p2, ] * beta
+      for(t in (p2 + 1):length(y)){
+        y[t] <- X2[t] * beta + y[(t - 1):(t - p2)] %*% phi + rnorm(1, sd = sd)
+      }
+    } else{
+      y[1:p2] <- X_burn[1:p2, ] %*% beta
+      for(t in (p2 + 1):length(y)){
+        y[t] <- X2 %*% beta + y[(t - 1):(t - p2)] %*% phi + rnorm(1, sd = sd)
+      }
     }
   }
 
+  # clip trailing 0s if sar = 0
+  if(sar == 0){
+    phi <- phi[
+      which(!(is.na(as.numeric(
+        stringr::str_remove(phi, "0+$")
+      ))))
+    ]
+  }
   return(list(
     y = y[(burnin + 1):length(y)],
     phi = phi,
