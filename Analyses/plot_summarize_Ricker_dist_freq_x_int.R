@@ -158,7 +158,7 @@ devtools::load_all()
         panel.background = element_blank(),
         axis.line = element_line(color = "darkgrey", size = 0.1),
         legend.title = element_blank(),
-        axis.text.x = element_text(angle = 45)
+        axis.text.x = element_text(angle = 45, hjust = 0)
       ) +
       scale_fill_gradient(low = "grey", high = "brown", na.value = "white") +
       scale_x_continuous(labels = scales::label_number(accuracy = 0.001)) +
