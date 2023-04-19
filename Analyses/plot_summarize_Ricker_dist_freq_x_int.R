@@ -204,10 +204,12 @@ devtools::load_all()
   # layout
   lo <- '
     #AA
+    ###
     #BC
     DEF
     D##
     DGG
+    D##
     DHJ
     #KL
     #MM
@@ -218,7 +220,7 @@ devtools::load_all()
    plot_layout(
      design = lo,
      widths = unit(c(0.75, 4, 4), "cm"),
-     heights = unit(c(0.5, 4, 4, 0.1, 0.5, 4, 4, 0.75), "cm")
+     heights = unit(c(0.5, 0.1, 4, 4, 0.1, 0.5, 0.1, 4, 4, 0.75), "cm")
    )
 
   # save the plots
