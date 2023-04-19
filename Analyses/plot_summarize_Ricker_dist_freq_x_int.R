@@ -157,9 +157,11 @@ devtools::load_all()
       theme(
         panel.background = element_blank(),
         axis.line = element_line(color = "darkgrey", size = 0.1),
-        legend.title = element_blank()
+        legend.title = element_blank(),
+        axis.text.x = element_text(angle = 45)
       ) +
       scale_fill_gradient(low = "grey", high = "brown", na.value = "white") +
+      scale_x_continuous(labels = scales::label_number(accuracy = 0.001)) +
       ggtitle(title) +
       xlab("") +
       ylab("")
@@ -201,10 +203,11 @@ devtools::load_all()
 
   # layout
   lo <- '
-    #A#
+    #AA
     #BC
     DEF
-    DG#
+    D##
+    DGG
     DHJ
     #KL
     #MM
@@ -215,7 +218,7 @@ devtools::load_all()
    plot_layout(
      design = lo,
      widths = unit(c(0.75, 4, 4), "cm"),
-     heights = unit(c(0.5, 4, 4, 0.5, 4, 4, 0.75), "cm")
+     heights = unit(c(0.5, 4, 4, 0.1, 0.5, 4, 4, 0.75), "cm")
    )
 
   # save the plots
