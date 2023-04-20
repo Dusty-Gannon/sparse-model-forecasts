@@ -1,11 +1,11 @@
 #!/bin/bash -l
 
 #SBATCH --account=modelscape
-#SBATCH --time=01:00:00
+#SBATCH --time=00:20:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=21
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=20G
+#SBATCH --mem=32G
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=dgannon@uwyo.edu
 #SBATCH --array=1-4020%10
