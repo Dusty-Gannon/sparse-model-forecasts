@@ -12,19 +12,19 @@ setwd("/project/modelscape/analyses/sponges/")
 
 array_size <- 300
 nsims <- 300
-sigmas <- c(0.1, 1, 10)
-lengths <- c(50, 100, 150, 250, 300)
-
+sigmas <- c(0.2, 1, 5)
+lengths <- c(50, 100, 150, 200, 250)
 sim_df <- data.frame(
-    sigma = rep(sigmas, each = nsims * length(lengths)),
-    length = rep(rep(lengths, each = nsims), length(sigmas))
+    sigma = rep(sigmas, each = length(lengths)),
+    length = rep(lengths, length(sigmas))
 )
+
 
 ARp_beta_sims <- function(input_pars){
 
     model_pars <- simulate_AR_p_beta_p_timeseries(input_pars, draw_beta = 'near_zero',
                                                   draw_phi = 'zero')
-    fits <- fit_ARp_beta_model(model_pars, iter = 4000)
+    fits <- fit_ARp_beta_model(model_pars, iter = 6000, warmup = 4000)
     sim_list <- unpack_ARp_fit(fits = fits)
 
     return(sim_list)
@@ -36,17 +36,19 @@ args <- commandArgs(trailingOnly = TRUE)
 
 #number of simulations to run:
 i <- as.numeric(args[2]) # which array instance is this
-K = nsims * length(sigmas) * length(lengths) / array_size # how many models/batch
+#K = nsims * length(sigmas) * length(lengths) / array_size # how many models/batch
+K = nrow(sim_df)
 
-j <- K*(i-1) + 1 # where in the sim dataframe to start based on which batch this is
+#j <- K*(i-1) + 1 # where in the sim dataframe to start based on which batch this is
 
-for(k in 0:K){
+for(k in 1:K){
 
-    nsteps <- sim_df$length[j+k]
-    sigma <- sim_df$sigma[j+k]
+    nsteps <- sim_df$length[k]
+    sigma <- sim_df$sigma[k]
 
     # add new lines to error and out file identifying which model this is
-    write(paste('model number = ', k+j, ', nsteps = ', nsteps, ', sigma = ', sigma),
+    mod_num = (i-1)*K + k
+    write(paste('model number = ', mod_num, ', nsteps = ', nsteps, ', sigma = ', sigma),
           stderr())
 
     # simulate AR-p data (will update in future to have variable inputs)
@@ -67,7 +69,7 @@ for(k in 0:K){
     sim_dat <- ARp_beta_sims(input_pars)
 
     # Save the results
-    fname <- paste0("/simdat_run", j+k, ".rds")
+    fname <- paste0("/simdat_run", mod_num, ".rds")
     fpath <- paste0("Data/aquatic_sim_data/", args[1], fname)
     saveRDS(sim_dat, file = paste0("/project/modelscape/analyses/sponges/", fpath))
 

@@ -2,12 +2,8 @@
 
 # args <- 'ARp_sims_test'
 setwd("/project/modelscape/analyses/sponges/")
-# args <- commandArgs(trailingOnly = TRUE)
-args <- c('test')
+args <- commandArgs(trailingOnly = TRUE)
 
-# filelist <- paste0('Data/aquatic_sim_data/test/',
-#                    list.files(paste0('Data/aquatic_sim_data/test/'))
-#                    )
 filelist <- paste0('Data/aquatic_sim_data/', args[1], '/',
                    list.files(paste0('Data/aquatic_sim_data/', args[1], '/'))
                    )
