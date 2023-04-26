@@ -11,11 +11,13 @@
 #' species i.
 #'
 #' @param n_sp The number of species competing
-#' @param rho The strength of interspecific competition relative to intraspecific competition.
+#' @param rho The strength of a generic competitor relative to intraspecific competition.
 #' \eqn{\rho \in (0,1)}
 #' @param alpha A scalar or vector of length \code{n_sp} with the strength(s) of
 #' intraspecific competition.
 #' @param num_ngs Number of strong competitors
+#' @param ng_range A range of values from which to draw the strength of non-generic competition
+#' relative to intraspecific competition.
 #'
 #'
 #' @return \code{n_sp} X \code{n_sp} matrix
@@ -24,7 +26,7 @@
 #' @examples
 #' comp_matrix(3, rho=0.4, alpha=0.01, num_ngs = 1)
 #'
-comp_matrix <- function(n_sp, rho = c(0,0), alpha, num_ngs, num_regs){
+comp_matrix <- function(n_sp, rho = 0, alpha, num_ngs, ng_range = c(0.3, 0.6)){
   if(sum(rho < 0) > 0 | sum(rho > 1) > 0){
     stop("rho must be on the unit interval [0,1]")
   }
@@ -32,31 +34,14 @@ comp_matrix <- function(n_sp, rho = c(0,0), alpha, num_ngs, num_regs){
   # set full matrix
   Id <- diag(nrow = n_sp, ncol = n_sp)
   Dalpha <- diag(alpha, nrow = n_sp, ncol = n_sp)
-  mat <- Dalpha %*% (rho[1] + (1 - rho[1]) * Id)
-
-  # alternative approach
-  Id_ng <- diag(nrow = num_ngs + 1, ncol = num_ngs + 1)
-  Dalpha_ng <- diag(alpha[1:(num_ngs + 1)], nrow = num_ngs + 1, ncol = num_ngs + 1)
-  mat_core <- Dalpha_ng %*% (rho[2] + (1 - rho[2]) * Id_ng)
-
-  mat[1:(num_ngs + 1), 1:(num_ngs + 1)] <- mat_core
-
-  # now add some regulating species
-  others <- (num_ngs + 2):n_sp
-  for(i in 2:(num_ngs + 1)){
-    j <- sample(others, num_regs)
-    mat[i, j] <- mat[i, i] * rho[2]
-  }
+  mat <- Dalpha %*% (rho + (1 - rho) * Id)
 
   # now sprinkle in some more competition
-  for(i in 1:length(others)){
-    if(i < length(others) - 1){
-      j <- sample(others[-(1:i)], 1)
-      mat[others[i], j] <- mat[others[i], others[i]] * rho[2]
-    }
-    if(i == length(others) - 1){
-      mat[others[i], n_sp] <- mat[others[i], others[i]] * rho[2]
-    }
+  for(i in 1:n_sp){
+
+    ng_ids_i <- sample((1:n_sp)[-i], size = num_ngs, replace = F)
+    mat[i, ng_ids_i] <- mat[i,i] * runif(num_ngs, min = ng_range[1], max = ng_range[2])
+
   }
 
   return(mat)
@@ -78,13 +63,19 @@ comp_matrix <- function(n_sp, rho = c(0,0), alpha, num_ngs, num_regs){
 #' non-generic competitive effects to each row, each one randomly generated using
 #' \eqn{U_i \times \alpha_i}, where \eqn{U_i} is a uniform random variable on the interval
 #' supplied by \code{ng_range} (should be on the unit interval to ensure intra- greater than
-#' inter-specific competion).
+#' inter-specific competion). These are structured so that the a given species \eqn{i}'s ng
+#' competitors are always species \eqn{i + 1, i + 2, ..., i + g}, where \eqn{g} is the number
+#' of non-generic competitors. If \eqn{i + g > S}, then the competitor indices begin to wrap
+#' around such that the ng competitors for species \eqn{S} are \eqn{{1, 2, ..., g}}.
 #'
-#' @param n_sp
-#' @param rho
-#' @param alpha
-#' @param num_ngs
-#' @param ng_range
+#' @param n_sp Number of species in commmunity
+#' @param rho The strength of a generic competitor relative to intraspecific competition.
+#' \eqn{\rho \in (0,1)}
+#' @param alpha A scalar or vector of length \code{n_sp} with the strength(s) of
+#' intraspecific competition.
+#' @param num_ngs Number of strong competitors
+#' @param ng_range A range of values from which to draw the strength of non-generic competition
+#' relative to intraspecific competition.
 #'
 #' @return
 #' @export

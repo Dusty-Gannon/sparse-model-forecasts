@@ -23,6 +23,7 @@ ricker_thintests
 ricker_thin2
 Simulations/slurmlogs
 Analyses/logfiles
+Simulations/logfiles
 
 # Package files
 *.jar

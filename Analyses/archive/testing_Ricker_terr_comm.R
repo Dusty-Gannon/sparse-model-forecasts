@@ -1,6 +1,6 @@
-###################################################
-# Fitting Ricker models to simulated community data
-###################################################
+#################################################################
+# Testing Ricker models with log-normal demographic stochasticity
+#################################################################
 
 
 # libraries
@@ -13,7 +13,7 @@
 ##### Generate some parameter values that will be consistent through the following tests #####
 
   set.seed(19873)
-  steps <- 50                                       # number of time steps
+  steps <- 100                                      # number of time steps
   nsp <- 40                                         # number of species in the community
   lambdas <- runif(nsp, min = 1.2, max = 1.8)       # intrinsic growth rates
   alphas <- runif(nsp, min = 0.005, max = 0.01)     # intraspecific competition
@@ -68,7 +68,7 @@
     N = steps,
     P = nsp - 1,
     y = N_foc_full,
-    X_beta = N_het_full,
+    X_beta = scale(N_het_full),
     error_scl = 0.5,
     tau0 = tau_0_full,
     slab_scl = 0.5,
@@ -82,7 +82,8 @@
     control = list(adapt_delta = 0.99, max_treedepth = 15)
   )
 
-  beta_post_full <- rstan::extract(mfit_full, pars = "beta")$beta
+  beta_post_full <- rstan::extract(mfit_full, pars = "beta")$beta %*%
+    solve(diag(apply(N_het_full, 2, sd)))
   df_full <- data.frame(
     param = paste0("alpha_1", 2:nsp),
     truth = as.double(A_mat[1, -1]),
@@ -120,8 +121,8 @@
 
   # create response vector
   for(t in 2:steps){
-    N_foc[t] <- N_foc[t - 1] * lambdas[1] * exp(-alphas[1] * N_foc[t - 1] - N_het_ind[t - 1, ] %*% A_mat[1, -1]) +
-      rnorm(1) * sigma_foc / sqrt(N_foc[t - 1])
+    N_foc[t] <- N_foc[t - 1] * lambdas[1] * exp(-alphas[1] * N_foc[t - 1] - N_het_ind[t - 1, ] %*% A_mat[1, -1] +
+      rnorm(1) * sigma_foc / sqrt(N_foc[t - 1]))
   }
 
   # compile data list
@@ -137,7 +138,7 @@
     N = steps,
     P = ncol(N_het_ind),
     y = N_foc,
-    X_beta = N_het_ind,
+    X_beta = scale(N_het_ind),
     error_scl = 0.5,
     tau0 = tau_0,
     slab_scl = 0.5,
@@ -153,7 +154,8 @@
   )
 
 # plots
-  beta_post_ind <- rstan::extract(mfit_ind, pars = "beta")$beta
+  beta_post_ind <- rstan::extract(mfit_ind, pars = "beta")$beta %*%
+    solve(diag(apply(N_het_ind, 2, sd)))
   df_ind <- data.frame(
     param = paste0("alpha_1", 2:nsp),
     truth = as.double(A_mat[1, -1]),
@@ -211,7 +213,7 @@
     N = steps,
     P = ncol(N_het_cor),
     y = N_foc_cor,
-    X_beta = N_het_cor,
+    X_beta = scale(N_het_cor),
     error_scl = 0.5,
     tau0 = tau_0_cor,
     slab_scl = 0.5,
@@ -228,7 +230,8 @@
 
 
   # get the plot
-  beta_post_cor <- rstan::extract(mfit_cor, pars = "beta")$beta
+  beta_post_cor <- rstan::extract(mfit_cor, pars = "beta")$beta %*%
+    solve(diag(apply(N_het_cor, 2, sd)))
   df_cor <- data.frame(
     param = paste0("alpha_1", 2:nsp),
     truth = as.double(A_mat[1, -1]),
