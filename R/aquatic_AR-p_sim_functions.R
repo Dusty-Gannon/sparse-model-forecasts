@@ -56,14 +56,14 @@
 simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL,
                                             draw_beta = 'near_zero',
                                             draw_phi = 'zero',
-                                            burnin = 500){
+                                            burnin = NULL){
 
   model_pars <- list( # default parameters if any are not supplied
     n = 300,      # length of time series
-    p  = 16,      # number of AR lags to consider
+    p  = 10,      # number of AR lags to consider
     beta_p = 5,   # number of beta lags to consider in lagged covariate (beta_1)
     beta_n = 45,  # number of additional covariates to include
-    b0 = 0,     # intercept
+    b0 = 0,       # intercept
     n_phi = 3,    # number of non-zero autoregressive terms
     n_lags = 2,   # number of non-zero lags in covariate
     n_beta = 2,   # number of non-zero covariate parameters
@@ -75,8 +75,6 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL,
   for(nm in names(input_pars)){
     model_pars[[nm]] <- input_pars[[nm]]
   }
-
-  n <- burnin + model_pars$n + model_pars$holdout + model_pars$beta_p
 
   # draw parameters from distributions:
   if(draw_beta == 'near_zero'){
@@ -121,113 +119,47 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL,
 
   # then Cholesky decompose Sigma to multiply by independent standard normal draws
   # and create the matrix
-  X <- matrix(rnorm(n = n * P),
-              nrow = n, ncol = P) %*% chol(Sigma)
-
+  X <- matrix(rnorm(n = (model_pars$n + model_pars$beta_p) * P),
+              nrow = (model_pars$n + model_pars$beta_p),
+              ncol = P) %*% chol(Sigma)
 
   # generate lagged columns of beta 1
-  beta_1 <- matrix(rep(NA, n * model_pars$beta_p),
-                   nrow = n, ncol = model_pars$beta_p)
+  beta_1 <- matrix(rep(NA, (model_pars$n + model_pars$beta_p) * model_pars$beta_p),
+                   nrow = (model_pars$n + model_pars$beta_p),
+                   ncol = model_pars$beta_p)
 
   for(i in 1:model_pars$beta_p){
     beta_1[,i] <- c(rep(NA, i), X[1:(nrow(X)-i),1])
   }
 
   X <- cbind(
-    rep(1, n),
+    rep(1, (model_pars$n + model_pars$beta_p)),
     beta_1,
     X[,2:ncol(X)]
   )
 
-  X <- X[(model_pars$beta_p+1):n,]
+  X <- X[(model_pars$beta_p+1):nrow(X),]
 
-  # reassign n because of days lost to beta_1 lag:
-  n <- nrow(X)
 
-  # mean of the process
-  mu <- as.double(X %*% model_pars$beta)
-
-  # function to draw AR parameters from the stationarity region in p-dimensional space
-  ar_param_sim <- function(p){
-
-    # shape parameters for beta dist. draws
-    a <- floor(0.5 * (1:p + 1))
-    b <- floor(0.5 * (1:p) + 1)
-
-    # generate partial autocorrelations
-    r <- rbeta(p, shape1 = a, shape2 = b)
-
-    # transform to phi
-    y <- diag(r)
-
-    for(k in 2:p){
-      for(i in 1:(k - 1)){
-        y[i, k] <- y[i, (k - 1)] - r[k] * y[(k - i), (k - 1)]
-      }
-    }
-
-    return(as.double(y[, p]))
-
-  }
-
+  # Draw phi parameters
   if(draw_phi == 'near_zero'){
-     phi <- c(rnorm(model_pars$p, 0, 0.03))
+     model_pars$phi <- c(rnorm(model_pars$p, 0, 0.03))
   }
   if(draw_phi == 'zero'){
-     phi <- c(rep(0, model_pars$p))
+     model_pars$phi <- c(rep(0, model_pars$p))
   }
 
-  # add seasonality to the ts:
-  # phi[12] <- runif(1,0.2, 0.8)
-  # add some other AR parameters to the beginning
-  phi[1:model_pars$n_phi] <- ar_param_sim(model_pars$n_phi)
+  model_pars$phi[1:model_pars$n_phi] <- ar_param_sim(model_pars$n_phi)
 
-  model_pars$phi <- phi
-  # passed <- FALSE
-  #
-  # while(! passed){
-  #
-  # if(draw_phi == 'near_zero'){
-  #        model_pars$phi = sample(c(runif(model_pars$n_phi, -1, 1),
-  #                                rnorm(model_pars$p - model_pars$n_phi, 0, 0.05)),
-  #                                replace = FALSE)
-  #     }
-  #     if(draw_phi == 'zero'){
-  #        model_pars$phi = sample(c(runif(model_pars$n_phi, -1, 1),
-  #                                rep(0, model_pars$p - model_pars$n_phi)),
-  #                                replace = FALSE)
-  #     }
-  #
-  #     result <- try({
-  #           sarima::sim_sarima(
-  #             n = n,
-  #             model = list(ar = model_pars$phi)
-  #           )
-  #     }, silent = TRUE)
-  #     if(! inherits(result, 'try-error')) passed <- TRUE
-  # }
-
-  # burnin <- 100
-  # t <- 120
-  # n <- burnin + t
-  # p <- length(phi)
-  # y <- vector(mode = "double", length = n)
-  # y[1:length(phi)] <- 0
-  # for(t in (p + 1):n){
-  #   y[t] <- y[(t - p):(t - 1)] %*% phi + rnorm(1)
-  # }
-  # plot(y[-(1:burnin)], type = "l")
+  sar <- 0.3
+  S <- 10
 
   # simulate the process
-  y <- sim_AR_timeseries(
-        mu = mu,
-        sigma = model_pars$sigma_e,
-        phi = model_pars$phi
-  )
+  sar_sim <- sim_sARp(n = model_pars$n, ar = model_pars$phi,
+                      sar = sar, S = S, sd = model_pars$sigma_e,
+                      X = X, beta = model_pars$beta,
+                      burnin = burnin)
 
-  # remove the burnin period from y and X
-  y <- y[(burnin+1):length(y)]
-  X <- X[(burnin + 1):nrow(X), ]
   # compute prior guess for tau0 based on a guess of number of
   #  non-zero coefficients
   #  see ?tau0() for documentation
@@ -241,7 +173,7 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL,
 
   model_pars <- c(model_pars,
                   list(X = X,
-                       y = y,
+                       y = sar_sim$y,
                        tau_0 = tau_0
                   ))
 
@@ -358,7 +290,7 @@ fit_ARp_beta_model <- function(model_pars, iter = 2000, warmup = 1000,
       arp_nr,
       data = datlist_nr,
       chains = 4, cores = 4,
-      iter = iter, warmup = warmup, 
+      iter = iter, warmup = warmup,
       control = list(adapt_delta = ad,
                      max_treedepth = mtd)
     )

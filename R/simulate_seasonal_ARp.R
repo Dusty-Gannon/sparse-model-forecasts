@@ -13,11 +13,14 @@
 #' a 1-column matrix of 1s.
 #' @param beta K-vector of regression coefficients. The first element in this
 #' vector should be the mean if different from zero.
+#' @param lagged_beta the number of lags included in the first covariate if different from zero.
+#' Note the lagged covariate will always be beta1, the second column of the X matrix.
 #' @param burnin Length of the burnin period for the process.
 #'
 #' @return List with y as the response and the parameters used to generate the series
 #'
-sim_sARp <- function(n, ar, sar = 0, S = 1, sd = 1, X = NULL, beta = NULL, burnin = NULL){
+sim_sARp <- function(n, ar, sar = 0, S = 1, sd = 1, X = NULL, beta = NULL,
+                     lagged_beta = 0, burnin = NULL){
 
   # some useful variables
   p <- length(ar); P <- length(sar)
@@ -56,7 +59,7 @@ sim_sARp <- function(n, ar, sar = 0, S = 1, sd = 1, X = NULL, beta = NULL, burni
   p2 <- length(phi)
 
   if(is.null(burnin)){
-    burnin <- length(phi) * 5
+    burnin <- length(phi) * 100
   }
   # complete centered process
   if(is.null(X)){
@@ -71,6 +74,18 @@ sim_sARp <- function(n, ar, sar = 0, S = 1, sd = 1, X = NULL, beta = NULL, burni
 
     # create a burnin matrix by sampling from the provided matrix
     X_burn <- apply(X, 2, FUN = sample, size = burnin, replace = T)
+    # if any of the covariates contain lags, ensure this is preserved
+    if(lagged_beta > 1){
+      X_burn_lag = sample(X[,2], size = burnin + lagged_beta-1, replace = T)
+      beta_l <- matrix(rep(X_burn_lag, lagged_beta),
+                       nrow = length(X_burn_lag), ncol = lagged_beta)
+
+      for(l in 1:(lagged_beta-1)){
+        beta_l[,(l+1)] <- c(rep(NA, l), X_burn_lag[1:(length(X_burn_lag)-l)])
+      }
+      X_burn[,2:(lagged_beta+1)] <- beta_l[lagged_beta:nrow(beta_l),]
+    }
+
     X2 <- rbind(X_burn, X)
     y <- vector(mode = "double", length = burnin + n)
     if(length(beta) == 1){
@@ -79,9 +94,9 @@ sim_sARp <- function(n, ar, sar = 0, S = 1, sd = 1, X = NULL, beta = NULL, burni
         y[t] <- X2[t] * beta + y[(t - 1):(t - p2)] %*% phi + rnorm(1, sd = sd)
       }
     } else{
-      y[1:p2] <- X_burn[1:p2, ] %*% beta
+      y[1:p2] <- X2[1:p2, ] %*% beta
       for(t in (p2 + 1):length(y)){
-        y[t] <- X2 %*% beta + y[(t - 1):(t - p2)] %*% phi + rnorm(1, sd = sd)
+        y[t] <- X2[t,] %*% beta + y[(t - 1):(t - p2)] %*% phi + rnorm(1, sd = sd)
       }
     }
   }
@@ -101,5 +116,35 @@ sim_sARp <- function(n, ar, sar = 0, S = 1, sd = 1, X = NULL, beta = NULL, burni
     beta = beta,
     sd = sd
   ))
+
+}
+
+
+#' Randomly choose parameters from the stationarity invertibility region for AR model
+#'
+#' @param p Number of AR parameters to generate
+#'
+#' @return vector of AR parameters that are drawn based on Jones 1987
+#'
+#'
+ar_param_sim <- function(p){
+
+  # shape parameters for beta dist. draws
+  a <- floor(0.5 * (1:p + 1))
+  b <- floor(0.5 * (1:p) + 1)
+
+  # generate partial autocorrelations
+  r <- rbeta(p, shape1 = a, shape2 = b)
+
+  # transform to phi
+  y <- diag(r)
+
+  for(k in 2:p){
+    for(i in 1:(k - 1)){
+      y[i, k] <- y[i, (k - 1)] - r[k] * y[(k - i), (k - 1)]
+    }
+  }
+
+  return(as.double(y[, p]))
 
 }

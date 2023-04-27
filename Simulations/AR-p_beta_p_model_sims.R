@@ -54,7 +54,7 @@ for(k in 1:K){
     # simulate AR-p data (will update in future to have variable inputs)
     input_pars <- list(
         n = nsteps,   # length of time series
-        p  = 16,      # number of AR lags to consider
+        p  = 10,      # number of AR lags to consider
         beta_p = 5,   # number of beta lags to consider in lagged covariate (beta_1)
         beta_n = 45,  # number of additional covariates to include
         b0 = 0,       # intercept
