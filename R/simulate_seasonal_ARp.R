@@ -59,7 +59,7 @@ sim_sARp <- function(n, ar, sar = 0, S = 1, sd = 1, X = NULL, beta = NULL,
   p2 <- length(phi)
 
   if(is.null(burnin)){
-    burnin <- length(phi) * 100
+    burnin <- length(phi) * 10
   }
   # complete centered process
   if(is.null(X)){

@@ -64,6 +64,8 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL,
     beta_p = 5,   # number of beta lags to consider in lagged covariate (beta_1)
     beta_n = 45,  # number of additional covariates to include
     b0 = 0,       # intercept
+    sar = 0.3,    # seasonal AR term
+    S = 10,       # length of AR seasonal cycle
     n_phi = 3,    # number of non-zero autoregressive terms
     n_lags = 2,   # number of non-zero lags in covariate
     n_beta = 2,   # number of non-zero covariate parameters
@@ -119,13 +121,14 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL,
 
   # then Cholesky decompose Sigma to multiply by independent standard normal draws
   # and create the matrix
-  X <- matrix(rnorm(n = (model_pars$n + model_pars$beta_p) * P),
-              nrow = (model_pars$n + model_pars$beta_p),
+  X <- matrix(rnorm(n = (model_pars$n + model_pars$beta_p + model_pars$holdout) * P),
+              nrow = (model_pars$n + model_pars$beta_p + model_pars$holdout),
               ncol = P) %*% chol(Sigma)
 
   # generate lagged columns of beta 1
-  beta_1 <- matrix(rep(NA, (model_pars$n + model_pars$beta_p) * model_pars$beta_p),
-                   nrow = (model_pars$n + model_pars$beta_p),
+  beta_1 <- matrix(rep(NA, (model_pars$n + model_pars$beta_p + model_pars$holdout) *
+                         model_pars$beta_p),
+                   nrow = (model_pars$n + model_pars$beta_p + model_pars$holdout),
                    ncol = model_pars$beta_p)
 
   for(i in 1:model_pars$beta_p){
@@ -133,7 +136,7 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL,
   }
 
   X <- cbind(
-    rep(1, (model_pars$n + model_pars$beta_p)),
+    rep(1, (model_pars$n + model_pars$beta_p + model_pars$holdout)),
     beta_1,
     X[,2:ncol(X)]
   )
@@ -143,30 +146,30 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL,
 
   # Draw phi parameters
   if(draw_phi == 'near_zero'){
-     model_pars$phi <- c(rnorm(model_pars$p, 0, 0.03))
+     phi <- c(rnorm(model_pars$p, 0, 0.03))
   }
   if(draw_phi == 'zero'){
-     model_pars$phi <- c(rep(0, model_pars$p))
+     phi <- c(rep(0, model_pars$p))
   }
 
-  model_pars$phi[1:model_pars$n_phi] <- ar_param_sim(model_pars$n_phi)
-
-  sar <- 0.3
-  S <- 10
+  phi[1:model_pars$n_phi] <- ar_param_sim(model_pars$n_phi)
 
   # simulate the process
-  sar_sim <- sim_sARp(n = model_pars$n, ar = model_pars$phi,
+  sar_sim <- sim_sARp(n = model_pars$n + model_pars$holdout, ar = phi,
                       sar = sar, S = S, sd = model_pars$sigma_e,
                       X = X, beta = model_pars$beta,
+                      lagged_beta = model_pars$beta_p,
                       burnin = burnin)
 
+  model_pars$phi <- sar_sim$phi
+  model_pars$p <- length(model_pars$phi)
   # compute prior guess for tau0 based on a guess of number of
   #  non-zero coefficients
   #  see ?tau0() for documentation
   tau_0 <- tau0(
     y = y[1:model_pars$n],
     m0 = model_pars$non_zero_coef_guess,
-    M = ncol(X) + model_pars$p,
+    M = ncol(X) + model_pars$p*2,
     N = model_pars$n,
     fam = "gaussian"
   )
@@ -183,34 +186,6 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL,
 
 
 
-#' Simulate AR timseseries
-#'
-#' This function simulates an AR-p timeseries based on a time series
-#' mean, standard deviation of the random innovations, and AR coefficients.
-#' It is an internal function for the simulate_AR_p_beta_p_timeseries function.
-#'
-#' @param mu A vector of the underlying time series mean
-#' @param sigma The standard deviation of the random innovations
-#' @param phi A vector of the AR coefficients
-#'
-#'
-#' @return An time series vector
-#'
-#' @export
-#'
-
-sim_AR_timeseries <- function(mu, sigma, phi){
-  N <- length(mu)
-  p <- length(phi)
-  y <- rnorm(N, mu, sigma)
-
-  for(i in (p+1):N){
-      y[i] = mu[i] + rev(y[(i-p):(i-1)])%*%phi + rnorm(1,0,sigma)
-  }
-
-  return(y)
-
-}
 
 #' Fit AR-p_beta model
 #'
