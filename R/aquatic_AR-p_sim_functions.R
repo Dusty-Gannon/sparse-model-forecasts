@@ -156,7 +156,8 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL,
 
   # simulate the process
   sar_sim <- sim_sARp(n = model_pars$n + model_pars$holdout, ar = phi,
-                      sar = sar, S = S, sd = model_pars$sigma_e,
+                      sar = model_pars$sar, S = model_pars$S, 
+                      sd = model_pars$sigma_e,
                       X = X, beta = model_pars$beta,
                       lagged_beta = model_pars$beta_p,
                       burnin = burnin)
@@ -167,7 +168,7 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL,
   #  non-zero coefficients
   #  see ?tau0() for documentation
   tau_0 <- tau0(
-    y = y[1:model_pars$n],
+    y = sar_sim$y[1:model_pars$n],
     m0 = model_pars$non_zero_coef_guess,
     M = ncol(X) + model_pars$p*2,
     N = model_pars$n,
