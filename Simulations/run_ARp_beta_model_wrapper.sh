@@ -5,7 +5,7 @@ OutDir='AR_p_sims_loosened_sig_more_burnin_4_29'
 
 module load arcc/1.0 gcc/12.2.0 r/4.2.2
 
-sbatch --wait run_ARp_beta_model.sh $OutDir
+#sbatch --wait run_ARp_beta_model.sh $OutDir
 
 # define the second R script that will be run
 Rscript=combine_ARp_sim_output.R
