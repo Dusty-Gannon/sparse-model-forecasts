@@ -12,7 +12,7 @@ setwd("/project/modelscape/analyses/sponges/")
 
 array_size <- 300
 nsims <- 300
-sigmas <- c(0.2, 1, 5)
+sigmas <- c(0.5, 1, 5)
 lengths <- c(50, 100, 150, 200, 250)
 sim_df <- data.frame(
     sigma = rep(sigmas, each = length(lengths)),
