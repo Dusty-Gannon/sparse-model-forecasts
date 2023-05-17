@@ -108,23 +108,22 @@ devtools::load_all()
   metrics_df <- data.frame(NULL)
   for(j in 1:grps){
     metrics_df <- rbind(
-      metrics_df, confusion_metrics(conf_mats_sum[[j]])
+      metrics_df,
+      cbind(
+        confusion_metrics(conf_mats_sum[[j]]),
+        conf_df_sum[rep(j, 4), ]
+      )
     )
   }
 
-  conf_df_sum <- cbind(
-    conf_df_sum[rep(1:grps, each = 4), ],
-    metrics_df
-  )
-
   df_subs <- vector(mode = "list", length = 2)
   df_subs[[1]] <- rbind(
-    conf_df_sum[1:4, ],
-    dplyr::filter(conf_df_sum, dist_int == 0.5)
+    metrics_df[1:4, ],
+    dplyr::filter(metrics_df, dist_int == 0.5)
   )
   df_subs[[2]] <- rbind(
-    conf_df_sum[1:4, ],
-    dplyr::filter(conf_df_sum, dist_int == 0.8)
+    metrics_df[1:4, ],
+    dplyr::filter(metrics_df, dist_int == 0.8)
   )
 
 
@@ -133,13 +132,13 @@ devtools::load_all()
     dist_prob = rep(c(rep(0, 10), unique(conf_df_sum$dist_prob)[-1]), each = 4),
     prop_cdist = rep(c(unique(conf_df_sum$prop_cdist)[-1], rep(0, 10)), each = 4),
     dist_int = NA,
-    metric = rep(unique(conf_df_sum$metric), 20),
+    metric = rep(unique(metrics_df$metric), 20),
     value = NA,
     low = NA,
     high = NA
   )
 
-# combine with the other dfs
+# insert into the other dfs
   for(i in 1:length(df_subs)){
     df_subs[[i]] <- rbind(
       df_subs[[i]][1:4, ],
