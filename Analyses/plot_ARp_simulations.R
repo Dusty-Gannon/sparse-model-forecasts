@@ -6,12 +6,13 @@
 
 library(tidyverse)
 dd <- read_csv('Data/aquatic_sim_data/AR_p_sims_model_output_condensed.csv')
-dd <- read_csv('Data/aquatic_sim_data/AR_p_sims_loosened_sig_more_burnin_4_12_condensed.csv')
+dd <- read_csv('Data/aquatic_sim_data/AR_p_sims_loosened_sig_more_burnin_4_29_condensed.csv')
+dd <- dd %>%
+  # filter(divergent_trans < 40) %>%
+  mutate(siglab = factor(paste0('sigma = ', sigma),
+                         levels = c('sigma = 5', 'sigma = 1', 'sigma = 0.2')))
 
 dat <- dd %>%
-  # filter(divergent_trans < 20) %>%
-  mutate(siglab = factor(paste0('sigma = ', sigma),
-                         levels = c('sigma = 5', 'sigma = 1', 'sigma = 0.2'))) %>%
   select(-rmse_sigma, -unconverged_pars, -divergent_trans) %>%
   pivot_longer(cols = starts_with('rmse'),
                names_to = 'parameter', values_to = 'rmse',
@@ -52,6 +53,17 @@ png(width = 10.5, height = 9, units = 'in', type = 'cairo', res = 300,
     ggpubr::annotate_figure(pp, top = ggpubr::text_grob('AR-p simulation model fits'))
 dev.off()
 
+dd %>%
+  pivot_longer(cols = starts_with(c('beta', 'phi')),
+               values_to = 'value',
+               names_to = c('parameter', 'rate'),
+               names_pattern = '(beta|phi)_([a-z_]+$)') %>%
+  pivot_wider(values_from = 'value', names_from = 'rate') %>%
+ggplot(aes(n, true_pos, col = model)) +
+  geom_point() +
+  facet_grid(siglab~parameter) +
+  scale_color_manual(values = col_pal) +
+  theme_bw()
 
 length(which(dat$rmse_forecast >20))/nrow(dat)
 # which models ran successfully?
@@ -65,7 +77,7 @@ dd %>%
   filter(divergent_trans < 20) %>%
   mutate(sigma = factor(sigma))%>%
   group_by(n, sigma, model) %>%
-  summarize(nsims = n()/2) %>%
+  summarize(nsims = n()) %>%
   ggplot(aes(factor(n), nsims, fill = sigma))+
   geom_bar(position = 'dodge', stat = 'identity') +
   scale_fill_brewer(palette = 'Blues')+
@@ -78,4 +90,5 @@ dd %>%
 dd %>% group_by(n, sigma, model) %>%
   summarize(min_div = min(divergent_trans),
     median_div = median(divergent_trans),
-            count = n())
+            count = n()) %>%
+  arrange(-median_div)

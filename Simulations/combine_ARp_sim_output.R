@@ -5,8 +5,8 @@ library(tidyverse)
 setwd("/project/modelscape/analyses/sponges/")
 args <- commandArgs(trailingOnly = TRUE)
 
-filelist <- paste0('Data/aquatic_sim_data/', args[1], '/',
-                   list.files(paste0('Data/aquatic_sim_data/', args[1], '/'))
+filelist <- paste0('Data/aquatic_sim_data/test/',
+                   list.files(paste0('Data/aquatic_sim_data/test/'))
                    )
 
 #out <- lapply( filelist, function(x) c(readRDS(x)))
