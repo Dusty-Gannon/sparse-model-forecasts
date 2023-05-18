@@ -7,11 +7,11 @@
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=acarte26@beartooth.arcc.uwyo.edu
 #SBATCH --job-name=ARp_sim1
-#SBATCH --mem=50G
-#SBATCH --time=48:00:00
+#SBATCH --mem=75G
+#SBATCH --time=72:00:00
 #SBATCH -o slurmlogs/slurm_%A%a.out
 #SBATCH -e slurmlogs/slurm_%A%a.err
-#SBATCH --array=1-300
+#SBATCH --array=1-600
 
 # Set the parameter combination to use and generate names of R scripts and log file
 Rscript=AR-p_beta_p_model_sims.R

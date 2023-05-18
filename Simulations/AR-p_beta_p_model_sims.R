@@ -10,9 +10,9 @@ setwd("/project/modelscape/analyses/sponges/")
 #### Simulate data and run regularized and non-regularized AR-p_beta models ####
 # store data inputs and model fits in a log file
 
-array_size <- 300
-nsims <- 300
-sigmas <- c(0.2, 1, 5)
+array_size <- 600
+nsims <- 600
+sigmas <- c(0.5, 0.5, 2, 5)
 lengths <- c(50, 100, 150, 200, 250)
 sim_df <- data.frame(
     sigma = rep(sigmas, each = length(lengths)),
