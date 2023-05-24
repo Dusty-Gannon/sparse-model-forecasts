@@ -65,6 +65,44 @@ ggplot(aes(n, true_pos, col = model)) +
   scale_color_manual(values = col_pal) +
   theme_bw()
 
+dd2 <- dd %>%
+  pivot_longer(cols = starts_with(c('beta', 'phi')),
+               values_to = 'value',
+               names_to = c('parameter', 'rate'),
+               names_pattern = '(beta|phi)_([a-z_]+$)') %>%
+  pivot_wider(values_from = 'value', names_from = 'rate')
+ddsum <- dd2 %>% group_by(n, sigma, model, parameter) %>%
+  summarize(across(starts_with(c('true', 'false')), mean))
+dd2r <- filter(dd2, model == 'reg')
+dd2nr <- filter(dd2, model == 'not_reg')
+tp <- ggplot(dd2r, aes(n, true_pos)) +
+  geom_violin(aes(group = cut_width(n, 50)), col = 'brown', fill = 'brown', alpha = 0.5) +
+  geom_violin(data = dd2nr, aes(group = cut_width(n, 50)), fill = 'grey', alpha = 0.5) +
+  # geom_point(data = ddsum, aes(col = model))+
+  # scale_color_manual(values = c('grey', 'brown')) +
+  facet_grid(siglab~parameter) +
+  theme_bw()
+tn <- ggplot(dd2r, aes(n, true_neg)) +
+  geom_violin(aes(group = cut_width(n, 50)), col = 'brown', fill = 'brown', alpha = 0.5) +
+  geom_violin(data = dd2nr, aes(group = cut_width(n, 50)), fill = 'grey', alpha = 0.5) +
+  facet_grid(siglab~parameter) +
+  scale_color_manual(values = col_pal) +
+  theme_bw()
+fn <- ggplot(dd2r, aes(n, false_neg)) +
+  geom_violin(aes(group = cut_width(n, 50)), col = 'brown', fill = 'brown', alpha = 0.5) +
+  geom_violin(data = dd2nr, aes(group = cut_width(n, 50)), fill = 'grey', alpha = 0.5) +
+  facet_grid(siglab~parameter) +
+  scale_color_manual(values = col_pal) +
+  theme_bw()
+fp <- ggplot(dd2r, aes(n, false_pos)) +
+  geom_violin(aes(group = cut_width(n, 50)), col = 'brown', fill = 'brown', alpha = 0.5) +
+  geom_violin(data = dd2nr, aes(group = cut_width(n, 50)), fill = 'grey', alpha = 0.5) +
+  facet_grid(siglab~parameter) +
+  scale_color_manual(values = col_pal) +
+  theme_bw()
+
+ggpubr::ggarrange(tp, tn, fp, fn)
+
 length(which(dat$rmse_forecast >20))/nrow(dat)
 # which models ran successfully?
 plot(density(dd$rmse_forecast), xlim = c(0, 20))
