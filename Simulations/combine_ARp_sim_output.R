@@ -1,5 +1,6 @@
 # concatenate files from batch SLURM runs
 
+library(tidyverse)
 # args <- 'ARp_sims_test'
 setwd("/project/modelscape/analyses/sponges/")
 args <- commandArgs(trailingOnly = TRUE)
@@ -7,8 +8,8 @@ args <- commandArgs(trailingOnly = TRUE)
 # filelist <- paste0('Data/aquatic_sim_data/test/',
 #                    list.files(paste0('Data/aquatic_sim_data/test/'))
 #                    )
-filelist <- paste0('Data/aquatic_sim_data/test/',
-                   list.files(paste0('Data/aquatic_sim_data/test/'))
+filelist <- paste0('Data/aquatic_sim_data/', args[1], '/',
+                   list.files(paste0('Data/aquatic_sim_data/', args[1], '/'))
                    )
 
 #out <- lapply( filelist, function(x) c(readRDS(x)))
