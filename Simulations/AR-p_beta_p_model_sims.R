@@ -13,12 +13,13 @@ setwd("/project/modelscape/analyses/sponges/")
 array_size <- 600
 nsims <- 600
 sigmas <- c(0.5, 0.5, 2, 5)
-lengths <- c(50, 100, 150, 200, 250)
+lengths <- c(60, 75, 120, 180, 240)
 sim_df <- data.frame(
     sigma = rep(sigmas, each = length(lengths)),
     length = rep(lengths, length(sigmas))
 )
 
+sim_df <- sim_df[sample(1:nrow(sim_df), nrow(sim_df), replace = FALSE),]
 
 ARp_beta_sims <- function(input_pars){
 
