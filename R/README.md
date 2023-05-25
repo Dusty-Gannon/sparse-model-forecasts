@@ -2,9 +2,15 @@
 
 **All functions are documented using Roxygen2. For documentation, see `/man/`.**
 
+* `aquatic_AR-p_sim_functions.R`: Functions to simulate AR-p datasets and extract results from stan model objects.
+
+* `aquatic_simulation_processing_functions.R`: Functions to summarize the results from fitted AR-p simulation models.
+
 * `fitting_functions_lnorm_ricker.R`: Wrapper functions used to take in simulated data, fit Ricker models with log-normal errors, and summarize the results.
 
 * `model_checking.R`: Functions used to verify that STAN and JAGS models are written correctly.
+
+* `simulate_seasonal_ARp.R`: Simulate a seasonal AR timeseries by translating a seasonal cycle into a stationary vector of phis. Includes the option to add a sparse covariate matrix. 
 
 * `stat_model_sim_functions.R`: Functions for simulating data from statistical time series models.
 

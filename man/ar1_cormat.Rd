@@ -17,6 +17,3 @@ n x n matrix
 \description{
 Construct AR1 correlation matrix
 }
-\examples{
-
-}
