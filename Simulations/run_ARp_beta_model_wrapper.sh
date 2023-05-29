@@ -1,7 +1,7 @@
 #!/bin/bash -l
 
 # Set the parameter combination to use and generate names of R scripts and log file
-OutDir='ARp_sims_5_25'
+OutDir='ARp_sims_5_29'
 
 module load arcc/1.0 gcc/12.2.0 r/4.2.2
 
