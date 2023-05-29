@@ -20,11 +20,12 @@
 
 unpack_ARp_fit <- function(fits, model_pars = NULL){
 
+
   model_pars <- fits$model_pars
 
   if('mfit_nr' %in% names(fits)){
-    mod_fit_r <- extract_predict_fit(fit = fits$mfit_r, TRUE)
-    mod_fit_nr <- extract_predict_fit(fit = fits$mfit_nr, FALSE)
+    mod_fit_r <- extract_predict_fit(fit = fits$mfit_r, model_pars, TRUE)
+    mod_fit_nr <- extract_predict_fit(fit = fits$mfit_nr, model_pars, FALSE)
 
 
     return(list(
@@ -34,7 +35,7 @@ unpack_ARp_fit <- function(fits, model_pars = NULL){
     ))
   }
 
-  mod_fit_r <- extract_predict_fit(fits$mfit_r, TRUE)
+  mod_fit_r <- extract_predict_fit(fits$mfit_r, model_pars, TRUE)
 
   return(list(
     model_pars = fits$model_pars ,
@@ -63,7 +64,7 @@ unpack_ARp_fit <- function(fits, model_pars = NULL){
 #' @export
 #'
 
-extract_predict_fit <- function(fit, reg = TRUE){
+extract_predict_fit <- function(fit, model_pars, reg = TRUE){
   # Extract posterior estimates
   if(reg){
     alpha_post <- rstan::extract(fit, pars = "alpha")$alpha
