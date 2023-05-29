@@ -5,12 +5,12 @@
 # comparing the fits of regularized and not regularized models
 
 library(tidyverse)
-dd <- read_csv('Data/aquatic_sim_data/AR_p_sims_model_output_condensed.csv')
-dd <- read_csv('Data/aquatic_sim_data/AR_p_sims_loosened_sig_more_burnin_4_29_condensed.csv')
+dd <- read_csv('Data/aquatic_sim_data/AR_p_sims_5_17_condensed.csv')
+
 dd <- dd %>%
   # filter(divergent_trans < 40) %>%
   mutate(siglab = factor(paste0('sigma = ', sigma),
-                         levels = c('sigma = 5', 'sigma = 1', 'sigma = 0.2')))
+                         levels = c('sigma = 5', 'sigma = 2', 'sigma = 0.5')))
 
 dat <- dd %>%
   select(-rmse_sigma, -unconverged_pars, -divergent_trans) %>%
@@ -103,13 +103,7 @@ fp <- ggplot(dd2r, aes(n, false_pos)) +
 
 ggpubr::ggarrange(tp, tn, fp, fn)
 
-length(which(dat$rmse_forecast >20))/nrow(dat)
 # which models ran successfully?
-plot(density(dd$rmse_forecast), xlim = c(0, 20))
-plot(density(dd$n[dat$sigma == 0.1], na.rm = T))
-lines(density(dd$n[dat$sigma == 1]), col = 2)
-lines(density(dd$n[dat$sigma == 10]), col = 3)
-
 library(RColorBrewer)
 dd %>%
   filter(divergent_trans < 20) %>%
@@ -126,7 +120,17 @@ dd %>%
 
 # quantify divergent transitions
 dd %>% group_by(n, sigma, model) %>%
+  filter(divergent_trans < 20) %>%
   summarize(min_div = min(divergent_trans),
     median_div = median(divergent_trans),
             count = n()) %>%
-  arrange(-median_div)
+  arrange(count)
+dd %>%
+  ggplot(aes(n, divergent_trans)) +
+  geom_violin(aes(group = c(cut_width(n, 50))), scale = 'width') +
+  # geom_violin(aes(group = cut_width(n, 50)), fill = 'grey', alpha = 0.5) +
+  facet_grid(siglab~model) +
+  scale_color_manual(values = col_pal) +
+  theme_bw() +ylim(0,500)
+
+plot(density(dd$divergent_trans[dd$n == 50 & dd$sigma == 0.5]))
