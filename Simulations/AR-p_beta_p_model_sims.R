@@ -19,7 +19,7 @@ sim_df <- data.frame(
     length = rep(lengths, length(sigmas))
 )
 
-sim_df <- sim_df[sample(1:nrow(sim_df), nrow(sim_df), replace = FALSE),]
+#sim_df <- sim_df[sample(1:nrow(sim_df), nrow(sim_df), replace = FALSE),]
 
 ARp_beta_sims <- function(input_pars){
 
