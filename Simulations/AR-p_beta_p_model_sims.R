@@ -3,7 +3,7 @@
 library(rstan)
 #library(here)
 devtools::load_all()
-rstan_options(auto_write = TRUE)
+#rstan_options(auto_write = TRUE)
 setwd("/project/modelscape/analyses/sponges/")
 
 #### Simulate data and run regularized and non-regularized AR-p_beta models ####
