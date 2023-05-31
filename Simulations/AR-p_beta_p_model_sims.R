@@ -3,7 +3,7 @@
 library(rstan)
 #library(here)
 devtools::load_all()
-rstan_options(auto_write = TRUE)
+#rstan_options(auto_write = TRUE)
 setwd("/project/modelscape/analyses/sponges/")
 
 #### Simulate data and run regularized and non-regularized AR-p_beta models ####
@@ -18,7 +18,6 @@ sim_df <- data.frame(
     length = rep(lengths, length(sigmas))
 )
 
-# sim_df <- sim_df[sample(1:nrow(sim_df), nrow(sim_df), replace = FALSE),]
 # fits <- readRDS('Data/aquatic_sim_data/test_fit.rds')
 
 ARp_beta_sims <- function(input_pars){

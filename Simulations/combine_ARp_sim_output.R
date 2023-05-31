@@ -2,6 +2,7 @@
 
 library(tidyverse)
 # args <- 'ARp_sims_test'
+devtools::load_all()
 setwd("/project/modelscape/analyses/sponges/")
 args <- commandArgs(trailingOnly = TRUE)
 
