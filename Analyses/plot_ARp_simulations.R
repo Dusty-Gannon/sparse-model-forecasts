@@ -13,6 +13,7 @@ dd <- dd %>%
                          levels = c('sigma = 5', 'sigma = 2', 'sigma = 0.5')))
 
 dat <- dd %>%
+  filter(divergent_trans <= 20) %>%
   select(-rmse_sigma, -unconverged_pars, -divergent_trans) %>%
   pivot_longer(cols = starts_with('rmse'),
                names_to = 'parameter', values_to = 'rmse',
@@ -22,15 +23,61 @@ dat <- dd %>%
 datr <- filter(dat, model == 'reg')
 datnr <- filter(dat, model == 'not_reg')
 # not all simulations ran - that is something that needs to be figured out later
+p2 <- datr %>%
+  filter(rmse <50) %>%
+ggplot(aes(n, rmse)) +
+  geom_violin(aes(group = cut_width(n, 60)), alpha = 0.5, col = 'brown',
+              fill =  'brown', position = 'dodge', scale = "width") +
+  geom_violin(data = filter(datnr, rmse <50),
+              aes(group = cut_width(n, 60)), alpha = 0.5, col = 'grey',
+              fill =  'grey', position = 'dodge', scale = "width") +
+  facet_grid(siglab~parameter)+
+  scale_y_log10()+
+  ylab('RMSE') + xlab('Time series length')+
+  theme_bw()
 p <- datr %>%
   filter(rmse <50) %>%
 ggplot(aes(n, rmse)) +
-  geom_violin(aes(group = cut_width(n, 50)), alpha = 0.5, col = 'brown',
+  geom_violin(aes(group = factor(n)), alpha = 0.5, col = 'brown',
               fill =  'brown', position = 'dodge', scale = "width") +
   geom_violin(data = filter(datnr, rmse <50),
-              aes(group = cut_width(n, 50)), alpha = 0.5, col = 'grey',
+              aes(group = factor(n)), alpha = 0.5, col = 'grey',
               fill =  'grey', position = 'dodge', scale = "width") +
   facet_grid(siglab~parameter)+
+  scale_y_log10()+
+  ylab('RMSE') + xlab('Time series length')+
+  theme_bw()
+datr %>%
+  filter(rmse <50,
+         parameter == 'forecast') %>%
+ggplot(aes(n, rmse)) +
+  geom_violin(aes(group = factor(n)), alpha = 0.5, col = 'brown',
+              fill =  'brown', position = 'dodge', scale = "width") +
+  geom_violin(data = filter(datnr, rmse <50, parameter == 'forecast'),
+              aes(group = factor(n)), alpha = 0.5, col = 'grey',
+              fill =  'grey', position = 'dodge', scale = "width") +
+  facet_grid(siglab~.)+
+  scale_y_log10()+
+  ylab('RMSE') + xlab('Time series length')+
+  theme_bw()
+dat %>%
+  group_by(n, sigma, model) %>%
+  summarize(runs = n()) %>%
+  mutate(runs = case_when(sigma == 0.5 ~ runs/3600,
+                          TRUE ~ runs/1800)) %>%
+  ggplot(aes(factor(n), runs, fill = factor(sigma))) +
+  geom_bar(stat = 'identity', position = 'dodge') +
+  facet_wrap(.~model) + theme_bw() + ylab('Fraction of runs without divergent transitions')
+
+  filter(rmse <50,
+         parameter == 'forecast') %>%
+ggplot(aes(n, rmse)) +
+  geom_violin(aes(group = factor(n)), alpha = 0.5, col = 'brown',
+              fill =  'brown', position = 'dodge', scale = "width") +
+  geom_violin(data = filter(datnr, rmse <50, parameter == 'forecast'),
+              aes(group = factor(n)), alpha = 0.5, col = 'grey',
+              fill =  'grey', position = 'dodge', scale = "width") +
+  facet_grid(siglab~.)+
   scale_y_log10()+
   ylab('RMSE') + xlab('Time series length')+
   theme_bw()
@@ -66,6 +113,7 @@ ggplot(aes(n, true_pos, col = model)) +
   theme_bw()
 
 dd2 <- dd %>%
+  filter(divergent_trans <=20)%>%
   pivot_longer(cols = starts_with(c('beta', 'phi')),
                values_to = 'value',
                names_to = c('parameter', 'rate'),
@@ -76,11 +124,31 @@ ddsum <- dd2 %>% group_by(n, sigma, model, parameter) %>%
 dd2r <- filter(dd2, model == 'reg')
 dd2nr <- filter(dd2, model == 'not_reg')
 tp <- ggplot(dd2r, aes(n, true_pos)) +
-  geom_violin(aes(group = cut_width(n, 50)), col = 'brown', fill = 'brown', alpha = 0.5) +
-  geom_violin(data = dd2nr, aes(group = cut_width(n, 50)), fill = 'grey', alpha = 0.5) +
+  geom_violin(aes(group = factor(n)), col = 'brown', fill = 'brown', alpha = 0.5) +
+  geom_violin(data = dd2nr, aes(group =  factor(n)), fill = 'grey', alpha = 0.5) +
   # geom_point(data = ddsum, aes(col = model))+
   # scale_color_manual(values = c('grey', 'brown')) +
   facet_grid(siglab~parameter) +
+  theme_bw()
+tp <- ggplot(dd2, aes(factor(n), true_pos)) +
+  geom_boxplot(aes( fill = model), alpha = 0.5, outlier.color = NA) +
+  facet_grid(siglab~parameter) +
+  scale_fill_manual(values = c('brown', 'grey'))+
+  ylab('True Positive Rate')+
+  theme_bw()
+fp <- ggplot(dd2, aes(factor(n), false_pos)) +
+  geom_boxplot(aes( fill = model), alpha = 0.5, outlier.colour = NA) +
+  facet_grid(siglab~parameter) +
+  scale_fill_manual(values = c('brown', 'grey'))+
+  ylab('False Positive Rate')+
+  theme_bw()
+
+ggpubr::ggarrange(tp, fp, common.legend = TRUE)
+ggplot(dd2, aes(factor(n), false_neg)) +
+  geom_boxplot(aes( fill = model), alpha = 0.5) +
+  facet_grid(siglab~parameter) +
+  scale_fill_manual(values = c('brown', 'grey'))+
+  ylab('False Negative Rate')+
   theme_bw()
 tn <- ggplot(dd2r, aes(n, true_neg)) +
   geom_violin(aes(group = cut_width(n, 50)), col = 'brown', fill = 'brown', alpha = 0.5) +
@@ -89,19 +157,19 @@ tn <- ggplot(dd2r, aes(n, true_neg)) +
   scale_color_manual(values = col_pal) +
   theme_bw()
 fn <- ggplot(dd2r, aes(n, false_neg)) +
-  geom_violin(aes(group = cut_width(n, 50)), col = 'brown', fill = 'brown', alpha = 0.5) +
-  geom_violin(data = dd2nr, aes(group = cut_width(n, 50)), fill = 'grey', alpha = 0.5) +
+  geom_violin(aes(group =  factor(n)), col = 'brown', fill = 'brown', alpha = 0.5) +
+  geom_violin(data = dd2nr, aes(group =  factor(n)), fill = 'grey', alpha = 0.5) +
   facet_grid(siglab~parameter) +
   scale_color_manual(values = col_pal) +
   theme_bw()
 fp <- ggplot(dd2r, aes(n, false_pos)) +
-  geom_violin(aes(group = cut_width(n, 50)), col = 'brown', fill = 'brown', alpha = 0.5) +
-  geom_violin(data = dd2nr, aes(group = cut_width(n, 50)), fill = 'grey', alpha = 0.5) +
+  geom_violin(aes(group =  factor(n)), col = 'brown', fill = 'brown', alpha = 0.5) +
+  geom_violin(data = dd2nr, aes(group =  factor(n)), fill = 'grey', alpha = 0.5) +
   facet_grid(siglab~parameter) +
   scale_color_manual(values = col_pal) +
   theme_bw()
 
-ggpubr::ggarrange(tp, tn, fp, fn)
+ggpubr::ggarrange(tp, fp, fn)
 
 # which models ran successfully?
 library(RColorBrewer)
@@ -110,7 +178,7 @@ dd %>%
   mutate(sigma = factor(sigma))%>%
   group_by(n, sigma, model) %>%
   summarize(nsims = n()) %>%
-  ggplot(aes(factor(n), nsims, fill = sigma))+
+  ggplot(aes(factor(n), nsims/300, fill = sigma))+
   geom_bar(position = 'dodge', stat = 'identity') +
   scale_fill_brewer(palette = 'Blues')+
   facet_wrap(.~model)+
