@@ -5,7 +5,7 @@
 # comparing the fits of regularized and not regularized models
 
 library(tidyverse)
-dd <- read_csv('Data/aquatic_sim_data/AR_p_sims_5_17_condensed.csv')
+dd <- read_csv('Data/aquatic_sim_data/ARp_sims_5_29b_condensed.csv')
 
 dd <- dd %>%
   # filter(divergent_trans < 40) %>%
