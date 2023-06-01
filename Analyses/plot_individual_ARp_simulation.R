@@ -2,6 +2,8 @@
 
 out <- readRDS('Data/aquatic_sim_data/test/simdat_run1')
 
+mod_cols <- c("#a52a2aff", "#33406fff")
+
 beta <- out$model_pars$beta
 phi <- out$model_pars$phi
 beta_r <- out$mod_fit_r$par_ests$beta_hat
