@@ -243,7 +243,7 @@ fit_ARp_beta_model <- function(model_pars, iter = 2000, warmup = 1000,
     data = datlist,
     chains = 4, cores = 4,
     iter = iter, warmup = warmup,
-    control = list(adapt_delta = ad,
+    control = list(adapt_delta = 0.99,
                    max_treedepth = mtd)
   )
 
