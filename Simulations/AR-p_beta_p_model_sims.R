@@ -23,7 +23,7 @@ sim_df <- data.frame(
 
 full_sim_df <- data.frame()
 for(i in 1:60){
-  full_sim_df <- bind_rows(full_sim_df, sim_df)
+  full_sim_df <- rbind(full_sim_df, sim_df)
 }
 mods_per_node <- 20
 
