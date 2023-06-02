@@ -27,17 +27,18 @@ con_runs <- filter(dd, divergent_trans <= divergent_trans_cap) %>%
   group_by(n, sigma, prior) %>%
   summarize(runs = n())
 
-png('Figures/ARp_model_convergence.png',
-    width = 6.5, height = 4, units = 'in', res = 300)
+png('Manuscript/Figures/ARp_model_convergence.png',
+    width = 8, height = 5, units = 'in', res = 300)
   left_join(con_runs, total_runs) %>%
     mutate(converged_runs = runs/total_runs,
            Sigma = factor(sigma)) %>%
     ggplot(aes(n, converged_runs, col = prior, lty = Sigma)) +
-    geom_line(size = 1) +
+    geom_line(size = 0.9) +
     scale_color_manual('Prior', values = mod_cols) +
     theme_classic() +
-    theme(legend.position = c(0.8, 0.2),
+    theme(legend.position = c(0.75, 0.25),
           legend.box = 'horizontal')+
+    xlim(60,150)+
     ylab('Percent convergence') +
     xlab('Time series length')
 
@@ -73,9 +74,14 @@ frmse <- dat %>%
   theme_classic()+
   theme(panel.border = element_rect(fill = NA),
         panel.spacing = unit(0, 'line'),
-        legend.position = 'top')
+        legend.position = c(0.92, 0.83),
+        legend.title = element_text(size=8),
+        legend.text = element_text(size=7),
+        legend.spacing.y = unit(0.05, 'cm')
+        # legend.key.size = unit(1, 'line')
+        )
 
-png('Figures/ARp_forecast_rmses.png',
+png('Manuscript/Figures/ARp_forecast_rmses.png',
     width = 6.5, height = 3.2, units = 'in', res = 300)
     frmse
 dev.off()
@@ -197,18 +203,18 @@ tpr <- rr %>%
   rename(Category = category) %>%
   ggplot(aes(n, rate_fit, color = prior, lty = Category))+
   geom_ribbon(aes(ymin = rate_low_fit, ymax = rate_high_fit, fill = prior),
-              alpha = 0.3, color = NA)+
+              alpha = 0.25, color = NA)+
   geom_line(size = 0.75)+
   facet_grid(parameter~siglab) +
   scale_color_manual('Prior', values = mod_cols) +
   scale_fill_manual('Prior', values = mod_cols) +
-  ylab('True/False Positive Rate')+
+  ylab('Rate')+
   xlab('Time series length') +
   theme_classic()+
   theme(panel.border = element_rect(fill = NA),
         panel.spacing = unit(0, 'line'),
         legend.position = 'top')
-png('Figures/ARp_TPR_FPR.png',
+png('Manuscript/Figures/ARp_TPR_FPR.png',
     width = 6.5, height = 5, units = 'in', res = 300)
 tpr
 dev.off()
