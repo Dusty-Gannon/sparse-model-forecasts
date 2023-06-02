@@ -14,8 +14,8 @@ sigmas <- c(0.5, 2, 5)
 # lengths <- c(60, 75, 120, 180, 240)
 lengths <- c(rep(60, 12), rep(65, 12), rep(70, 11), rep(75, 11),
              rep(80, 10), rep(85, 10), rep(90, 8), rep(95, 8),
-             rep(100, 6), rep(105, 6), rep(110, 4), rep(115, 4),
-             rep(120, 2), seq(125, 200, by = 5))
+             rep(100, 2), rep(105, 2), rep(110, 2),
+             seq(115, 200, by = 5))
 sim_df <- data.frame(
     sigma = rep(sigmas, each = length(lengths)),
     length = rep(lengths, length(sigmas))
@@ -23,7 +23,7 @@ sim_df <- data.frame(
 
 full_sim_df <- data.frame()
 for(i in 1:60){
-  full_sim_df <- bind_rows(full_sim_df, sim_df)
+  full_sim_df <- rbind(full_sim_df, sim_df)
 }
 mods_per_node <- 20
 
