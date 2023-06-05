@@ -8,7 +8,7 @@ library(tidyverse)
 
 mod_cols <- c("#a52a2aff", "#33406fff")
 
-dd <- read_csv('Data/aquatic_sim_data/ARp_sims_5_31_condensed.csv')
+dd <- read_csv('Data/aquatic_sim_data/ARp_sims_6_01_condensed.csv')
 
 dd <- dd %>%
   mutate(siglab = factor(paste0('sigma = ', sigma),
@@ -45,7 +45,7 @@ png('Manuscript/Figures/ARp_model_convergence.png',
 dev.off()
 
 # Subsample model fits so that the same number is in each category.
-min_size = min(c(con_runs$runs, 50))
+min_size = min(c(con_runs$runs))
 dat <- data.frame()
 for(i in 1:nrow(total_runs)){
   tmp <- dd %>%
@@ -112,10 +112,10 @@ dummy_plot <- ggplot(dummy_df, aes(Model, y, fill = Model)) +
 lgnd <- ggpubr::get_legend(dummy_plot)
 pp <- ggpubr::ggarrange(p, legend.grob = lgnd)
 
-png(width = 10.5, height = 9, units = 'in', type = 'cairo', res = 300,
-    filename = 'Figures/ARp_sim_fits2.png')
-    ggpubr::annotate_figure(pp, top = ggpubr::text_grob('AR-p simulation model fits'))
-dev.off()
+# png(width = 10.5, height = 9, units = 'in', type = 'cairo', res = 300,
+#     filename = 'Figures/ARp_sim_fits2.png')
+#     ggpubr::annotate_figure(pp, top = ggpubr::text_grob('AR-p simulation model fits'))
+# dev.off()
 
 dat %>%
   pivot_longer(cols = starts_with(c('beta', 'phi')),
