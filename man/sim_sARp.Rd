@@ -4,7 +4,17 @@
 \alias{sim_sARp}
 \title{Simulate seasonal AR time series}
 \usage{
-sim_sARp(n, ar, sar = 0, S = 1, sd = 1, X = NULL, beta = NULL, burnin = NULL)
+sim_sARp(
+  n,
+  ar,
+  sar = 0,
+  S = 1,
+  sd = 1,
+  X = NULL,
+  beta = NULL,
+  lagged_beta = 0,
+  burnin = NULL
+)
 }
 \arguments{
 \item{n}{Length of the simulated time series}
@@ -24,6 +34,9 @@ a 1-column matrix of 1s.}
 
 \item{beta}{K-vector of regression coefficients. The first element in this
 vector should be the mean if different from zero.}
+
+\item{lagged_beta}{the number of lags included in the first covariate if different from zero.
+Note the lagged covariate will always be beta1, the second column of the X matrix.}
 
 \item{burnin}{Length of the burnin period for the process.}
 }
