@@ -4,7 +4,7 @@
 \alias{fit_ARp_beta_model}
 \title{Fit AR-p_beta model}
 \usage{
-fit_ARp_beta_model(model_pars, fit_nr = TRUE)
+fit_ARp_beta_model(model_pars, iter = 2000, warmup = 1000, fit_nr = TRUE)
 }
 \arguments{
 \item{model_pars}{a list of parameters describing the AR-p time series as well

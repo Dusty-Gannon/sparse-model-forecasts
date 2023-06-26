@@ -30,3 +30,6 @@ must be present for at least 95\% of the time window, have at least one non-gene
 competitor present for 95\% of the time window, and may be a rare or a common species
 depending on the \code{rare} flag.
 }
+\examples{
+
+}

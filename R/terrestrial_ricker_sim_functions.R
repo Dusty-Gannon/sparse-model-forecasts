@@ -1,5 +1,124 @@
 
 
+#' Build a competition matrix
+#'
+#' This function builds an \eqn{N \times N} matrix,
+#' where \eqn{N} is the number of species in the system,
+#' of competition coefficients \eqn{A}, where
+#' \eqn{A_{ij}} is the competitive effect of species \eqn{j} on \eqn{i}.
+#' \eqn{A_{ij} = \alpha_i (\rho + (1 - \rho) \delta_{ij})}, where \eqn{\delta_{ij}=1} if
+#' \eqn{i=j} and 0 otherwise and \eqn{\alpha_i} is the strength of self regulation for
+#' species i.
+#'
+#' @param n_sp The number of species competing
+#' @param rho The strength of a generic competitor relative to intraspecific competition.
+#' \eqn{\rho \in (0,1)}
+#' @param alpha A scalar or vector of length \code{n_sp} with the strength(s) of
+#' intraspecific competition.
+#' @param num_ngs Number of strong competitors
+#' @param ng_range A range of values from which to draw the strength of non-generic competition
+#' relative to intraspecific competition.
+#'
+#'
+#' @return \code{n_sp} X \code{n_sp} matrix
+#' @export
+#'
+#' @examples
+#' comp_matrix(3, rho=0.4, alpha=0.01, num_ngs = 1)
+#'
+comp_matrix <- function(n_sp, rho = 0, alpha, num_ngs, ng_range = c(0.3, 0.6)){
+  if(sum(rho < 0) > 0 | sum(rho > 1) > 0){
+    stop("rho must be on the unit interval [0,1]")
+  }
+
+  # set full matrix
+  Id <- diag(nrow = n_sp, ncol = n_sp)
+  Dalpha <- diag(alpha, nrow = n_sp, ncol = n_sp)
+  mat <- Dalpha %*% (rho + (1 - rho) * Id)
+
+  # now sprinkle in some more competition
+  for(i in 1:n_sp){
+
+    ng_ids_i <- sample((1:n_sp)[-i], size = num_ngs, replace = F)
+    mat[i, ng_ids_i] <- mat[i,i] * runif(num_ngs, min = ng_range[1], max = ng_range[2])
+
+  }
+
+  return(mat)
+}
+
+
+
+
+
+
+
+
+#' Create matrix of competition coefficients
+#'
+#' This alternative function to generate a matrix of competition coefficients
+#' first generates a diagonal matrix with the vector \eqn{\vec\alpha} of
+#' intra-specific competition coefficients on the diagonal and \eqn{\rho \alpha_i}
+#' in the \eqn{i^{th}} row of the off-diagonal elements. It then adds \code{num_ngs}
+#' non-generic competitive effects to each row, each one randomly generated using
+#' \eqn{U_i \times \alpha_i}, where \eqn{U_i} is a uniform random variable on the interval
+#' supplied by \code{ng_range} (should be on the unit interval to ensure intra- greater than
+#' inter-specific competion). These are structured so that the a given species \eqn{i}'s ng
+#' competitors are always species \eqn{i + 1, i + 2, ..., i + g}, where \eqn{g} is the number
+#' of non-generic competitors. If \eqn{i + g > S}, then the competitor indices begin to wrap
+#' around such that the ng competitors for species \eqn{S} are \eqn{{1, 2, ..., g}}.
+#'
+#' @param n_sp Number of species in commmunity
+#' @param rho The strength of a generic competitor relative to intraspecific competition.
+#' \eqn{\rho \in (0,1)}
+#' @param alpha A scalar or vector of length \code{n_sp} with the strength(s) of
+#' intraspecific competition.
+#' @param num_ngs Number of strong competitors
+#' @param ng_range A range of values from which to draw the strength of non-generic competition
+#' relative to intraspecific competition.
+#'
+#' @return
+#' @export
+#'
+#' @examples
+comp_matrix2 <- function(n_sp, rho, alpha, num_ngs, ng_range = c(0.4, 0.6)){
+  if(sum(rho < 0) > 0 | sum(rho > 1) > 0){
+    stop("rho must be on the unit interval [0,1]")
+  }
+
+  # set full matrix
+  Id <- diag(nrow = n_sp, ncol = n_sp)
+  Dalpha <- diag(alpha, nrow = n_sp, ncol = n_sp)
+  mat <- Dalpha %*% (rho[1] + (1 - rho[1]) * Id)
+
+  # now add some non-generic competition
+  if(num_ngs > 0){
+
+    for(i in 1:n_sp){
+      # define the column ids for the non-generic competitors
+      if(n_sp - i >= num_ngs){
+        col_ids <- i + c(1:num_ngs)
+      }
+      if(n_sp - i < num_ngs & n_sp - i > 0){
+        col_ids <- c(
+          1:(num_ngs - (n_sp - i)),
+          i + c(1:(n_sp - i))
+        )
+      }
+      if(n_sp - i == 0){
+        col_ids <- 1:num_ngs
+      }
+      mat[i, col_ids] <- mat[i, i] * runif(num_ngs, min = ng_range[1], max = ng_range[2])
+    }
+
+  }
+
+  return(mat)
+
+}
+
+
+
 #' Generate an array of parameters that determine competition
 #'
 #' This function generates an array of parameters that, when combined with

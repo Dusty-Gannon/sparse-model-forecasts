@@ -18,3 +18,6 @@ Vector of draws from the posterior distribution of the RMSE
 \description{
 Bayesian Root-mean squared error
 }
+\examples{
+
+}
