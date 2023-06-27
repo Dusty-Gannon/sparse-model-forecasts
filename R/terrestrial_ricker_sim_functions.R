@@ -717,6 +717,57 @@ ricker_ts_lnorm <- function(
 
 
 
+ricker_spts_lnorm <- function(
+    N_0, lambdas, A_mat, sigmas, steps,
+    sp_cov, n_sites,
+    dist_prob = 0, dist_int = 0, prop_cdist = 0,
+    dist_min_thresh = 1
+){
+
+  nsp <- length(N_0)
+  # initialize tracking array
+  N <- array(0, dim = c(nsp, steps, n_sites))
+  N[, 1, ] <- matrix(N_0, nrow = nsp, ncol = n_sites)
+
+  # generate a bunch of spatially dependent site
+  # effects
+  sp_effs <- mvtnorm::rmvnorm(
+    n = 1,
+    mean = rep(0, n_sites),
+    sigma = sp_cov
+  )
+
+  ### No disturbance ###
+  if(dist_prob == 0){
+    for(s in 1:n_sites){
+      for(t in 2:steps){
+
+        # tracking extinct species
+        extinct <- which(round(as.double(N[, t - 1, s])) == 0)
+        N[extinct, t - 1, s] <- 0
+        nesp <- (1:nsp)[-extinct]
+
+        # step the process forward
+        if(length(extinct) > 0){
+          N[nesp, t, s] <- N[nesp, t - 1, s] * lambdas[nesp] *
+            exp(
+              - A_mat[nesp, nesp] %*% N[nesp, t - 1, s] +
+                rnorm(length(nesp)) * sigmas[nesp] / sqrt(N[nesp, t - 1, s]) +
+                sp_effs[s]
+            )
+        } else{
+          N[, t, s] <- N[, t - 1, s] * lambdas *
+            exp(
+              - A_mat %*% N[, t - 1, s] + rnorm(nsp) * sigmas / sqrt(N[, t - 1, s]) +
+                sp_effs[s]
+            )
+        }
+      }
+    }
+  }
+
+}
+
 
 
 
