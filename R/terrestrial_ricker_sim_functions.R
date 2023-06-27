@@ -717,6 +717,59 @@ ricker_ts_lnorm <- function(
 
 
 
+#' Create spatial covariance matrix
+#'
+#' @param coords (x,y) coordinates.
+#' @param nugget
+#' @param sill
+#' @param range
+#' @param model Currently, only an exponential variogram is available. See
+#' https://en.wikipedia.org/wiki/Variogram for details.
+#'
+#' @return Covariance matrix for a spatial Gaussian process with sites
+#' positioned at the coordinates provided.
+#'
+create_sp_covm <- function(coords, nugget, sill, range, model = "exponential"){
+
+  D <- as.matrix(dist(coords))
+
+  # exponential variogram model
+  exp_vg <- function(d, nug, s, r){
+    (s - nug) * (1 - exp(
+      - (d / (r / 3))
+    )) + nug
+  }
+
+  V <- exp_vg(D, nug = nugget, s = sill, r = range)
+  return(V)
+}
+
+
+
+
+
+
+
+
+
+#' Simulate a spatio-temporal Ricker model
+#'
+#' @param N_0
+#' @param lambdas
+#' @param A_mat
+#' @param sigmas
+#' @param steps
+#' @param sp_cov
+#' @param n_sites
+#' @param dist_prob
+#' @param dist_int
+#' @param prop_cdist
+#' @param dist_min_thresh
+#'
+#' @return
+#' @export
+#'
+#' @examples
 ricker_spts_lnorm <- function(
     N_0, lambdas, A_mat, sigmas, steps,
     sp_cov, n_sites,
@@ -729,13 +782,12 @@ ricker_spts_lnorm <- function(
   N <- array(0, dim = c(nsp, steps, n_sites))
   N[, 1, ] <- matrix(N_0, nrow = nsp, ncol = n_sites)
 
-  # generate a bunch of spatially dependent site
-  # effects
-  sp_effs <- mvtnorm::rmvnorm(
+  # generate spatially dependent site effects
+  sptl_effs <- as.double(mvtnorm::rmvnorm(
     n = 1,
     mean = rep(0, n_sites),
     sigma = sp_cov
-  )
+  ))
 
   ### No disturbance ###
   if(dist_prob == 0){
@@ -753,13 +805,98 @@ ricker_spts_lnorm <- function(
             exp(
               - A_mat[nesp, nesp] %*% N[nesp, t - 1, s] +
                 rnorm(length(nesp)) * sigmas[nesp] / sqrt(N[nesp, t - 1, s]) +
-                sp_effs[s]
+                sptl_effs[s]
             )
         } else{
           N[, t, s] <- N[, t - 1, s] * lambdas *
             exp(
               - A_mat %*% N[, t - 1, s] + rnorm(nsp) * sigmas / sqrt(N[, t - 1, s]) +
-                sp_effs[s]
+                sptl_effs[s]
+            )
+        }
+      }
+    }
+  }
+
+
+  ### Disturbance ###
+  if(dist_prob > 0){
+
+    # create vector of disturbance events for each site
+    dist <- lapply(
+      1:n_sites,
+      FUN = function(x){
+        rbinom(steps, size = 1, prob = dist_prob)
+      }
+    )
+
+    # create vectors for which species get disturbed
+    dist_mats <- lapply(
+      1:n_sites,
+      FUN = function(x){
+        sapply(
+          1:steps,
+          function(x){
+            rbinom(nsp, size = 1, prob = (1 - prop_cdist))
+          }
+        )
+      }
+    )
+
+    # change the disturbed values to a multiplier
+    dist_mats <- lapply(
+      dist_mats,
+      FUN = function(x, p){
+        x[x == 0] <- p
+        x
+      },
+      p = (1 - dist_int)
+    )
+
+    # now proceed with simulations
+    for(s in 1:n_sites){
+
+      # store some variables for easier syntax
+      dist_s <- dist[[s]]
+      dist_mat_s <- dist_mats[[s]]
+
+      for(t in 2:steps){
+
+        # disturb if it was a disturbance year
+        N_tm1_s <- N[, t - 1, s] * (1 - dist_s[t - 1]) + N[, t - 1, s] * dist_s[t - 1] * dist_mat_s[, t - 1]
+
+        # tracking extinct species
+        extinct_pre <- which(round(as.double(N_tm1_s)) == 0)
+        N_tm1_s[extinct_pre] <- 0
+
+        # Some species may stochastically recolonize
+        N_tm1_plus <- ifelse(
+          N_tm1_s == 0,
+          rgamma(nsp, shape = 2, scale = 1) * rbinom(nsp, size = 1, prob = 0.1),
+          N_tm1_s
+        )
+        N[, t - 1, s] <- N_tm1_plus
+
+        # tracking extinct species
+        extinct <- which(as.double(N[, t - 1, s]) == 0)
+        N[extinct, t - 1, s] <- 0
+
+
+        # step the process forward
+        nesp <- (1:nsp)[-extinct]
+        if(length(extinct) > 0){
+          N[nesp, t, s] <- N[nesp, t - 1, s] * lambdas[nesp] *
+            exp(
+              - A_mat[nesp, nesp] %*% N[nesp, t - 1, s] +
+                rnorm(length(nesp)) * sigmas[nesp] / sqrt(N[nesp, t - 1, s]) +
+                sptl_effs[s]
+            )
+        } else{
+          N[, t, s] <- N[, t - 1, s] * lambdas *
+            exp(
+              - A_mat %*% N[, t - 1, s] +
+                rnorm(nsp) * sigmas / sqrt(N[, t - 1, s]) +
+                sptl_effs[s]
             )
         }
       }
