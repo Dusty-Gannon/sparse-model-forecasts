@@ -461,6 +461,26 @@ generate_sim_params_thin <- function(
 
 
 
+#' Generate parameters for disturbance simulations
+#'
+#' @param nsp Number of species.
+#' @param steps Time steps.
+#' @param num_ngs Number of non-generic competitors.
+#' @param sigma_rng Range over which to sample scales of demographic stochasticity.
+#' @param alpha_rng Range over which to sample intra-specific effects.
+#' @param lambda_rng Range over which to sample LDGFs.
+#' @param ng_range Range of which to sample multiplier for NG effects.
+#' @param rho See \code{?comp_matrix2()}.
+#' @param mean_init_abund Average initial abundances for each species
+#' @param comp_matrix_type Type of competition matrix to generate (\code{comp_matrix()} or
+#' \code{comp_matrix2()}).
+#' @param dist_prob Probability of disturbance in a given year.
+#' @param dist_int Intensity of disturbances. \code{dist_int = 0.2} will tend to reduce species
+#' abundances by 20 percent.
+#' @param prop_cdist Proportion of community affected by a given disturbance.
+#'
+#' @return List of parameters used for simulation.
+#'
 generate_sim_params_dist <- function(
     nsp = 40, steps = 500, num_ngs = 5,
     sigma_rng = c(0.1, 0.5), alpha_rng = c(0.005, 0.01),
@@ -561,7 +581,7 @@ ricker_ts_lnorm_foc <- function(N_0, lambda, A_i, sigma_i, N_het, steps = 300, h
 ricker_ts_lnorm <- function(
     N_0, lambdas, A_mat, sigmas, steps,
     dist_prob = 0, dist_int = 0, prop_cdist = 0,
-    dist_min_thresh = 1, thin_freq = 0, thin_factor = 0.1,
+    thin_freq = 0, thin_factor = 0.1,
     thin_order = NULL, thin_levels = NULL
 ){
 
@@ -754,27 +774,36 @@ create_sp_covm <- function(coords, nugget, sill, range, model = "exponential"){
 
 #' Simulate a spatio-temporal Ricker model
 #'
-#' @param N_0
-#' @param lambdas
-#' @param A_mat
-#' @param sigmas
-#' @param steps
-#' @param sp_cov
-#' @param n_sites
-#' @param dist_prob
-#' @param dist_int
-#' @param prop_cdist
-#' @param dist_min_thresh
+#' @param N_0 Initial abundances of all S species
+#' @param lambdas Vector of low-density growth factors for each species
+#' @param A_mat \eqn{S \times S} competition matrix
+#' @param sigmas Vector of scales for demographic stochasticity
+#' @param steps Number of time steps over which to simulate the process
+#' @param sp_cov Covariance matrix determining the spatial autocovariance of the
+#' replicate sites
+#' @param n_sites Number of replicate sites
+#' @param dist_prob Probability a site is disturbed in a given year
+#' @param dist_int Intensity of the disturbance
+#' @param prop_cdist Proportion of community affected by a disturbance
+#' @param dist_min_thresh Minimum threshold for disturbing a species
+#' @param thin_freq Interval between experimental thinning (\code{thin_freq = 2} will
+#' implement a thinning treatment every other year)
+#' @param thin_factor Reduction factor by which a species is thinned. \code{thin_factor = 0.1}
+#' will thin a population to 10% of its density in the previous year
+#' @param thin_order Order in which to thin species. If left \code{NULL}, the order will be
+#' random
+#' @param thin_levels Optional vector to thin species to different levels.
 #'
-#' @return
-#' @export
+#' @return If \code{dist_prob = 0}, the function will return an \eqn{S \times T \times R} array, where
+#' \eqn{S} is the number of species, \eqn{T} is the number of time steps, and \eqn{R} is the number of
+#' replicate sites.
 #'
-#' @examples
 ricker_spts_lnorm <- function(
     N_0, lambdas, A_mat, sigmas, steps,
     sp_cov, n_sites,
     dist_prob = 0, dist_int = 0, prop_cdist = 0,
-    dist_min_thresh = 1
+    dist_min_thresh = 1, thin_freq = 0, thin_factor = 0.1,
+    thin_order = NULL, thin_levels = NULL
 ){
 
   nsp <- length(N_0)
@@ -782,15 +811,15 @@ ricker_spts_lnorm <- function(
   N <- array(0, dim = c(nsp, steps, n_sites))
   N[, 1, ] <- matrix(N_0, nrow = nsp, ncol = n_sites)
 
-  # generate spatially dependent site effects
+  # generate (potentially) spatially dependent site effects
   sptl_effs <- as.double(mvtnorm::rmvnorm(
     n = 1,
     mean = rep(0, n_sites),
     sigma = sp_cov
   ))
 
-  ### No disturbance ###
-  if(dist_prob == 0){
+  ### No thinning or disturbance ###
+  if(dist_prob == 0 & thin_freq == 0){
     for(s in 1:n_sites){
       for(t in 2:steps){
 
@@ -819,8 +848,87 @@ ricker_spts_lnorm <- function(
   }
 
 
+  ### Thinning ###
+  if(thin_freq > 0 & dist_prob == 0){
+
+    # create vector of thinning factors
+    thin <- rep(1, steps)
+    if(is.null(thin_levels)){
+      thin[thin_freq * c(1:floor(steps/thin_freq))] <- thin_factor
+    } else{
+      thin[thin_freq * c(1:floor(steps/thin_freq))] <- 0
+    }
+
+
+    # create vectors that cycle through the thinning order
+    if(is.null(thin_order)){thin_order <- sample(1:nsp)}
+    sp2thin <- matrix(
+      nrow = n_sites,
+      ncol = nsp * thin_freq * ceiling(steps / (thin_freq * length(thin_order)))
+    )
+    for(i in 1:min(n_sites, nsp)){
+      thinord_s <- c(thin_order[i:nsp], thin_order[0:(i-1)])
+      sp2thin[i, ] <- rep(
+        rep(thinord_s, each = thin_freq),
+        ceiling(steps / (thin_freq * length(thin_order)))
+      )
+    }
+    # fill in any remaining rows if there are lots of sites
+    if(n_sites > nsp){
+      i <- nsp + 1
+      r <- 1
+      while(i <= n_sites){
+        sp2thin[i, ] <- sp2thin[r, ]
+        i <- i + 1
+        if(r < nsp){
+          r <- r + 1
+        } else{
+          r <- 1
+        }
+      }
+    }
+
+    # now proceed with simulations
+    for(s in 1:n_sites){
+      for(t in 2:steps){
+
+        # tracking extinct species
+        extinct <- which(round(as.double(N[, t - 1, s])) == 0)
+        N[extinct, t - 1, s] <- 0
+
+        # thin species if it was a thinning year
+        if(is.null(thin_levels)){
+          N[sp2thin[s, t - 1], t - 1, s] <- N[sp2thin[s, t - 1], t - 1, s] * thin[t - 1]
+        } else{
+          thinsp_id <- which(thin_order == sp2thin[s, t - 1])
+          if(thin[t - 1] == 0){
+            N[sp2thin[s, t - 1], t - 1] <- min(N[sp2thin[s, t - 1], t - 1], thin_levels[thinsp_id])
+          }
+        }
+
+        # step the process forward
+        nesp <- (1:nsp)[-extinct]
+        if(length(extinct) > 0){
+          N[nesp, t, s] <- N[nesp, t - 1, s] * lambdas[nesp] *
+            exp(
+              - A_mat[nesp, nesp] %*% N[nesp, t - 1, s] +
+                rnorm(length(nesp)) * sigmas[nesp] / sqrt(N[nesp, t - 1, s]) +
+                sptl_effs[s]
+            )
+        } else{
+          N[, t, s] <- N[, t - 1, s] * lambdas * exp(
+            - A_mat %*% N[, t - 1, s] + rnorm(nsp) * sigmas / sqrt(N[, t - 1, s]) +
+              sptl_effs[s]
+          )
+        }
+
+      }
+    }
+  }
+
+
   ### Disturbance ###
-  if(dist_prob > 0){
+  if(dist_prob > 0 & thin_freq == 0){
 
     # create vector of disturbance events for each site
     dist <- lapply(
@@ -901,6 +1009,22 @@ ricker_spts_lnorm <- function(
         }
       }
     }
+  }
+
+  # create return objects
+  if(dist_prob > 0){
+    return(list(
+      N = N,
+      disturbances = lapply(
+        dist_mats,
+        FUN = function(mat, int){
+          (1 - mat) / int
+        },
+        int = dist_int
+      )
+    ))
+  } else{
+    return(N)
   }
 
 }
