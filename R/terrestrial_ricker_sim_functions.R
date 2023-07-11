@@ -933,32 +933,38 @@ ricker_spts_lnorm <- function(
     # create vector of disturbance events for each site
     dist <- lapply(
       1:n_sites,
-      FUN = function(x){
-        rbinom(steps, size = 1, prob = dist_prob)
+      FUN = function(x, warmup = 20){
+        c(
+          rep(0, warmup),
+          rbinom(steps - warmup, size = 1, prob = dist_prob)
+        )
       }
     )
 
     # create vectors for which species get disturbed
     dist_mats <- lapply(
       1:n_sites,
-      FUN = function(x){
+      FUN = function(x, dist){
         sapply(
           1:steps,
-          function(x){
-            rbinom(nsp, size = 1, prob = (1 - prop_cdist))
-          }
+          function(x, d){
+            rbinom(nsp, size = 1, prob = prop_cdist) *
+              d[x]
+          },
+          d = dist[[x]]
         )
-      }
+      },
+      dist = dist
     )
 
     # change the disturbed values to a multiplier
     dist_mats <- lapply(
       dist_mats,
       FUN = function(x, p){
-        x[x == 0] <- p
+        x <- 1 - (x * p)
         x
       },
-      p = (1 - dist_int)
+      p = dist_int
     )
 
     # now proceed with simulations

@@ -23,3 +23,6 @@ the posterior predictive intervals (should be around pred_level given a good fit
 \description{
 Posterior predictive checks
 }
+\examples{
+
+}

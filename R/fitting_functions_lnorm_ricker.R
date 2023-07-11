@@ -150,6 +150,146 @@ conf_mat_summaries <- function(beta_post, A_mat, pip = 0.9){
 
 }
 
+
+
+
+fit_spts_growth_models <- function(N, stan_mod, tsteps, disturbances = NULL, ...){
+
+  # get list of control arguments
+  cntrl_args <- list(...)
+
+  # store some handy variables
+  S <- dim(N)[1]
+  n <- length(tsteps)
+  K <- dim(N)[3]
+
+  # compile data to feed into Stan
+  N_het <- matrix(nrow = (n - 1) * K, ncol = S - 1)
+  for(k in 1:K){
+    rids <- ((k - 1) * (n - 1) + 1):(k * (n - 1))
+    N_het[rids, ] <- t(N[-1, tsteps[1]:tsteps[n - 1], k])
+  }
+  N_het_std <- scale(N_het)
+
+  # convert focal density to a list
+  N_foc_l <- lapply(
+    1:K,
+    function(k){
+      as.double(N[1, tsteps, k])
+    }
+  )
+
+  # get a vector of focal density
+  N_foc <- as.vector(sapply(
+    N_foc_l,
+    function(v, n){
+      as.double(v[1:(n - 1)])
+    },
+    n = n
+  ))
+
+  # convert focal density to growth and then concatenate
+  y <- as.vector(sapply(
+    N_foc_l,
+    function(v, n){
+      log(v[2:n] / v[1:(n - 1)])
+    },
+    n = n
+  ))
+
+  # determine if the focal went extinct at any point and
+  # create an indicator vector for when present in the
+  # community
+  z <- 1 - as.numeric(
+    is.infinite(y) | is.nan(y)
+  )
+
+  # replace the ys that will not get used
+  if(sum(z) < length(z)){
+    y[which(z == 0)] <- 1
+    y_full <- y[-which(z == 0)]
+    N_foc_aug <- N_foc
+    N_foc_aug[which(N_foc_aug == 0)] <- min(N_foc[N_foc != 0])
+  } else{
+    y_full <- y
+    N_foc_aug <- N_foc
+  }
+
+  # determine global shrinkage prior
+  tau_0 <- tau0(
+    y = y_full,
+    m0 = min(5, ncol(N_het) - 1),
+    M = ncol(N_het),
+    N = length(y_full),
+    fam = "gaussian"
+  )
+
+  # convert the disturbances to a vector
+  if(!is.null(disturbances)){
+    dist_vec <- as.vector(sapply(
+      disturbances,
+      function(d, tsteps){
+        d[1, tsteps[1]:tsteps[n - 1]]
+      },
+      tsteps = tsteps
+    ))
+  }
+
+  # compile non-shrinking variables
+  if(is.null(dist_vec)){
+    X_alpha <- matrix(
+      data = as.double(scale(N_foc)),
+      ncol = 1
+    )
+  } else{
+    X_alpha <- cbind(
+      as.double(scale(N_foc)),
+      dist_vec[tsteps][1:(n - 1)]
+    )
+  }
+
+  datlist <- list(
+    N = n - 1,
+    P0 = ncol(X_alpha),
+    P = ncol(N_het),
+    y = y,
+    z = z,
+    dens_foc = N_foc_aug[1:(n - 1)],
+    X_alpha = X_alpha,
+    X_beta = N_het_std[1:(n - 1), ],
+    error_scl = 0.5,
+    tau0 = tau_0,
+    slab_scl = 0.25,
+    slab_df = 6
+  )
+
+  if(length(cntrl_args) > 0){
+    mfit <- rstan::sampling(
+      stan_mod,
+      data = datlist,
+      cores = 3, chains = 3,
+      control = cntrl_args
+    )
+  } else {
+    mfit <- rstan::sampling(
+      stan_mod,
+      data = datlist,
+      cores = 3, chains = 3,
+      control = list(adapt_delta = 0.99, max_treedepth = 15)
+    )
+  }
+
+
+  beta_post <- rstan::extract(mfit, pars = "beta")$beta
+
+  return(beta_post %*% solve(diag(apply(N_het, 2, sd))))
+
+}
+
+
+
+
+
 ##### Wrapper function to fit and summarize #####
 
 

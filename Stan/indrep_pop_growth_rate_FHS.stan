@@ -11,18 +11,20 @@
 
 data {
 
-  int<lower = 0> N;                 // length of the sliced time series
-  int<lower = 0> P0;                // number of non-shrinking effects
-  int<lower = 0> P;                 // number of heterospecific species effects
-  vector[N] y;                      // vector of responses
-  int<lower = 0, upper = 1> z[N];   // indicator vector for whether an observation is non-missing
-  vector<lower = 0>[N] dens_foc;    // density of the focal at time t
-  matrix[N, P0] X_alpha;            // model matrix for non-shrinking effects
-  matrix[N, P] X_beta;              // standardized model matrix for shrinking effects
-  real<lower = 0> error_scl;        // prior guess for the scale of demographic stochasticity
-  real<lower = 0> tau0;             // scale for global shrinkage parameter
-  real<lower = 0> slab_scl;         // scale for non-zero coefficients
-  real<lower = 0> slab_df;          // degrees of freedom for non-zero coefficients
+  int<lower = 0> N;                   // length of the sliced time series
+  int<lower = 0> P0;                  // number of non-shrinking effects
+  int<lower = 0> P;                   // number of heterospecific species effects
+  int<lower = 0> K;                   // number of replicate time series
+  vector[N] y;                        // vector of responses
+  int<lower = 0, upper = 1> z[N];     // indicator vector for whether an observation is non-missing
+  vector<lower = 0>[N] dens_foc;      // density of the focal at time t
+  matrix[N, P0] X_alpha;              // model matrix for non-shrinking effects
+  matrix[N, P] X_beta;                // standardized model matrix for shrinking effects
+  int<lower = 0, upper = K> site[N];  // Indicator variable for the site / replicate ts
+  real<lower = 0> error_scl;          // prior guess for the scale of demographic stochasticity
+  real<lower = 0> tau0;               // scale for global shrinkage parameter
+  real<lower = 0> slab_scl;           // scale for non-zero coefficients
+  real<lower = 0> slab_df;            // degrees of freedom for non-zero coefficients
 
 }
 
@@ -41,6 +43,8 @@ parameters{
   vector[P] beta_std;                  // standardized coefficients before shrinkage
   real<lower = 0> lambda;              // intrinsic growth of the focal species
   real<lower = 0> sigma;               // demographic stochasticity
+  vector[K] u_std;                     // unscaled site-level effects
+  real<lower = 0> sigma_u;             // scale of site-level effects
 
   // parameters for shrinkage priors
   vector<lower = 0>[P] local_scale;    // non-regularized local scale
@@ -73,7 +77,8 @@ transformed parameters{
   // construct linear predictors
   for(t in 1:N){
     // mean   //intrinsic growth  //intra       //inter
-    eta[t] = log(lambda) + X_alpha[t, ] * alpha + X_beta[t, ] * beta;
+    eta[t] = log(lambda) + X_alpha[t, ] * alpha + X_beta[t, ] * beta +
+      u_std[site[t]] * sigma_u;
 
   }
 
@@ -85,8 +90,10 @@ model{
   // priors
   alpha_std ~ std_normal();
   beta_std ~ std_normal();
+  u_std ~ std_normal();
   lambda ~ gamma(2, 2);
   sigma ~ normal(0, error_scl);
+  sigma_u ~ normal(0, 1);
 
 
   tau_std ~ cauchy(0, 1);

@@ -33,3 +33,6 @@ vector with fecudities for each individual in one row of the lattice
 \description{
 Fecundity for a row in the lattice
 }
+\examples{
+
+}
