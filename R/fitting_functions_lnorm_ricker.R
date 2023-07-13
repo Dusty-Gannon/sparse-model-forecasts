@@ -153,6 +153,21 @@ conf_mat_summaries <- function(beta_post, A_mat, pip = 0.9){
 
 
 
+#' Fitting spatio-temporal population growth models
+#'
+#' @param N 3D array with the first dimension of length \eqn{S}, the number of species in
+#' each community, the second dimension of length \eqn{T}, the number of time steps, and the
+#' third dimension of length \eqn{K}, the number of replicate communities (spatial sites).
+#' @param stan_mod Stan model to fit to the data. The Stan model will determine the form of
+#' spatio-temporal dependence.
+#' @param tsteps Time steps over which to fit the model.
+#' @param disturbances List of disturbance matrices for each community (This is an output from
+#' the \code{ricker_spts_lnorm()} functions, which generates the simulated data). If \code{NULL}
+#' (the default), then no covariate for disturbance events will be included.
+#' @param ... \code{cntrl_args} for Stan, controlling the sampling algorithm.
+#'
+#' @return Matrix of posterior draws for the competition coefficients.
+#'
 fit_spts_growth_models <- function(N, stan_mod, tsteps, disturbances = NULL, ...){
 
   # get list of control arguments
@@ -229,14 +244,14 @@ fit_spts_growth_models <- function(N, stan_mod, tsteps, disturbances = NULL, ...
     dist_vec <- as.vector(sapply(
       disturbances,
       function(d, tsteps){
-        d[1, tsteps[1]:tsteps[n - 1]]
+        d[1, tsteps[2]:tsteps[n]]
       },
       tsteps = tsteps
     ))
   }
 
   # compile non-shrinking variables
-  if(is.null(dist_vec)){
+  if(is.null(disturbances)){
     X_alpha <- matrix(
       data = as.double(scale(N_foc)),
       ncol = 1
@@ -244,19 +259,22 @@ fit_spts_growth_models <- function(N, stan_mod, tsteps, disturbances = NULL, ...
   } else{
     X_alpha <- cbind(
       as.double(scale(N_foc)),
-      dist_vec[tsteps][1:(n - 1)]
+      dist_vec
     )
   }
 
+  # compile list of data inputs
   datlist <- list(
-    N = n - 1,
+    N = (n - 1) * K,
     P0 = ncol(X_alpha),
     P = ncol(N_het),
+    K = K,
     y = y,
     z = z,
-    dens_foc = N_foc_aug[1:(n - 1)],
+    dens_foc = N_foc_aug,
+    site = rep(1:K, each = n - 1),
     X_alpha = X_alpha,
-    X_beta = N_het_std[1:(n - 1), ],
+    X_beta = N_het_std,
     error_scl = 0.5,
     tau0 = tau_0,
     slab_scl = 0.25,
@@ -301,44 +319,83 @@ fit_spts_growth_models <- function(N, stan_mod, tsteps, disturbances = NULL, ...
 #' @param pip Posterior inclusion probability
 #' @param dist Logical indicating whether disturbances that affect the
 #' focal species should be accounted for in the model
+#' @param sp Logical indicating whether the simulated data has spatial replicates
+#' of communities.
 #'
 #' @return List with summaries and posterior draws
 #'
-fit_n_summarize <- function(X, stan_mod, tsteps = 51:100, pip = 0.9, dist = F){
+fit_n_summarize <- function(X, stan_mod, tsteps = 51:100, pip = 0.9, dist = FALSE, sp = FALSE){
 
-  if(dist){
-    if(X$sim_params$dist_prob > 0){
-      beta_post <- fit_growth_models(
-        N = X$N,
-        stan_mod = stan_mod,
-        tsteps = tsteps,
-        dist_vec = X$dist_foc[2:length(X$dist_foc)]
-      )
+  if(isFALSE(sp)){
+    if(dist){
+      if(X$sim_params$dist_prob > 0){
+        beta_post <- fit_growth_models(
+          N = X$N,
+          stan_mod = stan_mod,
+          tsteps = tsteps,
+          dist_vec = X$dist_foc[2:length(X$dist_foc)]
+        )
+      } else{
+        beta_post <- fit_growth_models(
+          N = X$N,
+          stan_mod = stan_mod,
+          tsteps = tsteps,
+          dist_vec = NULL
+        )
+      }
     } else{
       beta_post <- fit_growth_models(
         N = X$N,
         stan_mod = stan_mod,
-        tsteps = tsteps,
-        dist_vec = NULL
+        tsteps = tsteps
       )
     }
-  } else{
-    beta_post <- fit_growth_models(
-      N = X$N,
-      stan_mod = stan_mod,
-      tsteps = tsteps
+
+    summaries <- list(
+      beta_post = beta_post,
+      conf_summaries = conf_mat_summaries(
+        beta_post = beta_post,
+        A_mat = purrr::pluck(X, "A_mat"),
+        pip = pip
+      )
     )
+
+    return(summaries)
   }
 
-  summaries <- list(
-    beta_post = beta_post,
-    conf_summaries = conf_mat_summaries(
-      beta_post = beta_post,
-      A_mat = X$sim_params$A_mat,
-      pip = pip
-    )
-  )
+  # repeat for spatio-temporal models
+  if(sp){
+    if(isFALSE(dist)){
 
-  return(summaries)
+      beta_post <- fit_spts_growth_models(
+        N = X$N,
+        stan_mod = stan_mod,
+        tsteps = tsteps
+      )
+
+    } else{
+
+      beta_post <- fit_spts_growth_models(
+        N = X$N,
+        stan_mod = stan_mod,
+        tsteps = tsteps,
+        disturbances = X$disturbances
+      )
+
+    }
+
+    # summarize
+    summaries <- list(
+      beta_post = beta_post,
+      conf_summaries = conf_mat_summaries(
+        beta_post = beta_post,
+        A_mat = purrr::pluck(X, "A_mat"),
+        pip = pip
+      )
+    )
+
+    return(summaries)
+
+  }
 
 }

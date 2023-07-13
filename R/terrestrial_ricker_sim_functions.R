@@ -893,8 +893,16 @@ ricker_spts_lnorm <- function(
       for(t in 2:steps){
 
         # tracking extinct species
-        extinct <- which(round(as.double(N[, t - 1, s])) == 0)
-        N[extinct, t - 1, s] <- 0
+        N_tm1_s <- round(as.double(N[, t - 1, s]), digits = 3)
+        extinct <- which(N_tm1_s == 0)
+
+        # Some species may stochastically recolonize
+        N_tm1_plus <- ifelse(
+          N_tm1_s == 0,
+          rgamma(nsp, shape = 2, scale = 1) * rbinom(nsp, size = 1, prob = 0.1),
+          N_tm1_s
+        )
+        N[extinct, t - 1, s] <- N_tm1_plus[extinct]
 
         # thin species if it was a thinning year
         if(is.null(thin_levels)){
@@ -1030,7 +1038,7 @@ ricker_spts_lnorm <- function(
       )
     ))
   } else{
-    return(N)
+    return(list(N = N))
   }
 
 }

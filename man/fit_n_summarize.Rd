@@ -4,7 +4,14 @@
 \alias{fit_n_summarize}
 \title{Wrapper to fit and summarize log-normal growth models}
 \usage{
-fit_n_summarize(X, stan_mod, tsteps = 51:100, pip = 0.9, dist = F)
+fit_n_summarize(
+  X,
+  stan_mod,
+  tsteps = 51:100,
+  pip = 0.9,
+  dist = FALSE,
+  sp = FALSE
+)
 }
 \arguments{
 \item{X}{List with matrix of abundances called N in it}
@@ -17,6 +24,9 @@ fit_n_summarize(X, stan_mod, tsteps = 51:100, pip = 0.9, dist = F)
 
 \item{dist}{Logical indicating whether disturbances that affect the
 focal species should be accounted for in the model}
+
+\item{sp}{Logical indicating whether the simulated data has spatial replicates
+of communities.}
 }
 \value{
 List with summaries and posterior draws
