@@ -4,7 +4,12 @@
 \alias{simulate_AR_p_beta_p_timeseries}
 \title{Simulate AR-p data with lagged covariates}
 \usage{
-simulate_AR_p_beta_p_timeseries(input_pars = NULL)
+simulate_AR_p_beta_p_timeseries(
+  input_pars = NULL,
+  draw_beta = "near_zero",
+  draw_phi = "zero",
+  burnin = NULL
+)
 }
 \arguments{
 \item{input_pars}{a list of parameters describing the AR-p model to be generated.
@@ -22,6 +27,16 @@ supply parameters you wish to change.
 \item non_zero_coef_guess (0): guess for the number of non-zero coefficients
 \item holdout (50): number of observation to hold out for model evaluation
 }}
+
+\item{draw_beta}{can be 'near_zero' or 'zero'. Indicates if the not-significant
+beta parameters should be drawn from a normal distribution that results in numbers
+that are near zero, or if they should just be set to zero}
+
+\item{draw_phi}{can be 'near_zero' or 'zero'. Indicates if the not-significant
+phi parameters should be drawn from a normal distribution that results in numbers
+that are near zero, or if they should just be set to zero.}
+
+\item{burnin}{number of steps to run the AR timeseries simulation before using numbers}
 }
 \value{
 A list including input parameters or any default values used as well
@@ -45,6 +60,7 @@ input_pars <- list(
   n_lags = 2,   # number of non-zero lags in covariate
   n_beta = 2,   # number of non-zero covariate parameters
   non_zero_coef_guess = 5, # guess for the number of non-zero coefficients
+  sigma_e = 1,  #standard deviation of the innovations
   holdout = 50
 )
 

@@ -33,3 +33,6 @@ List in which \code{list$value} is the index for the focal species.
 \description{
 Choose a focal species from the communities simulated using a Ricker model
 }
+\examples{
+
+}
