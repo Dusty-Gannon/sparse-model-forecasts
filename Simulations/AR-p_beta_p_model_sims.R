@@ -84,6 +84,7 @@ for(k in 1:K){
     # Save the results
     fname <- paste0("/simdat_run", mod_num, ".rds")
     fpath <- paste0("Data/aquatic_sim_data/", args[1], fname)
-    saveRDS(sim_dat, file = paste0("/project/modelscape/analyses/sponges/", fpath))
+    saveRDS(sim_dat, file =  fpath)
+    # saveRDS(sim_dat, file = paste0("/project/modelscape/analyses/sponges/", fpath))
 
 }
