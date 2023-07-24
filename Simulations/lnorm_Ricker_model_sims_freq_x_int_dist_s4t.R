@@ -126,7 +126,7 @@ args <- commandArgs(trailingOnly = T)
   dist_prob <- seq(0.05, 0.1, length.out = 10)
   prop_cdist <- seq(0.1, 1, by = 0.1)
   dist_int <- c(0.5, 0.8)
-  reps <- 1
+  reps <- 10
   target_reps <- 1
 
   # complete the factorial table
@@ -226,33 +226,33 @@ args <- commandArgs(trailingOnly = T)
 
   }
 
-  # a little cleanup of species that were extinct over the fitting period
-  for(i in 1:length(sims_final)){
-    N <- sims_final[[i]]$N
-    ext3 <- which(apply(
-      scale(t(N[, 51:250])),
-      2,
-      FUN = function(x){
-        sum(is.nan(x))
-      }
-    ) > 0)
-    if(length(ext3) > 0){
-      sims_final[[i]]$N <- N[-ext3, ]
-      sims_final[[i]]$sim_params$lambdas <- sims_final[[i]]$sim_params$lambdas[-ext3]
-      sims_final[[i]]$sim_params$sigmas <- sims_final[[i]]$sim_params$sigmas[-ext3]
-      sims_final[[i]]$sim_params$A_mat <- sims_final[[i]]$sim_params$A_mat[-ext3, -ext3]
-      if(!is.null(sims_final[[i]]$dist_foc)){
-        sims_final[[i]]$dist_foc <- sims_final[[i]]$dist_foc[-ext3, ][1, ]
-        # convert to 0 and 1
-        sims_final[[i]]$dist_foc[sims_final[[i]]$dist_foc != 0] <- 1
-      }
-    } else if(!is.null(sims_final[[i]]$dist_foc)){
-      sims_final[[i]]$dist_foc <- sims_final[[i]]$dist_foc[1, ]
-      # convert to 0 and 1
-      sims_final[[i]]$dist_foc[sims_final[[i]]$dist_foc != 0] <- 1
-    }
-
-  }
+  # # a little cleanup of species that were extinct over the fitting period
+  # for(i in 1:length(sims_final)){
+  #   N <- sims_final[[i]]$N
+  #   ext3 <- which(apply(
+  #     scale(t(N[, 51:250])),
+  #     2,
+  #     FUN = function(x){
+  #       sum(is.nan(x))
+  #     }
+  #   ) > 0)
+  #   if(length(ext3) > 0){
+  #     sims_final[[i]]$N <- N[-ext3, ]
+  #     sims_final[[i]]$sim_params$lambdas <- sims_final[[i]]$sim_params$lambdas[-ext3]
+  #     sims_final[[i]]$sim_params$sigmas <- sims_final[[i]]$sim_params$sigmas[-ext3]
+  #     sims_final[[i]]$sim_params$A_mat <- sims_final[[i]]$sim_params$A_mat[-ext3, -ext3]
+  #     if(!is.null(sims_final[[i]]$dist_foc)){
+  #       sims_final[[i]]$dist_foc <- sims_final[[i]]$dist_foc[-ext3, ][1, ]
+  #       # convert to 0 and 1
+  #       sims_final[[i]]$dist_foc[sims_final[[i]]$dist_foc != 0] <- 1
+  #     }
+  #   } else if(!is.null(sims_final[[i]]$dist_foc)){
+  #     sims_final[[i]]$dist_foc <- sims_final[[i]]$dist_foc[1, ]
+  #     # convert to 0 and 1
+  #     sims_final[[i]]$dist_foc[sims_final[[i]]$dist_foc != 0] <- 1
+  #   }
+  #
+  # }
 
   # remove sims
   rm(sims)
@@ -269,16 +269,18 @@ args <- commandArgs(trailingOnly = T)
 
 ##### Save simulations #####
 
-  fname <- paste0(
-    "lnorm_ricker_dist_freq_x_nsp_x_int",
-    "_rep_", args[1], ".rds"
-  )
+  if(length(sims_final) > 0){
+    fname <- paste0(
+      "lnorm_ricker_dist_freq_x_nsp_x_int",
+      "_rep_", args[1], ".rds"
+    )
 
-  fp <- paste0(
-    args[2],
-    fname
-  )
+    fp <- paste0(
+      args[2],
+      fname
+    )
 
-  saveRDS(sims_final, file = here(fp))
+    saveRDS(sims_final, file = here(fp))
+  }
 
 
