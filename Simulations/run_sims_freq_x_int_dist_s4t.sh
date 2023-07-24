@@ -12,7 +12,7 @@
 #SBATCH --out=./logfiles/slurm-%A_%a.out
 
 # Set the parameter combination to use and generate names of R scripts and log file
-Rscript=lnorm_Ricker_model_sims_freq_x_int_dist.R
+Rscript=lnorm_Ricker_model_sims_freq_x_int_dist_sp4t.R
 LogFile_pref=./logfiles/dist_sims_rep
 
 # Change to the relevant working directory

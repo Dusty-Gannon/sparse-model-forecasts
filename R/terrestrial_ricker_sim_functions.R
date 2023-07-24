@@ -513,7 +513,9 @@ generate_sim_params_dist <- function(
   }
 
   if(spatial){
-    sp_cov = diag(sp_sigma2, nrow = n_sites)
+    sp_cov <- diag(sp_sigma2, nrow = n_sites)
+  } else{
+    sp_cov <- NULL
   }
 
   # compile list of return objects
