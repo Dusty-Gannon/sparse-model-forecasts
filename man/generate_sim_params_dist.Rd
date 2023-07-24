@@ -18,7 +18,11 @@ generate_sim_params_dist(
   dist_prob = 0,
   dist_int = 0,
   prop_cdist = 0,
-  dist_min_thresh = 1
+  dist_min_thresh = 1,
+  spatial = FALSE,
+  sp_covtype = "Ind",
+  sp_sigma2 = 0.01,
+  n_sites = 1
 )
 }
 \arguments{
@@ -49,6 +53,16 @@ generate_sim_params_dist(
 abundances by 20 percent.}
 
 \item{prop_cdist}{Proportion of community affected by a given disturbance.}
+
+\item{spatial}{Logical indicating whether there are spatial replicates of the
+time series}
+
+\item{sp_covtype}{Type of spatial covariance. Currently, only independent spatial
+effects are supported.}
+
+\item{sp_sigma2}{Variance parameter (nugget) for the spatial covariance matrix.}
+
+\item{n_sites}{Number of replicate sites at which the community is observed.}
 }
 \value{
 List of parameters used for simulation.

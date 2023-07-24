@@ -478,6 +478,12 @@ generate_sim_params_thin <- function(
 #' @param dist_int Intensity of disturbances. \code{dist_int = 0.2} will tend to reduce species
 #' abundances by 20 percent.
 #' @param prop_cdist Proportion of community affected by a given disturbance.
+#' @param spatial Logical indicating whether there are spatial replicates of the
+#' time series
+#' @param sp_covtype Type of spatial covariance. Currently, only independent spatial
+#' effects are supported.
+#' @param sp_sigma2 Variance parameter (nugget) for the spatial covariance matrix.
+#' @param n_sites Number of replicate sites at which the community is observed.
 #'
 #' @return List of parameters used for simulation.
 #'
@@ -486,7 +492,9 @@ generate_sim_params_dist <- function(
     sigma_rng = c(0.1, 0.5), alpha_rng = c(0.005, 0.01),
     lambda_rng = c(1.2, 1.8), ng_range = c(0.2, 0.4), rho = 0,
     mean_init_abund = 20, comp_matrix_type = 2, dist_prob = 0,
-    dist_int = 0, prop_cdist = 0, dist_min_thresh = 1
+    dist_int = 0, prop_cdist = 0, dist_min_thresh = 1,
+    spatial = FALSE, sp_covtype = "Ind", sp_sigma2 = 0.01,
+    n_sites = 1
 ){
 
   # generate competition matrix
@@ -504,16 +512,22 @@ generate_sim_params_dist <- function(
     )
   }
 
+  if(spatial){
+    sp_cov = diag(sp_sigma2, nrow = n_sites)
+  }
+
   # compile list of return objects
   return(
     list(
       nsp = nsp, steps = steps,
+      n_sites = n_sites,
       sigmas = runif(nsp, min = sigma_rng[1], max = sigma_rng[2]),
       A_mat = A_mat,
       lambdas = runif(nsp, min = lambda_rng[1], max = lambda_rng[2]),
       N_0 = rpois(nsp, lambda = mean_init_abund),
       dist_prob = dist_prob, dist_int = dist_int,
-      prop_cdist = prop_cdist, dist_min_thresh = dist_min_thresh
+      prop_cdist = prop_cdist, dist_min_thresh = dist_min_thresh,
+      sp_cov = sp_cov
     )
   )
 
