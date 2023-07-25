@@ -5,14 +5,14 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=11
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=8G
+#SBATCH --mem=32G
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=dgannon@uwyo.edu
-#SBATCH --array=1-100%20
+#SBATCH --array=1-100%10
 #SBATCH --out=./logfiles/slurm-%A_%a.out
 
 # Set the parameter combination to use and generate names of R scripts and log file
-Rscript=lnorm_Ricker_model_sims_freq_x_int_dist_sp4t.R
+Rscript=lnorm_Ricker_model_sims_freq_x_int_dist_s4t.R
 LogFile_pref=./logfiles/dist_sims_rep
 
 # Change to the relevant working directory
@@ -27,7 +27,7 @@ for i in ${SLURM_ARRAY_TASK_ID[@]}; do
   job+=$i
 done
 
-Rscript --vanilla $Rscript ${job} "Data/terrestrial_sim_data/lnorm_ricker/dist_sims_s4t/" > "$LogFile_pref_${job}"
+Rscript --vanilla $Rscript ${job} "Data/terrestrial_sim_data/lnorm_ricker/dist_sims_s4t/" > "${LogFile_pref}_${job}"
 
 
 
