@@ -19,7 +19,7 @@ if(length(args) == 1){
   args <- c(args, args)
 }
 
-file_list <- list.files(args[1])
+file_list <- list.files(here(args[1]))
 
 # loop through and create unique numbering and save
 # unique files
