@@ -465,7 +465,7 @@ generate_sim_params_thin <- function(
       N_0 = rpois(nsp, lambda = mean_init_abund),
       thin_factor = thin_factor, thin_freq = thin_freq,
       prop_cthin = prop_cthin, target_thin = target_thin,
-      sp_cov = sp_cov
+      sp_cov = sp_cov, n_sites = n_sites
     )
   )
 
@@ -805,6 +805,7 @@ create_sp_covm <- function(coords, nugget, sill, range, model = "exponential"){
 
 #' Simulate a spatio-temporal Ricker model
 #'
+#' @param nsp Number of species in each replicate community
 #' @param N_0 Initial abundances of all S species
 #' @param lambdas Vector of low-density growth factors for each species
 #' @param A_mat \eqn{S \times S} competition matrix
@@ -830,14 +831,13 @@ create_sp_covm <- function(coords, nugget, sill, range, model = "exponential"){
 #' replicate sites.
 #'
 ricker_spts_lnorm <- function(
-    N_0, lambdas, A_mat, sigmas, steps,
+    nsp, N_0, lambdas, A_mat, sigmas, steps,
     sp_cov, n_sites,
     dist_prob = 0, dist_int = 0, prop_cdist = 0,
     dist_min_thresh = 1, thin_freq = 0, thin_factor = 0.1,
     thin_order = NULL, thin_levels = NULL
 ){
 
-  nsp <- length(N_0)
   # initialize tracking array
   N <- array(0, dim = c(nsp, steps, n_sites))
   N[, 1, ] <- matrix(N_0, nrow = nsp, ncol = n_sites)
@@ -941,7 +941,7 @@ ricker_spts_lnorm <- function(
         } else{
           thinsp_id <- which(thin_order == sp2thin[s, t - 1])
           if(thin[t - 1] == 0){
-            N[sp2thin[s, t - 1], t - 1] <- min(N[sp2thin[s, t - 1], t - 1], thin_levels[thinsp_id])
+            N[sp2thin[s, t - 1], t - 1, s] <- min(N[sp2thin[s, t - 1], t - 1, s], thin_levels[thinsp_id])
           }
         }
 

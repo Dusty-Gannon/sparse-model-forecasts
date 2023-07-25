@@ -21,29 +21,69 @@ simulate_communities <- function(sim_params){
   # generate initial communities prior to thinning
   if(sim_params$thin_freq == 0){
     N_pre <- with(sim_params, {
-      ricker_ts_lnorm(
+      ricker_spts_lnorm(
+        nsp = nsp,
         N_0 = N_0,
         lambdas = lambdas,
         A_mat = A_mat,
         sigmas = sigmas,
         steps = tot_steps,
-        thin_freq = 0
+        thin_freq = 0,
+        n_sites = n_sites,
+        sp_cov = sp_cov
       )
-    })
+    })$N
 
-    # which species were extinct for more than 70% of the time?
-    ext <- (1:nrow(N_pre))[which(apply(N_pre, 1, function(x){
-      mean(x == 0)
-    }) > 0.7)]
+    # remove species that were extinct most of the time
+    time_extinct <- apply(
+      N_pre, 3,
+      function(X){
+        apply(
+          X, 1,
+          function(x){
+            mean(x == 0)
+          }
+        )
+      }
+    )
+    sp2rm <- which(
+      apply(
+        time_extinct, 1,
+        function(x){
+          sum(x > 0.5)
+        }
+      ) > 0.5 * sim_params$n_sites
+    )
+    N <- N_pre[-sp2rm, , ]
 
-    N <- N_pre[-ext, ]
+    # create new order to label focal
+    foc <- which.min(
+      apply(N, 1, FUN = function(X){
+        mean(X == 0)
+      })
+    )
+    if(foc == 1){
+      new_ord <- 1:dim(N)[1]
+    } else if(foc == dim(N)[1]){
+      new_ord <- c(
+        foc,
+        1:(dim(N)[1] - 1)
+      )
+    } else{
+      new_ord <- c(
+        foc,
+        1:(foc - 1),
+        (foc + 1):dim(N)[1]
+      )
+    }
+    N <- N[new_ord, , ]
 
     return(list(
       N = N,
       sim_params = list(
-        lambdas = sim_params$lambdas[-ext],
-        A_mat = sim_params$A_mat[-ext, -ext],
-        sigmas = sim_params$sigmas[-ext],
+        lambdas = sim_params$lambdas[-sp2rm][new_ord],
+        A_mat = sim_params$A_mat[-sp2rm, -sp2rm][new_ord, new_ord],
+        sigmas = sim_params$sigmas[-sp2rm][new_ord],
         start_thin = NA,
         thin_freq = 0,
         prop_cthin = 0
@@ -55,30 +95,55 @@ simulate_communities <- function(sim_params){
   # conditional for whether the community should be thinned
   if(sim_params$thin_freq > 0){
     N_pre <- with(sim_params, {
-      ricker_ts_lnorm(
+      ricker_spts_lnorm(
+        nsp = nsp,
         N_0 = N_0,
         lambdas = lambdas,
         A_mat = A_mat,
         sigmas = sigmas,
         steps = init_steps,
-        thin_freq = 0
+        thin_freq = 0,
+        n_sites = n_sites,
+        sp_cov = sp_cov
       )
-    })
+    })$N
 
     # name species for easier tracking
     rownames(N_pre) <- 1:sim_params$nsp
 
     # get species that are not extinct after warmup
-    nesp <- which(!(N_pre[, sim_params$init_steps] == 0))
-    ext <- which(N_pre[, sim_params$init_steps] == 0)
-    N_pre_final <- N_pre[nesp, ]
+    time_extinct <- apply(
+      N_pre, 3,
+      function(X){
+        apply(
+          X, 1,
+          function(x){
+            mean(x == 0)
+          }
+        )
+      }
+    )
+    sp2rm <- which(
+      apply(
+        time_extinct, 1,
+        function(x){
+          sum(x > 0.5)
+        }
+      ) > 0.5 * sim_params$n_sites
+    )
+    N_pre_final <- N_pre[-sp2rm, , ]
+    nesp <- (1:sim_params$nsp)[!(1:sim_params$nsp %in% sp2rm)]
     foc <- nesp[1]
 
     # get number of species to thin
     nthin <- ceiling(sim_params$prop_cthin * (nrow(N_pre_final) - 1))
 
     # get thinning order based on rank abundances
-    temp_means <- apply(N_pre_final[-1, round(sim_params$init_steps/2):sim_params$init_steps], 1, mean)
+    temp_means <-
+      apply(
+        N_pre_final[-1, round(sim_params$init_steps/2):sim_params$init_steps, ],
+        1, mean
+      )
     if(sim_params$target_thin){
       thin_order <- (2:nrow(N_pre_final))[
         order(temp_means, decreasing = T)
@@ -93,9 +158,9 @@ simulate_communities <- function(sim_params){
     # combine original list with newly created variables
     param_list_r2 <- c(
       list(
-        N_pre = N_pre_final,
+        N_pre_f = N_pre_final,
         nesp = nesp,
-        ext = ext,
+        ext = sp2rm,
         thin_order = thin_order,
         thin_levels = thin_levels
       ),
@@ -104,61 +169,68 @@ simulate_communities <- function(sim_params){
 
     # now conduct thinning experiments
     N_exp <- with(param_list_r2, {
-      ricker_ts_lnorm(
-        N_0 = N_pre[, init_steps],
+      ricker_spts_lnorm(
+        nsp = dim(N_pre_f)[1],
+        N_0 = N_pre_f[, init_steps, ],
         lambdas = lambdas[nesp],
         A_mat = A_mat[nesp, nesp],
         sigmas = sigmas[nesp],
         steps = tot_steps - init_steps + 1,
+        n_sites = n_sites,
+        sp_cov = sp_cov,
         thin_freq = thin_freq,
         thin_levels = thin_levels,
         thin_order = thin_order
       )
-    })
+    })$N
 
     rownames(N_exp) <- rownames(N_pre_final)
 
-    # find and remove any species that went extinct in the first 50 steps after thinning
-    ext2 <- (2:nrow(N_exp))[which(apply(N_exp[-1, ], 1, function(x){
-      mean(x == 0)
-    }) > 0.7)]
+    # find and remove any species that went extinct after thinning
+    time_extinct2 <- apply(
+      N_exp, 3,
+      function(X){
+        apply(
+          X, 1,
+          function(x){
+            mean(x == 0)
+          }
+        )
+      }
+    )
+    sp2keep <- which(
+      apply(
+        time_extinct2, 1,
+        function(x){
+          sum(x < 0.5)
+        }
+      ) > 0.5 * sim_params$n_sites
+    )
+
+    # ensure that the unthinned focal species is included
+    if(!(1 %in% sp2keep)){
+      sp2keep <- c(1, sp2keep)
+    }
 
     # make some return objects
-    if(length(ext2) > 0){
-      N = cbind(N_pre_final[-ext2, -sim_params$init_steps], N_exp[-ext2, ])
-      thinned_sp = which(rownames(N) %in% thin_sp_names)
+    N <- abind::abind(
+      N_pre_final[sp2keep, , ], N_exp[sp2keep, -1, ],
+      along = 2
+    )
+    thinned_sp <- which(dimnames(N)[[1]] %in% thin_sp_names)
 
-      return(list(
-        N = N,
-        thinned_sp = thinned_sp,
-        sim_params = list(
-          lambdas = sim_params$lambdas[nesp][-ext2],
-          A_mat = sim_params$A_mat[nesp, nesp][-ext2, -ext2],
-          sigmas = sim_params$sigmas[nesp][-ext2],
-          start_thin = sim_params$init_steps + 1,
-          thin_freq = sim_params$thin_freq,
-          prop_cthin = sim_params$prop_cthin
-        )
-      ))
-    } else{
-
-      N = cbind(N_pre_final[, -sim_params$init_steps], N_exp)
-      thinned_sp = which(rownames(N) %in% thin_sp_names)
-
-      return(list(
-        N = N,
-        thinned_sp = thinned_sp,
-        sim_params = list(
-          lambdas = sim_params$lambdas[nesp],
-          A_mat = sim_params$A_mat[nesp, nesp],
-          sigmas = sim_params$sigmas[nesp],
-          start_thin = sim_params$init_steps + 1,
-          thin_freq = sim_params$thin_freq,
-          prop_cthin = sim_params$prop_cthin
-        )
-      ))
-
-    }
+    return(list(
+      N = N,
+      thinned_sp = thinned_sp,
+      sim_params = list(
+        lambdas = sim_params$lambdas[nesp][sp2keep],
+        A_mat = sim_params$A_mat[nesp, nesp][sp2keep, sp2keep],
+        sigmas = sim_params$sigmas[nesp][sp2keep],
+        start_thin = sim_params$init_steps + 1,
+        thin_freq = sim_params$thin_freq,
+        prop_cthin = sim_params$prop_cthin
+      )
+    ))
   }
 }
 
@@ -170,12 +242,11 @@ simulate_communities <- function(sim_params){
   args <- commandArgs(trailingOnly = TRUE)
 
   # some general simulation conditions
-  set.seed(5254)
   thin_freq <- 1:10
   prop_cthin <- seq(0.1, 1, by = 0.1)
   reps <- 10
-  target_reps <- 200
-  round <- 2
+  target_reps <- 1
+#  round <- 2
 
   # complete the factorial table
   freq_prop_df <- expand.grid(thin_freq, prop_cthin)
@@ -184,8 +255,8 @@ simulate_communities <- function(sim_params){
   freq_prop_df <- rbind(c(0,0), freq_prop_df)
   freq_prop_df <- freq_prop_df[rep(1:nrow(freq_prop_df), reps), ]
 
-  nsp <- 60; init_steps <- 50; tot_steps = 500
-  num_ngs <- 5; sigma_rng <- c(0.1, 0.3);
+  nsp <- 60; init_steps <- 20; tot_steps = 100
+  n_sites <- 20; num_ngs <- 5; sigma_rng <- c(0.1, 0.3);
   alpha_rng <- c(0.01, 0.05); lambda_rng <- c(1.2, 1.6);
   ng_range <- c(0.1, 0.5); rho <- 0; mean_init_abund <- 50
   thin_factor = 0.1; target_thin = T
@@ -204,7 +275,9 @@ simulate_communities <- function(sim_params){
       lambda_rng = lambda_rng, ng_range = ng_range,
       rho = rho, mean_init_abund = mean_init_abund,
       thin_factor = thin_factor,
-      target_thin = target_thin
+      target_thin = target_thin,
+      spatial = TRUE,
+      n_sites = n_sites
     )
   )
 
@@ -217,7 +290,7 @@ simulate_communities <- function(sim_params){
   }
 
   # simulate in parallel
-  cl <- makeCluster(20)
+  cl <- makeCluster(reps)
 
   # load functions on each node
   clusterEvalQ(cl, expr = {
@@ -249,10 +322,10 @@ simulate_communities <- function(sim_params){
     prblms <- 0
     i <- 1
     while(prblms == 0 & i <= length(ids)){
-      if(nrow(sims[[ids[i]]]$N) > 0){
+      if(dim(sims[[ids[i]]]$N)[1] > 0){
         prblms <- prblms +
-          sum(is.infinite(sims[[ids[i]]]$N[1, ])) +
-          sum(sims[[ids[i]]]$N[1, ] == 0)
+          sum(is.infinite(sims[[ids[i]]]$N[1, ,])) +
+          (mean(sims[[ids[i]]]$N[1,,] == 0) > 0.05)
       } else {
         prblms <- prblms + 1
       }
@@ -271,29 +344,22 @@ simulate_communities <- function(sim_params){
   # remove sims
   rm(sims)
 
-  sims_final_sort <- sims_final[
-    order(
-      purrr::map_dbl(sims_final, ~.x$sim_params$prop_cthin),
-      purrr::map_dbl(sims_final, ~.x$sim_params$thin_freq)
-    )
-  ]
-
 
 ##### Save simulations #####
 
-  fname <- paste0(
-    "lnorm_ricker_thin_freq_x_nsp_ordered",
-    "_round", round,
-    "_S", num_ngs,
-    "_s", nsp - num_ngs, ".rds"
-  )
+  if(length(sims_final) > 0){
+    fname <- paste0(
+      "lnorm_ricker_thin_freq_x_nsp_s4t",
+      "_rep_", args[1], ".rds"
+    )
 
-  fp <- paste0(
-    "Data/terrestrial_sim_data/lnorm_ricker/",
-    fname
-  )
+    fp <- paste0(
+      args[2],
+      fname
+    )
 
-  saveRDS(sims_final_sort, file = here(fp))
+    saveRDS(sims_final, file = here(fp))
+  }
 
 
 

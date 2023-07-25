@@ -5,6 +5,7 @@
 \title{Simulate a spatio-temporal Ricker model}
 \usage{
 ricker_spts_lnorm(
+  n_sp,
   N_0,
   lambdas,
   A_mat,
@@ -56,6 +57,8 @@ will thin a population to 10\% of its density in the previous year}
 random}
 
 \item{thin_levels}{Optional vector to thin species to different levels.}
+
+\item{nsp}{Number of species in each replicate community}
 }
 \value{
 If \code{dist_prob = 0}, the function will return an \eqn{S \times T \times R} array, where

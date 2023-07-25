@@ -22,6 +22,7 @@ simulate_communities <- function(sim_params){
 
     sims_pre <- with(sim_params, {
       ricker_spts_lnorm(
+        nsp = nsp,
         N_0 = N_0,
         lambdas = lambdas,
         A_mat = A_mat,
