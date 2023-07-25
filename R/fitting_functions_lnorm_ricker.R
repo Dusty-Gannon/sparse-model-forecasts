@@ -389,7 +389,7 @@ fit_n_summarize <- function(X, stan_mod, tsteps = 51:100, pip = 0.9, dist = FALS
       beta_post = beta_post,
       conf_summaries = conf_mat_summaries(
         beta_post = beta_post,
-        A_mat = purrr::pluck(X, "A_mat"),
+        A_mat = purrr::pluck(X, "sim_params", "A_mat"),
         pip = pip
       )
     )
