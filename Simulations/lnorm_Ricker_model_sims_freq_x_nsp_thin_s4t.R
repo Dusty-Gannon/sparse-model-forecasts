@@ -349,7 +349,7 @@ simulate_communities <- function(sim_params){
 
   if(length(sims_final) > 0){
     fname <- paste0(
-      "lnorm_ricker_thin_freq_x_nsp_s4t",
+      "lnorm_ricker_freq_x_nsp_thin_s4t",
       "_rep_", args[1], ".rds"
     )
 
