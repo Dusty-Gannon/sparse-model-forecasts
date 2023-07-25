@@ -414,6 +414,12 @@ generate_sim_params_vrtests <- function(
 #' @param prop_cthin Proportion of the community that should be thinned throughout the time series.
 #' @param thin_factor Factor by which to thin a species. \code{thin_freq = 0.1} with thin a
 #' species to 10 percent of its population density in the previous year.
+#' @param spatial Logical indicating whether there are spatial replicates of the
+#' time series
+#' @param sp_covtype Type of spatial covariance. Currently, only independent spatial
+#' effects are supported.
+#' @param sp_sigma2 Variance parameter (nugget) for the spatial covariance matrix.
+#' @param n_sites Number of replicate sites at which the community is observed.
 #'
 #' @return List of simulation parameters
 #'
@@ -422,7 +428,9 @@ generate_sim_params_thin <- function(
     sigma_rng = c(0.1, 0.5), alpha_rng = c(0.005, 0.01),
     lambda_rng = c(1.2, 1.8), ng_range = c(0.2, 0.4), rho = 0,
     mean_init_abund = 20, comp_matrix_type = 2, thin_freq = 2,
-    prop_cthin = 1, thin_factor = 0.1, target_thin = TRUE
+    prop_cthin = 1, thin_factor = 0.1, target_thin = TRUE,
+    spatial = FALSE, sp_covtype = "Ind", sp_sigma2 = 0.01,
+    n_sites = 1
 ){
 
   # generate competition matrix
@@ -440,6 +448,12 @@ generate_sim_params_thin <- function(
     )
   }
 
+  if(spatial){
+    sp_cov <- diag(sp_sigma2, nrow = n_sites)
+  } else{
+    sp_cov <- NULL
+  }
+
   # compile list of return objects
   return(
     list(
@@ -450,7 +464,8 @@ generate_sim_params_thin <- function(
       lambdas = runif(nsp, min = lambda_rng[1], max = lambda_rng[2]),
       N_0 = rpois(nsp, lambda = mean_init_abund),
       thin_factor = thin_factor, thin_freq = thin_freq,
-      prop_cthin = prop_cthin, target_thin = target_thin
+      prop_cthin = prop_cthin, target_thin = target_thin,
+      sp_cov = sp_cov
     )
   )
 
