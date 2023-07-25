@@ -32,13 +32,14 @@ for(i in 1:length(file_list)){
       (length(dat_i) * (i - 1)) + j,
       sep = "_"
     )
+    fname <- paste0(
+      args[2],
+      name_ij,
+      ".rds"
+    )
     saveRDS(
       dat_ij,
-      file = paste0(
-        args[2],
-        name_ij,
-        ".rds"
-      )
+      file = here(fname)
     )
   }
 }
