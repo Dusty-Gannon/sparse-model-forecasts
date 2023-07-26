@@ -19,7 +19,11 @@ generate_sim_params_thin(
   thin_freq = 2,
   prop_cthin = 1,
   thin_factor = 0.1,
-  target_thin = TRUE
+  target_thin = TRUE,
+  spatial = FALSE,
+  sp_covtype = "Ind",
+  sp_sigma2 = 0.01,
+  n_sites = 1
 )
 }
 \arguments{
@@ -56,6 +60,16 @@ thinning treatment every c years.}
 
 \item{thin_factor}{Factor by which to thin a species. \code{thin_freq = 0.1} with thin a
 species to 10 percent of its population density in the previous year.}
+
+\item{spatial}{Logical indicating whether there are spatial replicates of the
+time series}
+
+\item{sp_covtype}{Type of spatial covariance. Currently, only independent spatial
+effects are supported.}
+
+\item{sp_sigma2}{Variance parameter (nugget) for the spatial covariance matrix.}
+
+\item{n_sites}{Number of replicate sites at which the community is observed.}
 
 \item{x}{Dummy variable so that this function is straight forward to use with apply statements}
 }
