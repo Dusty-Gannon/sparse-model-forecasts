@@ -20,6 +20,7 @@ filelist <- paste0('Data/aquatic_sim_data/', args[1], '/',
 df <- data.frame()
 for(i in 1:length(filelist)){
 
+    #print(filelist[i])
     # out <- readRDS(filelist[1])
     out <- readRDS(filelist[i])
 

@@ -27,6 +27,7 @@ for(i in 1:60){
 }
 mods_per_node <- 20
 
+#full_sim_df <- full_sim_df[1:40,]
 array_size <- nrow(full_sim_df)/mods_per_node
 nsims <- array_size
 
