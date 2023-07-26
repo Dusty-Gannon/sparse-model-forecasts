@@ -27,6 +27,7 @@ for(i in 1:60){
 }
 mods_per_node <- 20
 
+#full_sim_df <- full_sim_df[1:40,]
 array_size <- nrow(full_sim_df)/mods_per_node
 nsims <- array_size
 
@@ -84,6 +85,7 @@ for(k in 1:K){
     # Save the results
     fname <- paste0("/simdat_run", mod_num, ".rds")
     fpath <- paste0("Data/aquatic_sim_data/", args[1], fname)
-    saveRDS(sim_dat, file = paste0("/project/modelscape/analyses/sponges/", fpath))
+    saveRDS(sim_dat, file =  fpath)
+    # saveRDS(sim_dat, file = paste0("/project/modelscape/analyses/sponges/", fpath))
 
 }

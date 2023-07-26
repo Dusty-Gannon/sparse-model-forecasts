@@ -215,7 +215,8 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL,
 fit_ARp_beta_model <- function(model_pars, iter = 2000, warmup = 1000,
                                fit_nr = TRUE){
   # compile stan model
-  arp_r <- rstan::stan_model("Stan/AR-p_FHS-p-beta.stan")
+  # arp_r <- rstan::stan_model("Stan/AR-p_FHS-p-beta.stan")
+  arp_r <- rstan::stan_model("Stan/AR-p_err_FHS-p-beta.stan")
 
   # compile data (see Stan file for descriptions of each input)
   datlist <- list(
@@ -259,8 +260,8 @@ fit_ARp_beta_model <- function(model_pars, iter = 2000, warmup = 1000,
       X = model_pars$X[1:model_pars$n, ]
     )
 
-    arp_nr <- rstan::stan_model("Stan/AR-p.stan")
-
+    # arp_nr <- rstan::stan_model("Stan/AR-p.stan")
+    arp_nr <- rstan::stan_model("Stan/AR-p_err.stan")
 
     mfit_arp_nr <- rstan::sampling(
       arp_nr,
