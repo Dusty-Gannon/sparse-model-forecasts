@@ -1,14 +1,14 @@
 #!/bin/bash -l
 
 #SBATCH --account=modelscape
-#SBATCH --time=00:20:00
+#SBATCH --time=00:30:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=5
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=8G
+#SBATCH --mem=24G
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=dgannon@uwyo.edu
-#SBATCH --array=11-5000%10
+#SBATCH --array=1480-5000%30
 #SBATCH --out=./logfiles/slurm-%A_%a.out
 
 # Set the parameter combination to use and generate names of R scripts and log file
