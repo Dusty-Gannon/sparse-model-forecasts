@@ -8,7 +8,7 @@
 #SBATCH --mem=8G
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=dgannon@uwyo.edu
-#SBATCH --array=1-10%10
+#SBATCH --array=11-5000%10
 #SBATCH --out=./logfiles/slurm-%A_%a.out
 
 # Set the parameter combination to use and generate names of R scripts and log file
