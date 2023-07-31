@@ -8,7 +8,7 @@
 #SBATCH --mem=20G
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=dgannon@uwyo.edu
-#SBATCH --array=1-100%10
+#SBATCH --array=1-100%30
 #SBATCH --out=./logfiles/slurm-%A_%a.out
 
 # Set the parameter combination to use and generate names of R scripts and log file
@@ -27,7 +27,7 @@ for i in ${SLURM_ARRAY_TASK_ID[@]}; do
   job+=$i
 done
 
-Rscript --vanilla $Rscript ${job} "Data/terrestrial_sim_data/lnorm_ricker/thin_sims_s4t/" > "${LogFile_pref}_${job}"
+Rscript --vanilla $Rscript ${job} "Data/terrestrial_sim_data/lnorm_ricker/thin_sims_s4t/sim_reps/" > "${LogFile_pref}_${job}"
 
 
 
