@@ -8,7 +8,7 @@
 #SBATCH --mem=24G
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=dgannon@uwyo.edu
-#SBATCH --array=1480-5000%30
+#SBATCH --array=1-5000%50
 #SBATCH --out=./logfiles/slurm-%A_%a.out
 
 # Set the parameter combination to use and generate names of R scripts and log file
@@ -24,7 +24,7 @@ module load arcc/1.0  gcc/12.2.0  r/4.2.2
 # create arrays of arguments
 job=()
 for i in ${SLURM_ARRAY_TASK_ID[@]}; do
-  job+=$i
+  job+=$((15000 + $i))
 done
 
 Rscript --vanilla $Rscript "Data/terrestrial_sim_data/lnorm_ricker/dist_sims_s4t/sims_separate/lnorm_ricker_dist_freq_x_nsp_x_int_${job}.rds" ${job} 21 40 "Data/terrestrial_sim_data/lnorm_ricker/dist_sims_s4t/mfits/mfit_results" dist > "$LogFile_pref${job}"
