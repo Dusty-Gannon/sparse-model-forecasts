@@ -23,7 +23,7 @@ fit_growth_models <- function(N, stan_mod, tsteps, dist_vec = NULL, ...){
 
   # compile data to feed into Stan
   N_het <- t(N[-1, tsteps])
-  N_het_std <- scale(N_het)
+  N_het_std <- scale(N_het, center = F)
   N_foc <- as.double(N[1, tsteps])
   n <- length(tsteps)
   y <- log(N_foc[2:n] / N_foc[1:(n - 1)])
@@ -58,12 +58,12 @@ fit_growth_models <- function(N, stan_mod, tsteps, dist_vec = NULL, ...){
   # compile non-shrinking variables
   if(is.null(dist_vec)){
     X_alpha <- matrix(
-      data = as.double(scale(N_foc[1:(n - 1)])),
+      data = as.double(scale(N_foc[1:(n - 1)], center = F)),
       ncol = 1
     )
   } else{
     X_alpha <- cbind(
-      as.double(scale(N_foc[1:(n - 1)])),
+      as.double(scale(N_foc[1:(n - 1)], center = F)),
       dist_vec[tsteps][1:(n - 1)]
     )
   }
@@ -186,7 +186,7 @@ fit_spts_growth_models <- function(N, stan_mod, tsteps, disturbances = NULL, ...
       t(N[-1, tsteps[1]:tsteps[n - 1], k])
     )
   }
-  N_het_std <- scale(N_het)
+  N_het_std <- scale(N_het, center = F)
 
   # convert focal density in each plot to a list
   N_foc_l <- lapply(
@@ -257,12 +257,12 @@ fit_spts_growth_models <- function(N, stan_mod, tsteps, disturbances = NULL, ...
   # compile non-shrinking variables
   if(is.null(disturbances)){
     X_alpha <- matrix(
-      data = as.double(scale(N_foc)),
+      data = as.double(scale(N_foc, center = F)),
       ncol = 1
     )
   } else{
     X_alpha <- cbind(
-      as.double(scale(N_foc)),
+      as.double(scale(N_foc), center = F),
       dist_vec
     )
   }
