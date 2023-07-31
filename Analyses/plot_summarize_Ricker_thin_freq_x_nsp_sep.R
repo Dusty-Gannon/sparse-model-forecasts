@@ -67,7 +67,7 @@ devtools::load_all()
     thin_interval, prop_community
   ) %>% summarise(
     conf_mat_sum = list(Reduce("+", conf_mats))
-  )
+  ) %>% ungroup()
 
 # function to calculate confusion metrics
   confusion_metrics <- function(mat){
