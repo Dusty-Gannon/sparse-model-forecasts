@@ -24,7 +24,7 @@ module load arcc/1.0  gcc/12.2.0  r/4.2.2
 # create arrays of arguments
 job=()
 for i in ${SLURM_ARRAY_TASK_ID[@]}; do
-  job+=$((10000 + $i))
+  job+=$((15000 + $i))
 done
 
 Rscript --vanilla $Rscript "Data/terrestrial_sim_data/lnorm_ricker/dist_sims_s4t/sims_separate/lnorm_ricker_dist_freq_x_nsp_x_int_${job}.rds" ${job} 21 40 "Data/terrestrial_sim_data/lnorm_ricker/dist_sims_s4t/mfits/mfit_results" dist > "$LogFile_pref${job}"
