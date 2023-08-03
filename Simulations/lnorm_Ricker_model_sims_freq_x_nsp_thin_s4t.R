@@ -111,20 +111,21 @@ simulate_communities <- function(sim_params){
     # get number of species to thin
     nthin <- ceiling(sim_params$prop_cthin * (nrow(N_pre_final) - 1))
 
-    # get thinning order based on rank abundances
+    # define thinning order
     temp_means <-
       apply(
         N_pre_final[-1, round(sim_params$init_steps/2):sim_params$init_steps, ],
         1, mean
       )
     if(sim_params$target_thin){
+      # thinning order based on rank abundances
       thin_order <- (2:nrow(N_pre_final))[
         order(temp_means, decreasing = T)
       ][1:nthin]
       thin_levels <- (sort(temp_means, decreasing = T) * sim_params$thin_factor)[1:nthin]
-    } else{
-      thin_order <- sample(2:nrow(N_pre_final), size = nthin)
-      thin_levels <- temp_means[thin_order] * sim_params$thin_factor
+    } else {
+      thin_order = NULL
+      thin_levels <- (sort(temp_means, decreasing = T) * sim_params$thin_factor)[1:nthin]
     }
 
     # combine original list with newly created variables
@@ -133,7 +134,8 @@ simulate_communities <- function(sim_params){
         N_pre_f = N_pre_final,
         ext = sp2rm,
         thin_order = thin_order,
-        thin_levels = thin_levels
+        thin_levels = thin_levels,
+        nthin = nthin
       ),
       sim_params
     )
@@ -151,16 +153,22 @@ simulate_communities <- function(sim_params){
         sp_cov = sp_cov,
         thin_freq = thin_freq,
         thin_levels = thin_levels,
-        thin_order = thin_order
+        thin_order = thin_order,
+        nthin = nthin
       )
-    })$N
+    })
 
     # make some return objects
     N <- abind::abind(
-      N_pre_final, N_exp[, -1, ],
+      N_pre_final, N_exp$N[, -1, ],
       along = 2
     )
-    thinned_sp <- thin_order
+    if(target_thin){
+      thinned_sp <- thin_order
+    } else{
+      thinned_sp <- N_exp$thin_order
+    }
+
 
     return(list(
       N = N,

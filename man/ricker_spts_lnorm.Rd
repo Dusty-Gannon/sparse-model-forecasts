@@ -5,7 +5,7 @@
 \title{Simulate a spatio-temporal Ricker model}
 \usage{
 ricker_spts_lnorm(
-  n_sp,
+  nsp,
   N_0,
   lambdas,
   A_mat,
@@ -20,10 +20,13 @@ ricker_spts_lnorm(
   thin_freq = 0,
   thin_factor = 0.1,
   thin_order = NULL,
-  thin_levels = NULL
+  thin_levels = NULL,
+  nthin = NULL
 )
 }
 \arguments{
+\item{nsp}{Number of species in each replicate community}
+
 \item{N_0}{Initial abundances of all S species}
 
 \item{lambdas}{Vector of low-density growth factors for each species}
@@ -58,7 +61,7 @@ random}
 
 \item{thin_levels}{Optional vector to thin species to different levels.}
 
-\item{nsp}{Number of species in each replicate community}
+\item{nthin}{If the \code{thin_order} is not specified, the number of species to thin must be.}
 }
 \value{
 If \code{dist_prob = 0}, the function will return an \eqn{S \times T \times R} array, where

@@ -613,7 +613,8 @@ ricker_ts_lnorm <- function(
     N_0, lambdas, A_mat, sigmas, steps,
     dist_prob = 0, dist_int = 0, prop_cdist = 0,
     thin_freq = 0, thin_factor = 0.1,
-    thin_order = NULL, thin_levels = NULL
+    thin_order = NULL, thin_levels = NULL,
+    nthin = NULL
 ){
 
   nsp <- length(N_0)
@@ -652,7 +653,13 @@ ricker_ts_lnorm <- function(
 
 
     # create vector that cycles through the thinning order
-    if(is.null(thin_order)){thin_order <- sample(1:nsp)}
+    if(is.null(thin_order)){
+      thin_order <- sample(1:nsp, nthin)
+      sp2thin <- rep(
+        rep(thin_order, each = thin_freq),
+        ceiling(steps / (thin_freq * length(thin_order)))
+      )
+    }
     sp2thin <- rep(
       rep(thin_order, each = thin_freq),
       ceiling(steps / (thin_freq * length(thin_order)))
@@ -825,6 +832,7 @@ create_sp_covm <- function(coords, nugget, sill, range, model = "exponential"){
 #' @param thin_order Order in which to thin species. If left \code{NULL}, the order will be
 #' random
 #' @param thin_levels Optional vector to thin species to different levels.
+#' @param nthin If the \code{thin_order} is not specified, the number of species to thin must be.
 #'
 #' @return If \code{dist_prob = 0}, the function will return an \eqn{S \times T \times R} array, where
 #' \eqn{S} is the number of species, \eqn{T} is the number of time steps, and \eqn{R} is the number of
@@ -835,7 +843,7 @@ ricker_spts_lnorm <- function(
     sp_cov, n_sites,
     dist_prob = 0, dist_int = 0, prop_cdist = 0,
     dist_min_thresh = 1, thin_freq = 0, thin_factor = 0.1,
-    thin_order = NULL, thin_levels = NULL
+    thin_order = NULL, thin_levels = NULL, nthin = NULL
 ){
 
   # initialize tracking array
@@ -883,6 +891,9 @@ ricker_spts_lnorm <- function(
   if(thin_freq > 0 & dist_prob == 0){
 
     # create vector of thinning factors
+    if(is.null(nthin)){
+      nthin <- length(thin_order)
+    }
     thin <- rep(1, steps)
     if(is.null(thin_levels)){
       thin[thin_freq * c(1:floor(steps/thin_freq))] <- thin_factor
@@ -892,32 +903,28 @@ ricker_spts_lnorm <- function(
 
 
     # create vectors that cycle through the thinning order
-    if(is.null(thin_order)){thin_order <- sample(1:nsp)}
     sp2thin <- matrix(
       nrow = n_sites,
-      ncol = nsp * thin_freq * ceiling(steps / (thin_freq * length(thin_order)))
+      ncol = nthin * thin_freq * ceiling(steps / (thin_freq * nthin))
     )
-    for(i in 1:min(n_sites, nsp)){
-      thinord_s <- c(thin_order[i:nsp], thin_order[0:(i-1)])
+    if(is.null(thin_order)){
+      thin_order <- sample(1:nsp, size = nthin)
+    }
+    thin_order_m <- t(sapply(
+      1:n_sites,
+      FUN = function(s, v, size){
+        sample(v, size = size)
+      },
+      v = thin_order,
+      size = length(thin_order)
+    ))
+    for(i in 1:n_sites){
       sp2thin[i, ] <- rep(
-        rep(thinord_s, each = thin_freq),
-        ceiling(steps / (thin_freq * length(thin_order)))
+        rep(thin_order_m[i,], each = thin_freq),
+        ceiling(steps / (thin_freq * nthin))
       )
     }
-    # fill in any remaining rows if there are lots of sites
-    if(n_sites > nsp){
-      i <- nsp + 1
-      r <- 1
-      while(i <= n_sites){
-        sp2thin[i, ] <- sp2thin[r, ]
-        i <- i + 1
-        if(r < nsp){
-          r <- r + 1
-        } else{
-          r <- 1
-        }
-      }
-    }
+
 
     # now proceed with simulations
     for(s in 1:n_sites){
@@ -1068,6 +1075,13 @@ ricker_spts_lnorm <- function(
         int = dist_int
       )
     ))
+  } else if(thin_freq > 0){
+    return(
+      list(
+        N = N,
+        thin_order = thin_order
+      )
+    )
   } else{
     return(list(N = N))
   }

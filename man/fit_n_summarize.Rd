@@ -10,7 +10,8 @@ fit_n_summarize(
   tsteps = 51:100,
   pip = 0.9,
   dist = FALSE,
-  sp = FALSE
+  sp = FALSE,
+  ...
 )
 }
 \arguments{

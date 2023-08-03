@@ -16,7 +16,8 @@ ricker_ts_lnorm(
   thin_freq = 0,
   thin_factor = 0.1,
   thin_order = NULL,
-  thin_levels = NULL
+  thin_levels = NULL,
+  nthin = NULL
 )
 }
 \arguments{
