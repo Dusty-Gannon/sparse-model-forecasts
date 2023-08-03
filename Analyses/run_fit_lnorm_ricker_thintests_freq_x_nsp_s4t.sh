@@ -1,7 +1,7 @@
 #!/bin/bash -l
 
 #SBATCH --account=modelscape
-#SBATCH --time=00:30:00
+#SBATCH --time=00:40:00
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=5
 #SBATCH --cpus-per-task=1
@@ -24,7 +24,7 @@ module load arcc/1.0  gcc/12.2.0  r/4.2.2
 # create arrays of arguments
 job=()
 for i in ${SLURM_ARRAY_TASK_ID[@]}; do
-	job+=$((5050 + $i))
+	job+=$((0 + $i))
 done
 
 Rscript --vanilla $Rscript "Data/terrestrial_sim_data/lnorm_ricker/thin_sims_s4t/sims_separate/lnorm_ricker_freq_x_nsp_thin_s4t_${job}.rds" ${job} 51 80 "Data/terrestrial_sim_data/lnorm_ricker/thin_sims_s4t/mfits/mfit_results" > "$LogFile_pref${job}"
