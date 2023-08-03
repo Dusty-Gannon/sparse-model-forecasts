@@ -163,7 +163,7 @@ simulate_communities <- function(sim_params){
       N_pre_final, N_exp$N[, -1, ],
       along = 2
     )
-    if(target_thin){
+    if(sim_params$target_thin){
       thinned_sp <- thin_order
     } else{
       thinned_sp <- N_exp$thin_order
