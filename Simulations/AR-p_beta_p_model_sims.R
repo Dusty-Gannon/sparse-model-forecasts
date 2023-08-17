@@ -56,8 +56,11 @@ K = mods_per_node
 
 for(k in 1:K){
 
-    mod_num = (i-1)*K + k
+    mod_num = 20 + (i-1)*K + k
 
+    # nsteps <- 150
+    # if(mod_num >30) nsteps <- 100
+    # sigma <- 1
     nsteps <- full_sim_df$length[mod_num]
     sigma <- full_sim_df$sigma[mod_num]
 
@@ -85,7 +88,8 @@ for(k in 1:K){
     # Save the results
     fname <- paste0("/simdat_run", mod_num, ".rds")
     fpath <- paste0("Data/aquatic_sim_data/", args[1], fname)
-    saveRDS(sim_dat, file =  fpath)
-    # saveRDS(sim_dat, file = paste0("/project/modelscape/analyses/sponges/", fpath))
+    saveRDS(sim_dat, file = paste0("/project/modelscape/analyses/sponges/", fpath))
+    # fpath <- paste0("Data/aquatic_sim_data/test", fname)
+    # saveRDS(sim_dat, file =  fpath)
 
 }
