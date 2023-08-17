@@ -234,7 +234,7 @@ fit_ARp_beta_model <- function(model_pars, iter = 2000, warmup = 1000,
   )
 
   mtd = 18
-  ad = 0.95
+  ad = 0.99
   if(model_pars$n <=100) ad = 0.99
 #  if(model_pars$n < 150) ad = 0.95
 
