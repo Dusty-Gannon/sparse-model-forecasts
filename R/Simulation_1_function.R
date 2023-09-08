@@ -1,17 +1,29 @@
-#' Run a basic time series with no autoregressive components and all seasonal
-#' fluctuations contained within the covariates.
-#' Aguments:
-#' K = number of covariates
-#' n = number of monthly data points
-#' trend_fraction = fraction of covariates with a trend added
-#' NumLargeEffect = Number of large effect covariates
-#' ProbCycle = Probability of covariates experiencing seasonal cycles
-#' @return
-#' A list containing a y vector for the time series and the model matrix of
-#' covariates used in the simulation with the beta vector of 'true' regression
-#' coefficients
+
+
+
+#' Simulate a time series using temporally autocorrelated covariates
 #'
-basic_timeseries <- function(K, n, trend_fraction, NumLargeEffect, ProbCycle){
+#' This function simulates a time series by creating autoregressive and
+#' seasonal drivers and constructing a response based on a linear combination
+#' of those drivers.
+#'
+#' @param K Number of drivers.
+#' @param n Length of time series
+#' @param freq Frequency of sampling per time step (e.g., \code{n = 5} and
+#' \code{freq = 365}) would create 5 years of daily data.
+#' @param trend_fraction Fraction of drivers that have a trend.
+#' @param NumLargeEffect Number of strong drivers
+#' @param ProbCycle Probability that a driver experiences a seasonal cycle.
+#' @param sigma Standard deviation of the noise component.
+#'
+#' @return List with the response, \code{y}, the model matrix, \code{X},
+#' and the regression coefficients used to construct the response, \code{beta}.
+#'
+basic_timeseries <- function(K, n, freq, trend_fraction, NumLargeEffect, ProbCycle, sigma = 0.5){
+
+  # get total number of samples
+  N <- n * freq
+
   # add trends to some fraction
   trends <- c(
     rnorm(round(K * trend_fraction), mean = 0, sd = 0.2),
@@ -23,8 +35,8 @@ basic_timeseries <- function(K, n, trend_fraction, NumLargeEffect, ProbCycle){
 
   # construct the model matrix for all of them
   X_covs <- cbind(
-    rep(1, n),
-    (1:n)/12
+    rep(1, N),
+    (1:N) / freq
   )
 
   # ar coefficients
@@ -35,25 +47,27 @@ basic_timeseries <- function(K, n, trend_fraction, NumLargeEffect, ProbCycle){
 
   # give some covariates yearly cycles
   S <- sample(
-    c(1, 12),
+    1:round(freq / 2),
     size = K,
-    replace = T,
-    prob = c(1-ProbCycle, ProbCycle)
-  )
+    replace = T
+  ) * rbinom(K, size = 1, prob = ProbCycle)
 
   # construct the variables
-  xvars <- map(
+  xvars <- purrr::map(
     1:K,
     ~ {
-      sim_sARp(
-        n = n,
-        ar = ars[.x],
-        S = S[.x],
-        sd = sds[.x],
-        X = X_covs,
-        beta = c(means[.x], trends[.x]),
-        burnin = 100
-      )$y
+      if(S[.x] > 0){
+        runif(1, max = 0.5) * cos(pi * 1:N / S[.x]) +
+        runif(1, max = 0.5) * sin(pi * 1:N / S[.x]) +
+          means[.x] + trends[.x] * 1:N / freq +
+          rnorm(N, sd = sds[.x])
+      } else {
+        rnorm(
+          N,
+          mean = means[.x] + trends[.x] * 1/N * freq,
+          sd = sds[.x]
+        )
+      }
     }
   )
 
@@ -78,7 +92,7 @@ basic_timeseries <- function(K, n, trend_fraction, NumLargeEffect, ProbCycle){
   )
 
   # construct the response
-  y <- as.double(X %*% beta) + rnorm(n, sd = 0.5)
+  y <- as.double(X %*% beta) + rnorm(n, sd = sigma)
 
   # Store everything together in a list
   TimeSeries <- list(y = y, X = X, beta = beta)
