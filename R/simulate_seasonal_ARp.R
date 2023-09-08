@@ -91,12 +91,19 @@ sim_sARp <- function(n, ar, sar = 0, S = 1, sd = 1, X = NULL, beta = NULL,
     if(length(beta) == 1){
       y[1:p2] <- X_burn[1:p2, ] * beta
       for(t in (p2 + 1):length(y)){
-        y[t] <- X2[t] * beta + y[(t - 1):(t - p2)] %*% phi + rnorm(1, sd = sd)
+        y[t] <- X2[t] * beta +
+          (y[(t - 1):(t - p2)] - X2[(t-1):(t-p2)] * beta) %*% phi +
+          rnorm(1, sd = sd)
+        # y[t] <- X2[t] * beta + y[(t - 1):(t - p2)] %*% phi + rnorm(1, sd = sd)
       }
     } else{
       y[1:p2] <- X2[1:p2, ] %*% beta
       for(t in (p2 + 1):length(y)){
-        y[t] <- X2[t,] %*% beta + y[(t - 1):(t - p2)] %*% phi + rnorm(1, sd = sd)
+        y[t] <- X2[t,] %*% beta +
+          (y[(t - 1):(t - p2)] - t(X2[(t-1):(t-p2),] %*% beta)) %*% phi +
+          rnorm(1, sd = sd)
+
+        # y[t] <- X2[t,] %*% beta + y[(t - 1):(t - p2)] %*% phi + rnorm(1, sd = sd)
       }
     }
   }

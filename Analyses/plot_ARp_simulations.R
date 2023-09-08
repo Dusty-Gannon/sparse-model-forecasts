@@ -9,6 +9,7 @@ library(tidyverse)
 mod_cols <- c("#a52a2aff", "#33406fff")
 
 dd <- read_csv('Data/aquatic_sim_data/ARp_sims_6_01_condensed.csv')
+dd <- read_csv('Data/aquatic_sim_data/ARp_err_sims_7_20_condensed.csv')
 
 dd <- dd %>%
   mutate(siglab = factor(paste0('sigma = ', sigma),
@@ -27,7 +28,7 @@ con_runs <- filter(dd, divergent_trans <= divergent_trans_cap) %>%
   group_by(n, sigma, prior) %>%
   summarize(runs = n())
 
-png('Manuscript/Figures/ARp_model_convergence.png',
+png('Manuscript/Figures/ARp_err_model_convergence.png',
     width = 8, height = 5, units = 'in', res = 300)
   left_join(con_runs, total_runs) %>%
     mutate(converged_runs = runs/total_runs,
@@ -45,6 +46,7 @@ png('Manuscript/Figures/ARp_model_convergence.png',
 dev.off()
 
 # Subsample model fits so that the same number is in each category.
+min_size = max(min(c(con_runs$runs)), 50)
 min_size = min(c(con_runs$runs))
 dat <- data.frame()
 for(i in 1:nrow(total_runs)){
@@ -53,11 +55,13 @@ for(i in 1:nrow(total_runs)){
            n == total_runs$n[i],
            sigma == total_runs$sigma[i],
            prior == total_runs$prior[i])
-  rows <- sample(1:nrow(tmp), min_size)
+  # rows <- sample(1:nrow(tmp), min_size, replace = TRUE)
+  rows <- sample(1:nrow(tmp), min_size, replace = FALSE)
 
   dat <- bind_rows(dat, tmp[rows,])
 }
 
+# dd -> dat
 # Plot model results:
 datr <- filter(dat, prior == 'Horseshoe')
 datnr <- filter(dat, prior == 'Gaussian')
@@ -81,7 +85,7 @@ frmse <- dat %>%
         # legend.key.size = unit(1, 'line')
         )
 
-png('Manuscript/Figures/ARp_forecast_rmses.png',
+png('Manuscript/Figures/ARp_err_forecast_rmses.png',
     width = 6.5, height = 3.2, units = 'in', res = 300)
     frmse
 dev.off()
@@ -109,8 +113,8 @@ dummy_plot <- ggplot(dummy_df, aes(Model, y, fill = Model)) +
                     name = "") +
   theme(legend.direction = 'horizontal')
 
-lgnd <- ggpubr::get_legend(dummy_plot)
-pp <- ggpubr::ggarrange(p, legend.grob = lgnd)
+# lgnd <- ggpubr::get_legend(dummy_plot)
+# pp <- ggpubr::ggarrange(p, legend.grob = lgnd)
 
 # png(width = 10.5, height = 9, units = 'in', type = 'cairo', res = 300,
 #     filename = 'Figures/ARp_sim_fits2.png')
@@ -199,10 +203,10 @@ rr <- inner_join(r, rh) %>% inner_join(rl) %>%
                            . < 0 ~ 0,
                            TRUE ~ .)))
 
-tpr <- rr %>%
+tpr <- rates %>%
   rename(Category = category) %>%
-  ggplot(aes(n, rate_fit, color = prior, lty = Category))+
-  geom_ribbon(aes(ymin = rate_low_fit, ymax = rate_high_fit, fill = prior),
+  ggplot(aes(n, rate, color = prior, lty = Category))+
+  geom_ribbon(aes(ymin = rate_low, ymax = rate_high, fill = prior),
               alpha = 0.25, color = NA)+
   geom_line(size = 0.75)+
   facet_grid(parameter~siglab) +
@@ -214,7 +218,22 @@ tpr <- rr %>%
   theme(panel.border = element_rect(fill = NA),
         panel.spacing = unit(0, 'line'),
         legend.position = 'top')
-png('Manuscript/Figures/ARp_TPR_FPR.png',
+# tpr <- rr %>%
+#   rename(Category = category) %>%
+#   ggplot(aes(n, rate_fit, color = prior, lty = Category))+
+#   geom_ribbon(aes(ymin = rate_low_fit, ymax = rate_high_fit, fill = prior),
+#               alpha = 0.25, color = NA)+
+#   geom_line(size = 0.75)+
+#   facet_grid(parameter~siglab) +
+#   scale_color_manual('Prior', values = mod_cols) +
+#   scale_fill_manual('Prior', values = mod_cols) +
+#   ylab('Rate')+
+#   xlab('Time series length') +
+#   theme_classic()+
+#   theme(panel.border = element_rect(fill = NA),
+#         panel.spacing = unit(0, 'line'),
+#         legend.position = 'top')
+png('Manuscript/Figures/ARp_err_TPR_FPR.png',
     width = 6.5, height = 5, units = 'in', res = 300)
 tpr
 dev.off()
