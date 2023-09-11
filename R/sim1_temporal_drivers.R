@@ -12,21 +12,36 @@
 #' @param freq Frequency of sampling per time step (e.g., \code{n = 5} and
 #' \code{freq = 365}) would create 5 years of daily data.
 #' @param trend_fraction Fraction of drivers that have a trend.
-#' @param NumLargeEffect Number of strong drivers
-#' @param ProbCycle Probability that a driver experiences a seasonal cycle.
+#' @param num_strong Number of strong drivers
+#' @param prob_cycle Probability that a driver experiences a seasonal cycle.
 #' @param sigma Standard deviation of the noise component.
 #'
 #' @return List with the response, \code{y}, the model matrix, \code{X},
 #' and the regression coefficients used to construct the response, \code{beta}.
 #'
-basic_timeseries <- function(K, n, freq, trend_fraction, NumLargeEffect, ProbCycle, sigma = 0.5){
+#' @examples
+#' # simulating a 3-year time series with data from each day,
+#' # constructed with 10 drivers, 3 strong and 7 weak.
+#'
+#' basic_timeseries(
+#'   K = 10,
+#'   num_strong = 3,
+#'   n = 3,
+#'   freq = 365
+#' )
+#'
+#'
+basic_timeseries <- function(
+    K, num_strong, n, freq,
+    trend_fraction = 0.5, prob_cycle = 0.5, sigma = 0.5
+  ){
 
   # get total number of samples
   N <- n * freq
 
   # add trends to some fraction
   trends <- c(
-    rnorm(round(K * trend_fraction), mean = 0, sd = 0.2),
+    rnorm(round(K * trend_fraction), mean = 0, sd = 2 / n),
     rep(0, K - round(K * trend_fraction))
   )
 
@@ -50,7 +65,7 @@ basic_timeseries <- function(K, n, freq, trend_fraction, NumLargeEffect, ProbCyc
     1:round(freq / 2),
     size = K,
     replace = T
-  ) * rbinom(K, size = 1, prob = ProbCycle)
+  ) * rbinom(K, size = 1, prob = prob_cycle)
 
   # construct the variables
   xvars <- purrr::map(
@@ -73,15 +88,15 @@ basic_timeseries <- function(K, n, freq, trend_fraction, NumLargeEffect, ProbCyc
 
   # convert to a matrix
   X <- cbind(
-    rep(1,n),
+    rep(1, N),
     Reduce(cbind, xvars)
   )
 
   # construct beta
-  k_prime <- K - NumLargeEffect # number of small effect variables
+  k_prime <- K - num_strong # number of small effect variables
 
   beta <- c(
-    runif(NumLargeEffect, min = 0.5, max = 1) * sample(c(-1,1), NumLargeEffect, replace = T),
+    runif(num_strong, min = 0.5, max = 1) * sample(c(-1,1), num_strong, replace = T),
     rnorm(k_prime, sd = 0.05)
   )
 
@@ -95,6 +110,8 @@ basic_timeseries <- function(K, n, freq, trend_fraction, NumLargeEffect, ProbCyc
   y <- as.double(X %*% beta) + rnorm(n, sd = sigma)
 
   # Store everything together in a list
-  TimeSeries <- list(y = y, X = X, beta = beta)
-  return(TimeSeries)
+  ts <- list(y = y, X = X, beta = beta)
+  return(ts)
 }
+
+
