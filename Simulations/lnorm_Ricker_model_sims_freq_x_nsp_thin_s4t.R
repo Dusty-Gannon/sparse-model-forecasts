@@ -197,7 +197,6 @@ simulate_communities <- function(sim_params){
   prop_cthin <- seq(0.1, 1, by = 0.1)
   reps <- 10
   target_reps <- 1
-#  round <- 2
 
   # complete the factorial table
   freq_prop_df <- expand.grid(thin_freq, prop_cthin)
