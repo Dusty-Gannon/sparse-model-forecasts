@@ -54,6 +54,7 @@ transformed parameters{
 
   vector[N] mu;               // declare vector of means
   vector[N] err;              // vector of residuals
+  vector[N-p] epsilon;
   // scale c2: c2 ~ inv_gamma(half_slab_df, half_slab_df * slab_scl2)
   real c2 = slab_scl2 * c2_std;
 
@@ -80,10 +81,9 @@ transformed parameters{
   err = y - mu;
 
   // complete the AR process
-  // for(t in (p + 1):N){
-  //   mu[t] = X_alpha[t, ] * alpha + X_beta[t, ] * beta +
-  //     (y[(t - p):(t - 1)] - X_alpha[(t-p):(t-1)] * alpha - X_beta[(t-p):(t-1),] * beta)' * phi;
-  // }
+  for(t in (p + 1):N){
+    epsilon[t-p] = err[t] - err[(t-p):(t-1)]' *phi;
+  }
 
 }
 
@@ -103,10 +103,7 @@ model{
   sigma ~ normal(0, 2);
 
   // likelihood
-  for(t in (p + 1):N){
-    err[t] ~ normal(err[(t - p):(t - 1)]' * phi, sigma);
-  }
-
+  epsilon ~ normal(0, sigma);
 }
 
 

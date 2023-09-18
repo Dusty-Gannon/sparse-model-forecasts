@@ -9,7 +9,7 @@ library(tidyverse)
 mod_cols <- c("#a52a2aff", "#33406fff")
 
 dd <- read_csv('Data/aquatic_sim_data/ARp_sims_6_01_condensed.csv')
-dd <- read_csv('Data/aquatic_sim_data/ARp_err_sims_7_20_condensed.csv')
+dd <- read_csv('Data/aquatic_sim_data/ARp_err_sims_8_17_condensed.csv')
 
 dd <- dd %>%
   mutate(siglab = factor(paste0('sigma = ', sigma),
