@@ -20,9 +20,6 @@ intraspecific competition.}
 \item{ng_range}{A range of values from which to draw the strength of non-generic competition
 relative to intraspecific competition.}
 }
-\value{
-
-}
 \description{
 This alternative function to generate a matrix of competition coefficients
 first generates a diagonal matrix with the vector \eqn{\vec\alpha} of

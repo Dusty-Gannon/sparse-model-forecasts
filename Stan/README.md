@@ -10,6 +10,8 @@
 
 **Note**: A script demonstrating how to use and compare the above three models using Fourier components to model seasonality can be found in `/Model_evals/testing_AR-p-err_mods_DG.R`.
 
+-   `sparse_reg_FHS.stan`: Stan model to fit a Bayesian sparse regression using Regularized Horseshoe priors. Weakly-informative priors can be specified for a number of covariate coefficients (including the intercept term) by defining the data input `P_0` $\ge$ 1. These must come as the first columns in the model matrix supplied as data to Stan. It is recommended that `P_0` is at least 1 to leave the intercept term unregularized. Predictions can be constructed by supplying a model matrix, `X_new`, of `N_new` observations. If no predictions are required, set `N_new = 0` and `X_new = matrix(data = 1, nrow = 0, ncol = P)` as a null or dummy matrix in the data input to Stan.
+
 -   `AR-p_FHS-p-beta.stan`: Stan model to fit a Gaussian AR(p) process with arbitrary p. 'Finnish Horseshoe Priors' are placed on the AR coefficients and the regression coefficients to perform Bayesian model selection/regularization on both the phi and beta vectors.
 
 -   `AR-p_FHS.stan`: Stan model to fit a Gaussian AR(p) process with arbitrary p. 'Finnish Horseshoe Priors' are placed on the regression coefficients to perform Bayesian model selection/regularization on the beta vector.
