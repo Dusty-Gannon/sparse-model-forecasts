@@ -41,7 +41,7 @@ ARp_beta_sims <- function(input_pars){
 }
 
 
-# outdir <- 'test_seasonal'; array <- 1; i = 1
+# outdir <- 'test_seasonal'; array_num <- 1; i = 1
 args <- commandArgs(trailingOnly = TRUE)
 outdir <- args[1]
 array_num <- as.numeric(args[2])

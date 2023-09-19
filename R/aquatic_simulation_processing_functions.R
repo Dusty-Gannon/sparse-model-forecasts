@@ -441,7 +441,10 @@ summarize_pos_rate <- function(fits, model_pars, threshold = 0.9){
       pos_rate_beta <- calculate_true_pos_rate(beta_post, model_pars$beta,
                                                threshold = threshold,
                                                par = 'beta')
-      pos_rate_phi <- calculate_true_pos_rate(phi_post, model_pars$phi,
+      pos_rate_phi <- calculate_true_pos_rate(phi_post,
+                                              c(model_pars$phi,
+                                                rep(0, nrow(phi_post) -
+                                                      length(model_pars$phi))),
                                               threshold = threshold,
                                               par = 'phi')
       pr <- cbind(pos_rate_phi, pos_rate_beta) %>%
