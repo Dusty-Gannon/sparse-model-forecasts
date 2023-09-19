@@ -11,11 +11,11 @@
 #SBATCH --time=96:00:00
 #SBATCH -o slurmlogs/slurm_%A%a.out
 #SBATCH -e slurmlogs/slurm_%A%a.err
-#SBATCH --array=1-954
+#SBATCH --array=1-15
 
 # Set the parameter combination to use and generate names of R scripts and log file
-Rscript=AR-p_beta_p_model_sims.R
-OutDir='ARp_err_sims_8_17'
+Rscript=fit_AR-p_seasonal_model_sims.R
+OutDir='ARp_err_sims_9_18'
 
 # Change to the relevant working directory
 mkdir /project/modelscape/analyses/sponges/Data/aquatic_sim_data/$OutDir

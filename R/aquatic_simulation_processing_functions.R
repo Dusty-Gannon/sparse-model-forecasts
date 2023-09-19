@@ -43,7 +43,119 @@ unpack_ARp_fit <- function(fits, model_pars = NULL){
   ))
 
 }
+#' Unpack seasonal AR-p model fits and holdout predictions
+#'
+#' This function takes the output of three model fits, with flat, gaussian, and
+#' horseshoe priors respectively, run on simulated AR-p data and summarizes
+#' the posterior parameter estimates and holdout predictions to calculate rmse.
+#'
+#' @param fits a list of model_pars and stanfit objects, or if model pars is
+#' provided separately, this can just be a stanfit object.
+#' @param model_pars a list of parameters that was used to run models
+#'
+#' @return A list including model input parameters and a model fit list for each
+#' model that contains: posterior parameter estimates, forcasts of held out
+#' observations, and rmses of model forecasts.
+#'
+#' @export
+#'
 
+unpack_seasonal_ARp_fits <- function(fits, model_pars){
+
+  extract_fit <- function(fit, model_pars){
+    # Extract posterior estimates
+    beta_post <- rstan::extract(fit, pars = "beta")$beta[,1:length(model_pars$beta)]
+    phi_post <- rstan::extract(fit, pars = "phi")$phi
+    sigma_post <- rstan::extract(fit, pars = "sigma")$sigma
+    y_rep <- rstan::extract(fit, pars = "y_rep")$y_rep
+
+    beta_hat <- data.frame(
+      mean = apply(beta_post, 2, mean),
+      median = apply(beta_post, 2, median),
+      min = apply(beta_post, 2, min),
+      max = apply(beta_post, 2, max),
+      low = apply(beta_post, 2, quantile, probs = 0.025),
+      high = apply(beta_post, 2, quantile, probs = 0.975),
+      q0.01 = apply(beta_post, 2, quantile, probs = 0.01),
+      q0.05 = apply(beta_post, 2, quantile, probs = 0.05),
+      q0.1 = apply(beta_post, 2, quantile, probs = 0.1),
+      q0.9 = apply(beta_post, 2, quantile, probs = 0.9),
+      q0.95 = apply(beta_post, 2, quantile, probs = 0.95),
+      q0.99 = apply(beta_post, 2, quantile, probs = 0.99)
+
+    )
+
+    phi_hat <- data.frame(
+      mean = apply(phi_post, 2, mean),
+      median = apply(phi_post, 2, median),
+      min = apply(phi_post, 2, min),
+      max = apply(phi_post, 2, max),
+      low = apply(phi_post, 2, quantile, probs = 0.025),
+      high = apply(phi_post, 2, quantile, probs = 0.975),
+      q0.01 = apply(phi_post, 2, quantile, probs = 0.01),
+      q0.05 = apply(phi_post, 2, quantile, probs = 0.05),
+      q0.1 = apply(phi_post, 2, quantile, probs = 0.1),
+      q0.9 = apply(phi_post, 2, quantile, probs = 0.9),
+      q0.95 = apply(phi_post, 2, quantile, probs = 0.95),
+      q0.99 = apply(phi_post, 2, quantile, probs = 0.99)
+    )
+
+    sigma_hat <- data.frame(
+      mean = mean(sigma_post),
+      median = median(sigma_post),
+      min = min(sigma_post),
+      max = max(sigma_post),
+      low = quantile(sigma_post, probs = 0.025),
+      high = quantile(sigma_post, probs = 0.975),
+      q0.01 = quantile(sigma_post, probs = 0.01),
+      q0.05 = quantile(sigma_post, probs = 0.05),
+      q0.1 = quantile(sigma_post, probs = 0.1),
+      q0.9 = quantile(sigma_post, probs = 0.9),
+      q0.95 = quantile(sigma_post, probs = 0.95),
+      q0.99 = quantile(sigma_post, probs = 0.99)
+    )
+
+    par_ests <- list(beta_hat = beta_hat,
+                     phi_hat = phi_hat,
+                     sigma_hat = sigma_hat)
+
+
+    # calculate rmses
+    n_tot <- length(model_pars$y)
+    phi <- c(model_pars$phi, rep(0, ncol(phi_post) - length(model_pars$phi)))
+    rmse_forecast <- RMSE_bayes(
+      as.double(model_pars$y)[(model_pars$n + 1):n_tot],
+      ppreds = y_rep[,(model_pars$n + 1):n_tot]
+    )
+
+    rmse_beta = RMSE_bayes(model_pars$beta, beta_post)
+    rmse_phi = RMSE_bayes(phi, phi_post)
+    rmse_sigma = RMSE_bayes(model_pars$sd, sigma_post)
+
+    rmse <- list(rmse_forecast = rmse_forecast,
+                 rmse_beta = rmse_beta,
+                 rmse_phi = rmse_phi,
+                 rmse_sigma = rmse_sigma)
+
+    bad_fits <- stan_psum(fit = fit)
+
+    mod_fit <- list(
+      par_ests = par_ests,
+      forecast = y_rep,
+      rmse = rmse,
+      bad_fits = bad_fits)
+
+    return(mod_fit)
+
+  }
+
+  mod_fits <- lapply(fits, extract_fit, model_pars)
+
+    return(list(
+      model_pars = model_pars,
+      mod_fits = mod_fits
+    ))
+}
 
 
 #' Extract parameter estimates from a stanfit object and predict holdout set

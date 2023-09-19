@@ -15,16 +15,16 @@ set.seed(8968)
 
 # create seasonally fluctuating mean
 mu2 <-  1.5 * 1:n_tot/365 + 2 * cos(pi * 1:n_tot / 365) + sin(pi * 1:n_tot / 30) +
-  0.5 * sin(pi * 1:ntot / 10)
+  0.5 * sin(pi * 1:n_tot / 10)
 
 # add the AR-2 errors
 y <- ts(mu2 + arima.sim(list(ar = c(0.5, 0.1)), n = n_tot), frequency = 365)
 
 # create the model matrix using K = 100 fourier components
 X_tot <- cbind(
-  rep(1, n_tot),
-  1:n_tot / 365,
-  forecast::fourier(y, K = 100)
+  rep(1, n_tot),                      # intercept
+  1:n_tot / 365,                      # trend
+  forecast::fourier(y, K = 100)       # sparse seasonality terms
 )
 
 # fit the model to the first two years
@@ -94,9 +94,12 @@ fits <- list(
 forecast_plot <- function(fit, y_full, fill, freq, ylim, title, rmse = NULL, xlim_rmse = NULL, ylim_rmse = NULL){
 
   library(patchwork)
+  library(dplyr)
+  library(ggplot2)
+
   y_rep <- rstan::extract(fit, pars = "y_rep")$y_rep
 
-  dat_plot <- as_tibble(
+  dat_plot <- dplyr::as_tibble(
     sapply(
       c(0.025, 0.1, 0.9, 0.975),
       FUN = function(x){
@@ -144,15 +147,15 @@ forecast_plot <- function(fit, y_full, fill, freq, ylim, title, rmse = NULL, xli
 rmse <- list(
   rmse_flat = RMSE_bayes(
     as.double(y)[(n + 1):n_tot],
-    ppreds = rstan::extract(flat_fit, "y_rep")$y_rep[,(n + 1):n_tot]
+    ppreds = rstan::extract(fits$flat_fit, "y_rep")$y_rep[,(n + 1):n_tot]
   ),
   rmse_gauss = RMSE_bayes(
     as.double(y)[(n + 1):n_tot],
-    ppreds = rstan::extract(gauss_fit, "y_rep")$y_rep[,(n + 1):n_tot]
+    ppreds = rstan::extract(fits$gauss_fit, "y_rep")$y_rep[,(n + 1):n_tot]
   ),
   rmse_hs = RMSE_bayes(
     as.double(y)[(n + 1):n_tot],
-    ppreds = rstan::extract(hs_fit, "y_rep")$y_rep[, (n + 1):n_tot]
+    ppreds = rstan::extract(fits$hs_fit, "y_rep")$y_rep[, (n + 1):n_tot]
   )
 )
 
