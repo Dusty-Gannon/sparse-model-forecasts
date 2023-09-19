@@ -65,6 +65,9 @@ unpack_seasonal_ARp_fits <- function(fits, model_pars){
   extract_fit <- function(fit, model_pars){
     # Extract posterior estimates
     beta_post <- rstan::extract(fit, pars = "beta")$beta[,1:length(model_pars$beta)]
+    if(length(model_pars$beta) == 1){
+      beta_post <- matrix(beta_post, ncol = 1)
+    }
     phi_post <- rstan::extract(fit, pars = "phi")$phi
     sigma_post <- rstan::extract(fit, pars = "sigma")$sigma
     y_rep <- rstan::extract(fit, pars = "y_rep")$y_rep
