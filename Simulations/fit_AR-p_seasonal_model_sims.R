@@ -44,11 +44,11 @@ ARp_beta_sims <- function(input_pars){
 # outdir <- 'test_seasonal'; array <- 1; i = 1
 args <- commandArgs(trailingOnly = TRUE)
 outdir <- args[1]
-array <- args[2]
+array_num <- as.numeric(args[2])
 
 for(i in 1:mods_per_node){
 
-    mod_num = mods_per_node * (array - 1) + i
+    mod_num = mods_per_node * (array_num - 1) + i
 
     nsteps <- sim_df$length[mod_num]
     sigma <- sim_df$sigma[mod_num]
