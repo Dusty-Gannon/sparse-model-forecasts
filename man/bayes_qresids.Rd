@@ -24,6 +24,3 @@ posterior predictive distribution. A probability residual is defined as
 posterior predictive distribution. The corresponding quantile residual, \eqn{q_i}, is defined
 as \eqn{q_i = \Phi^{-1}(p_i)}, where \eqn{\Phi} is the standard normal cdf.
 }
-\examples{
-
-}

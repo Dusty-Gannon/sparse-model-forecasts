@@ -58,7 +58,7 @@ for(k in 1:K){
 
     mod_num = 20 + (i-1)*K + k
 
-    # nsteps <- 150
+    # nsteps <- 60
     # if(mod_num >30) nsteps <- 100
     # sigma <- 1
     nsteps <- full_sim_df$length[mod_num]

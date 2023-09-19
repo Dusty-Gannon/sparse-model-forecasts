@@ -22,6 +22,7 @@ transformed parameters{
 
   vector[N] err;              // vector of residuals
 
+  vector[N - p] epsilon;      // random innovations
   // scale betas
   vector[P] beta = beta_std * 2.5;
   // scale phis
@@ -30,6 +31,9 @@ transformed parameters{
   mu = X * beta;
   err = y - mu;
 
+  for(t in (p + 1):N){
+    epsilon[t-p] = err[t] - err[(t-p):(t-1)]' * phi;
+  }
 }
 
 model{
@@ -39,10 +43,7 @@ model{
 
   sigma ~ cauchy(0, 1);
 
-  // complete the AR process
-  for(t in (p + 1):N){
-    err[t] ~ normal(err[(t-p):(t-1)]' * phi, sigma);
-  }
+  epsilon ~ normal(0, sigma);
 }
 
 
@@ -52,7 +53,7 @@ generated quantities{
   real y_rep[N - p] = normal_rng(err[(1 + p):N] + mu[(1 + p):N], sigma);
 
   // residuals
-  // vector[N - p] resid = y[(p + 1):N] - mu[(p + 1):N];
+  vector[N - p] resid = y[(p + 1):N] - mu[(p + 1):N];
 
 }
 

@@ -1,6 +1,5 @@
 
 
-
 #' Simulate AR-p data with lagged covariates
 #'
 #' This function simulates an AR process in which some lags and explanatory
@@ -104,45 +103,9 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL,
   #   model_pars$holdout = floor(0.3) * model_pars$n
   # }
 
-  ### generate the model matrix with some correlated variables ###
-  # To create a covariance matrix, step one is to create an orthogonal matrix,
-  # which can be done using QR decomposition of an arbitrary matrix
-  P <- model_pars$beta_n + 1
-  Q <- qr.Q(qr(matrix(rnorm(P^2), nrow = P, ncol = P)))
-
-  # step two is to generate a diagonal matrix with the standard deviations
-  D <- diag(x = rgamma(P, shape = 2, rate = 2))
-
-  # now use matrix multiplication to generate Sigma
-  Sigma <- t(Q) %*% D %*% Q
-
-  # to test that this is positive definite, check that all eigenvalues are positive
-  # sum(eigen(Sigma)$values < 0)
-
-  # then Cholesky decompose Sigma to multiply by independent standard normal draws
-  # and create the matrix
-  X <- matrix(rnorm(n = (model_pars$n + model_pars$beta_p + model_pars$holdout) * P),
-              nrow = (model_pars$n + model_pars$beta_p + model_pars$holdout),
-              ncol = P) %*% chol(Sigma)
-
-  # generate lagged columns of beta 1
-  beta_1 <- matrix(rep(NA, (model_pars$n + model_pars$beta_p + model_pars$holdout) *
-                         model_pars$beta_p),
-                   nrow = (model_pars$n + model_pars$beta_p + model_pars$holdout),
-                   ncol = model_pars$beta_p)
-
-  for(i in 1:model_pars$beta_p){
-    beta_1[,i] <- c(rep(NA, i), X[1:(nrow(X)-i),1])
-  }
-
-  X <- cbind(
-    rep(1, (model_pars$n + model_pars$beta_p + model_pars$holdout)),
-    beta_1,
-    X[,2:ncol(X)]
-  )
-
-  X <- X[(model_pars$beta_p+1):nrow(X),]
-
+  X <- generate_AR_covariates(model_pars$n + model_pars$holdout,
+                              beta_n = model_pars$beta_n,
+                              beta_p = model_pars$beta_p)
 
   # Draw phi parameters
   if(draw_phi == 'near_zero'){
@@ -186,108 +149,215 @@ simulate_AR_p_beta_p_timeseries <- function(input_pars = NULL,
 }
 
 
-
-
-#' Fit AR-p_beta model
+#' Simulate seasonal AR-p timeseries
 #'
-#' This function fits an AR-p_beta model on a simulated dataset with the option
-#' to fit both a regularized and non regularized model version
+#' This function simulates an AR process from seasonal components and
+#' generates a model matrix with sparse Fourier components
 #'
-#' @param model_pars a list of parameters describing the AR-p time series as well
+#' @param input_pars a list of parameters describing the AR-p model to be generated.
+#' Default values for all parameters are embedded in the function, so only
+#' supply parameters you wish to change.
+#'   + n (300): length of time series to be simulated
+#'   + p (16): number of AR lags to consider
+#'   + beta_p (5): number of lags to consider in lagged covariate
+#'   + beta_n (45): number of additional covariates to include
+#'   + b0 (0.5): intercept
+#'   + n_phi (3): number of non-zero autoregressive terms
+#'   + n_lags (2): number of non-zero lags in lagged covariate
+#'   + n_beta (2): number of non-zero covariate parameters in addition to lagged covariate
+#'   + non_zero_coef_guess (0): guess for the number of non-zero coefficients
+#'   + holdout (50): number of observation to hold out for model evaluation
+#' @param draw_beta can be 'near_zero' or 'zero'. Indicates if the not-significant
+#' beta parameters should be drawn from a normal distribution that results in numbers
+#' that are near zero, or if they should just be set to zero
+#' @param draw_phi can be 'near_zero' or 'zero'. Indicates if the not-significant
+#' phi parameters should be drawn from a normal distribution that results in numbers
+#' that are near zero, or if they should just be set to zero.
+#' @param burnin number of steps to run the AR timeseries simulation before using numbers
+#'
+#' @return A list including input parameters or any default values used as well
 #' as a matrix of covariates, vectors of beta and phi parameters, and a simulated
-#' time series. Must include:
-#'    + n: length of time series
-#'    + p: number of AR lags to consider
-#'    + tau_0: the prior guess for tau0
-#'    + X: matrix of covariates arranged with the first column as the intercept,
-#'    columns 2:(nlags covariate + 1) are lagged versions of covariate 1, and the
-#'    remaining columns are other covariates.
-#'    + y: response timeseries
-#'    + holdout: number of observation to hold out for model evaluation
-#' @param fit_nr (default = TRUE) - should a non-regularized model also be fit to the data?
+#' time series.
 #'
-#' @return A list including model input parameters and model fit objects for any models run
+#' @export
+#'
+#' @examples
+#'
+#' input_pars <- list(
+#'   n = 365,           # length of time series
+#'   phi = c(0.5, 0.1), # vector of AR terms
+#'   sd = 1,            # standard deviation of the innovations
+#'   beta_n = 5,        # number of covariates to include
+#'   beta_p = 0,        # number of lags of covariate 1 to include
+#'   K = 100,           # number of fourier components to include
+#'   holdout = 50
+#' )
+#'
+#' simulate_seasonal_AR_p_timeseries(input_pars)
+#'
+
+simulate_seasonal_AR_p_timeseries <- function(input_pars = NULL){
+
+  model_pars <- list(  # default parameters if any are not supplied
+    n = 365,           # length of time series
+    phi = c(0.5, 0.1), # default vector of AR terms
+    sd = 1,            # standard deviation of the innovations
+    beta_n = 5,        # number of covariates to include
+    beta_p = 0,        # number of lags of covariate 1 to include
+    beta_sig = NULL,   # the number of significant betas. NULL defaults to all significant.
+    beta_select = NULL,# the number of beta terms to keep in the model
+    K = 100,           # number of fourier components to include
+    holdout = 50
+  )
+
+  for(nm in names(input_pars)){
+    model_pars[[nm]] <- input_pars[[nm]]
+  }
+
+  # calculate the full timeseries length to generate
+  n_tot <- model_pars$n + model_pars$holdout
+
+  # randomly draw beta's
+  N_beta <- model_pars$beta_n + model_pars$beta_p
+  if(is.null(model_pars$beta_sig)){
+    model_pars$beta_sig = N_beta
+  }
+  if(is.null(model_pars$beta_select)){
+    model_pars$beta_select = N_beta
+  }
+
+  beta = c(rnorm(1,0,1),
+           sample(c(rnorm(model_pars$beta_sig, 0, 3),
+                    rnorm(model_pars$beta_n + model_pars$beta_p -
+                          model_pars$beta_sig, 0, 0.03)),
+                  replace = FALSE))
+
+  # create matrix of covariates:
+  X <- generate_AR_covariates(n = n_tot,
+                              model_pars$beta_n, model_pars$beta_p,
+                              method = 'seasonal')
+
+  mu <- X %*% beta
+  # how many/which of the covariates did you measure?
+  beta_keep <- c(1, # keep the intercept
+                 1 + sort(sample(1:N_beta, model_pars$beta_select,
+                                  replace = FALSE)))
+
+  model_pars$beta <- beta[beta_keep]
+
+  # create seasonally fluctuating mean
+  # mu2 <-  1.5 * 1:n_tot/365 + 2 * cos(pi * 1:n_tot / 365) + sin(pi * 1:n_tot / 30) +
+  #   0.5 * sin(pi * 1:n_tot / 10)
+
+  # add the AR-2 errors
+  y <- ts(mu + arima.sim(list(ar = model_pars$phi), n = n_tot,
+                          sd = model_pars$sd),
+          frequency = 365)
+
+  # create the model matrix using K fourier components
+  X_tot <- cbind(
+    X[,beta_keep],
+    1:n_tot / 365,                      # trend?
+    forecast::fourier(y, model_pars$K)  # sparse seasonality terms
+  )
+
+  model_pars$X <- X_tot
+  model_pars$y <- y
+
+  return(model_pars)
+
+}
+
+#' Generate a model matrix for AR-p simulations
+#'
+#' This function generates a model matrix that may contain any/all of the following:
+#' - an intercept column of 1's
+#' - Correlated covariate variables
+#' - lagged covariate effects
+#'
+#' @param n length of time series
+#' @param beta_n the number of covariates to be generated
+#' @param beta_p the number of lags to consider in the first covariate
+#'
+#' @return A covariate matrix including an intercept, a trend, and any desired
+#' covariates or Fourier components.
 #'
 #' @export
 #'
 
+generate_AR_covariates <- function(n,
+                                   beta_n = 0,
+                                   beta_p = 0,
+                                   method = 'correlated'){
 
-fit_ARp_beta_model <- function(model_pars, iter = 2000, warmup = 1000,
-                               fit_nr = TRUE){
-  # compile stan model
-  # arp_r <- rstan::stan_model("Stan/AR-p_FHS-p-beta.stan")
-  arp_r <- rstan::stan_model("Stan/AR-p_err_FHS-p-beta2.stan")
-
-  # compile data (see Stan file for descriptions of each input)
-  datlist <- list(
-    N = model_pars$n,
-    P0 = 1,
-    P = ncol(model_pars$X)-1,
-    p = model_pars$p,
-    y = model_pars$y[1:model_pars$n],
-    X_alpha = matrix(model_pars$X[1:model_pars$n, 1],
-                     ncol = 1),
-    X_beta = model_pars$X[1:model_pars$n, -1],
-    tau0 = model_pars$tau_0,
-    slab_scl = 1,
-    slab_df = 10
-  )
-
-  mtd = 18
-  ad = 0.99
-  if(model_pars$n <=100) ad = 0.99
-#  if(model_pars$n < 150) ad = 0.95
-
-  # sample the posterior
-  mfit_arp_r <- rstan::sampling(
-    arp_r,
-    data = datlist,
-    chains = 4, cores = 4,
-    iter = iter, warmup = warmup,
-    control = list(adapt_delta = 0.99,
-                   max_treedepth = mtd)
-  )
-
-
-  # fitting the non-regularized AR model
-  if(fit_nr){
-
-    datlist_nr <- list(
-      N = model_pars$n,
-      P = ncol(model_pars$X),
-      p = model_pars$p,
-      y = model_pars$y[1:model_pars$n],
-      X = model_pars$X[1:model_pars$n, ]
-    )
-
-    # arp_nr <- rstan::stan_model("Stan/AR-p.stan")
-    arp_nr <- rstan::stan_model("Stan/AR-p_err2.stan")
-
-    mfit_arp_nr <- rstan::sampling(
-      arp_nr,
-      data = datlist_nr,
-      chains = 4, cores = 4,
-      iter = iter, warmup = warmup,
-      control = list(adapt_delta = 0.99,
-                     max_treedepth = mtd)
-    )
-
-    return(list(
-      model_pars = model_pars,
-      mfit_r = mfit_arp_r,
-      mfit_nr = mfit_arp_nr
-    ))
+  ### Generate correlated and lagged covariate variables ###
+  # To create a covariance matrix, step one is to create an orthogonal matrix,
+  # which can be done using QR decomposition of an arbitrary matrix
+  if(beta_n == 0){
+    return(X <- matrix(rep(1, n), nrow = n))
   }
 
-  return(list(
-    model_pars = model_pars,
-    mfit_r = mfit_arp_r
-  ))
+  if(method == 'correlated'){
+    P <- beta_n
+    Q <- qr.Q(qr(matrix(rnorm(P^2), nrow = P, ncol = P)))
+
+    # step two is to generate a diagonal matrix with the standard deviations
+    D <- diag(x = rgamma(P, shape = 2, rate = 2))
+
+    # now use matrix multiplication to generate Sigma
+    Sigma <- t(Q) %*% D %*% Q
+
+    # to test that this is positive definite, check that all eigenvalues are positive
+    # sum(eigen(Sigma)$values < 0)
+
+    # then Cholesky decompose Sigma to multiply by independent standard normal draws
+    # and create the matrix
+    X <- matrix(rnorm(n = (n + beta_p) * P),
+                nrow = (n + beta_p),
+                ncol = P) %*% chol(Sigma)
+  }
+
+  generate_seasonal_covariate <- function(n_tot, max_season = 365, sd = 0.1){
+    a <- rnorm(4)
+    theta <- round(runif(2, 1, max_season/4))
+    mu <-  a[1] * 1:n_tot/max_season + a[2] * cos(pi * 1:n_tot / max_season) +
+      a[3] * sin(pi * 1:n_tot / theta[1]) +
+      a[4] * sin(pi * 1:n_tot / theta[2]) + rnorm(n_tot, 0, sd)
+    return(mu)
+  }
+
+  if(method == 'seasonal'){
+    X <- matrix(nrow = n, ncol = 0)
+    for(i in 1:beta_n){
+      x_i = matrix(generate_seasonal_covariate(n), nrow = n)
+      # plot(x_i)
+      X <- cbind(X, x_i)
+    }
+  }
+
+  # generate lagged columns of beta 1
+  if(beta_p >= 1){
+    beta_1 <- matrix(rep(NA, (n + beta_p) * beta_p),
+                     nrow = (n + beta_p),
+                     ncol = beta_p)
+
+    for(i in 1:beta_p){
+      beta_1[,i] <- c(rep(NA, i), X[1:(nrow(X)-i),1])
+    }
+
+    X <- cbind(
+      beta_1,
+      X[,2:ncol(X)]
+    )
+
+  }
+
+  X <- cbind(rep(1, nrow(X) - beta_p),
+             X[(beta_p+1):nrow(X),])
+
+
+  return(X)
 }
-
-
-
-
 
 
 
