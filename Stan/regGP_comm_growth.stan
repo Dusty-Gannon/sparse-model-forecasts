@@ -30,7 +30,7 @@ parameters{
   real<lower = 0> sigma_e;              // scale of errors
   real a0;                              // log-generic competitive effect
 
-  vector<lower = 0>[S] alpha_std;       // intra-specific effect
+  vector[S] alpha_std;                  // intra-specific effect
   vector[S * (S - 1)] a_tilde_std;      // log-deviation from generic effect
   vector[S] r;                          // log growth
   vector[K] u;                          // random effects for the site
@@ -42,13 +42,13 @@ transformed parameters{
   vector[S * K] Lambda;                       // declare stacked lambda vector
   matrix[S * K, N] eta;                       // declare matrix of linear predictors
 
-  vector[S] alpha = alpha_std * 0.25;         // scale intra-specific effects
+  vector[S] alpha = alpha_std * 0.1;         // scale intra-specific effects
 
   // scale the deviations from the generic effect
   vector[S * (S - 1)] a_tilde = a_tilde_std * 0.1;
 
-  matrix[S, S] Alpha = diag_matrix(alpha);    // diagonal matrix of intra-specific effects
-  matrix[S, S] A0 = fill_off_diag(            // repeating matrix of log-generic effects
+  matrix[S, S] Alpha = diag_matrix(exp(alpha));    // diagonal matrix of intra-specific effects
+  matrix[S, S] A0 = fill_off_diag(                 // repeating matrix of log-generic effects
     rep_vector(0, S),
     rep_vector(a0, S * (S - 1))
   );
