@@ -16,7 +16,7 @@ RMSE_bayes <- function(obs, ppreds){
   apply(
     ppreds, 1,
     function(x, obs){
-      sqrt(mean(x - obs)^2)
+      sqrt(mean((x - obs)^2))
     },
     obs = obs
   )
