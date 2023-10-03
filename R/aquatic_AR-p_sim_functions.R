@@ -233,10 +233,11 @@ simulate_seasonal_AR_p_timeseries <- function(input_pars = NULL){
                   replace = FALSE))
 
   # create matrix of covariates:
-  X <- generate_AR_covariates(n = n_tot,
+  X_full <- generate_AR_covariates(n = n_tot,
                               model_pars$beta_n, model_pars$beta_p,
                               method = 'seasonal')
 
+  X <- X_full$X
   mu <- X %*% beta
   # how many/which of the covariates did you measure?
   beta_keep <- c(1, # keep the intercept
@@ -244,6 +245,11 @@ simulate_seasonal_AR_p_timeseries <- function(input_pars = NULL){
                                   replace = FALSE)))
 
   model_pars$beta <- beta[beta_keep]
+  model_pars$seasonality_full <- X_full$seasonality
+  model_pars$seasonality <- X_full$seasonality %>%
+    filter(!x %in% beta_keep) %>%
+    group_by(theta) %>%
+    summarize(beta = sum(beta))
 
   # create seasonally fluctuating mean
   # mu2 <-  1.5 * 1:n_tot/365 + 2 * cos(pi * 1:n_tot / 365) + sin(pi * 1:n_tot / 30) +
@@ -320,18 +326,23 @@ generate_AR_covariates <- function(n,
   generate_seasonal_covariate <- function(n_tot, max_season = 365, sd = 0.1){
     a <- rnorm(4)
     theta <- round(runif(2, 1, max_season/4))
-    mu <-  a[1] * 1:n_tot/max_season + a[2] * cos(pi * 1:n_tot / max_season) +
-      a[3] * sin(pi * 1:n_tot / theta[1]) +
-      a[4] * sin(pi * 1:n_tot / theta[2]) + rnorm(n_tot, 0, sd)
-    return(mu)
+    mu <-  a[1] * 1:n_tot/max_season + a[2] * cos(2*pi * 1:n_tot / max_season) +
+      a[3] * sin(2*pi * 1:n_tot / theta[1]) +
+      a[4] * sin(2*pi * 1:n_tot / theta[2]) + rnorm(n_tot, 0, sd)
+    return(list(mu = mu,
+                seasonality = data.frame(theta = c(0, theta, max_season),
+                                         beta = a)))
   }
 
   if(method == 'seasonal'){
     X <- matrix(nrow = n, ncol = 0)
+    seasonality = data.frame()
     for(i in 1:beta_n){
-      x_i = matrix(generate_seasonal_covariate(n), nrow = n)
+      x_i = generate_seasonal_covariate(n)
       # plot(x_i)
-      X <- cbind(X, x_i)
+      X <- cbind(X, matrix(x_i$mu, nrow = n))
+      seasonality <- bind_rows(seasonality,
+                               mutate(x_i$seasonality, x = i+1))
     }
   }
 
@@ -355,8 +366,8 @@ generate_AR_covariates <- function(n,
   X <- cbind(rep(1, nrow(X) - beta_p),
              X[(beta_p+1):nrow(X),])
 
-
-  return(X)
+  if(method == 'seasonal') return(list(X = X, seasonality = seasonality))
+  return(list(X = X))
 }
 
 

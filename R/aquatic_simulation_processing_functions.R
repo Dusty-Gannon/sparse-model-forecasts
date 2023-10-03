@@ -64,10 +64,12 @@ unpack_seasonal_ARp_fits <- function(fits, model_pars){
 
   extract_fit <- function(fit, model_pars){
     # Extract posterior estimates
-    beta_post <- rstan::extract(fit, pars = "beta")$beta[,1:length(model_pars$beta)]
+    bb <- rstan::extract(fit, pars = "beta")$beta
+    beta_post <- bb[,1:length(model_pars$beta)]
     if(length(model_pars$beta) == 1){
       beta_post <- matrix(beta_post, ncol = 1)
     }
+    fr_post <- bb[,(length(model_pars$beta)+1):ncol(bb)]
     phi_post <- rstan::extract(fit, pars = "phi")$phi
     sigma_post <- rstan::extract(fit, pars = "sigma")$sigma
     y_rep <- rstan::extract(fit, pars = "y_rep")$y_rep
@@ -87,6 +89,23 @@ unpack_seasonal_ARp_fits <- function(fits, model_pars){
       q0.99 = apply(beta_post, 2, quantile, probs = 0.99)
 
     )
+
+    fr_hat <- data.frame(
+      freq = c('S0-365', colnames(model_pars$X)[(length(model_pars$beta)+2):ncol(bb)]),
+      mean = apply(fr_post, 2, mean),
+      median = apply(fr_post, 2, median),
+      min = apply(fr_post, 2, min),
+      max = apply(fr_post, 2, max),
+      low = apply(fr_post, 2, quantile, probs = 0.025),
+      high = apply(fr_post, 2, quantile, probs = 0.975),
+      q0.01 = apply(fr_post, 2, quantile, probs = 0.01),
+      q0.05 = apply(fr_post, 2, quantile, probs = 0.05),
+      q0.1 = apply(fr_post, 2, quantile, probs = 0.1),
+      q0.9 = apply(fr_post, 2, quantile, probs = 0.9),
+      q0.95 = apply(fr_post, 2, quantile, probs = 0.95),
+      q0.99 = apply(fr_post, 2, quantile, probs = 0.99)
+    ) %>%
+      mutate(freq = as.numeric(str_match(freq, '[CS]([0-9]+)-.*')[, 2]))
 
     phi_hat <- data.frame(
       mean = apply(phi_post, 2, mean),
@@ -119,6 +138,7 @@ unpack_seasonal_ARp_fits <- function(fits, model_pars){
     )
 
     par_ests <- list(beta_hat = beta_hat,
+                     fr_hat = fr_hat,
                      phi_hat = phi_hat,
                      sigma_hat = sigma_hat)
 
@@ -397,16 +417,13 @@ calculate_true_pos_rate <- function(par_post, value, threshold = 0.9,
   true_pos = sum((ests$effect == 'positive' & ests$post_mass == 'positive')|
                    (ests$effect == 'negative' & ests$post_mass == 'negative'))/
     sum(ests$effect != 'zero')
-  false_pos = sum((ests$effect != 'negative' & ests$post_mass == 'negative')|
-                    (ests$effect != 'positive' & ests$post_mass == 'positive'))/
-    sum(ests$post_mass != 'zero')
-  false_neg = sum((ests$effect == 'negative' & ests$post_mass != 'negative')|
-                    (ests$effect == 'positive' & ests$post_mass != 'positive'))/
-    sum(ests$post_mass == 'zero')
+  false_pos = sum((ests$effect == 'zero' & ests$post_mass == 'negative')|
+                    (ests$effect == 'zero' & ests$post_mass == 'positive'))/
+    sum(ests$effect == 'zero')
+
 
   TFP <- data.frame(true_pos = true_pos,
-                    false_pos = false_pos,
-                    false_neg = false_pos) %>%
+                    false_pos = false_pos) %>%
       rename_with(function(x) paste0(par, '_', x))
 
   return( TFP )
@@ -431,7 +448,7 @@ calculate_true_pos_rate <- function(par_post, value, threshold = 0.9,
 #' @export
 #'
 
-summarize_pos_rate <- function(fits, model_pars, threshold = 0.9){
+summarize_pos_rate <- function(fits, model_pars, threshold = 0.9, fr = FALSE){
 
   pr <- data.frame()
   for(i in 1:length(fits)){
@@ -447,6 +464,21 @@ summarize_pos_rate <- function(fits, model_pars, threshold = 0.9){
                                                       length(model_pars$phi))),
                                               threshold = threshold,
                                               par = 'phi')
+
+      if(fr){ # this function needs to be modified
+              # currently, a wide range of thetas will translate into a single
+              # frequency, I think we either need to:
+              # 1) fix the way we are simulating to use frequencies,
+              # 2) change the fourier covariates to cover fractional freqs,
+              # or 3) change the below so that we weight the two neighboring freqs with the appropriate beta
+        fr_post <- fits[[i]]$par_ests$fr_hat
+        seasonal <- model_pars$seasonality %>%
+          filter(abs(beta)>0.05) %>%
+          mutate(freq = round(365/theta))
+        pos_rate_fr <- calculate_true_pos_rate(fr_post,
+                                               )
+      }
+
       pr <- cbind(pos_rate_phi, pos_rate_beta) %>%
         mutate(model = fits[[i]]$model) %>%
         bind_rows(pr)

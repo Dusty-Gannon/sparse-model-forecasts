@@ -1,6 +1,7 @@
 
 # libraries
 library(rstan)
+library(dplyr)
 #library(here)
 devtools::load_all()
 #rstan_options(auto_write = TRUE)
@@ -11,7 +12,7 @@ setwd("/project/modelscape/analyses/sponges/")
 
 # compile stan models:
 ar_err_gauss <- stan_model("Stan/AR-p_err3_Gauss_DG.stan")
-ar_err_flat <- stan_model("Stan/AR-p_err3_Flat_DG.stan")
+# ar_err_flat <- stan_model("Stan/AR-p_err3_Flat_DG.stan")
 ar_err_hs <- stan_model("Stan/AR-p_err3_FHS_DG.stan")
 
 beta <- c(0, 2, 4) # how many of the important betas did you measure?
@@ -33,7 +34,7 @@ array_size <- nrow(sim_df)/mods_per_node
 ARp_beta_sims <- function(input_pars){
 
     model_pars <- simulate_seasonal_AR_p_timeseries(input_pars)
-    out <- fit_seasonal_ARp_models(model_pars)
+    out <- fit_seasonal_ARp_models(model_pars, fit_flat = FALSE)
     sim_list <- unpack_seasonal_ARp_fits(fits = out$fits, model_pars = out$model_pars)
 
     return(sim_list)

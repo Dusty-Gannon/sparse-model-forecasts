@@ -177,8 +177,10 @@ fit_seasonal_ARp_models <- function(model_pars,
     dat = dat_hs,
     chains = 4, cores = 4,
     iter = iter, warmup = warmup,
-    control = list(adapt_delta = ad)
+    control = list(adapt_delta = ad,
+                   max_treedepth = mtd)
   )
+  fits <- list(hs_fit = hs_fit)
 
   if(fit_gauss){
     if(!('ar_err_gauss' %in% ls(envir = .GlobalEnv))){
@@ -187,8 +189,10 @@ fit_seasonal_ARp_models <- function(model_pars,
     gauss_fit <- sampling(
       ar_err_gauss,
       data = dat_gauss,
-      chains = 4, cores = 4
+      chains = 4, cores = 4,
+      iter = iter, warmup = warmup
     )
+    fits[['gauss_fit']] <- gauss_fit
   }
 
   if(fit_flat){
@@ -200,15 +204,12 @@ fit_seasonal_ARp_models <- function(model_pars,
       data = dat_flat,
       chains = 4, cores = 4
     )
+    fits[['flat_fit']] <- flat_fit
   }
 
   return(list(
       model_pars = model_pars,
-      fits = list(
-        flat_fit = flat_fit,
-        gauss_fit = gauss_fit,
-        hs_fit = hs_fit
-      )
+      fits = fits
     ))
 
 }
