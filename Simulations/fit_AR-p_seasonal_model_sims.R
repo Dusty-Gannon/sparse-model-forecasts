@@ -22,7 +22,7 @@ lengths <- 365 * (1:3)
 s_df <- expand.grid(beta, sigmas, lengths)
 colnames(s_df) <- c('beta', 'sigma', 'length')
 
-reps <- 5
+reps <- 50
 sim_df <- s_df
 for(i in 1:(reps-1)){
   sim_df <- rbind(sim_df, s_df)
@@ -64,7 +64,8 @@ for(i in 1:mods_per_node){
     input_pars <- list(
       n = nsteps,        # length of time series
       sd = sigma,        # standard deviation of the innovations
-      phi = c(0.5, 0.1), # default vector of AR terms
+      # phi = c(0.5, 0.1), # default vector of AR terms
+      n_phi = 5,
       beta_n = 5,        # number of covariates to include
       beta_p = 0,        # number of lags of covariate 1 to include
       beta_sig = NULL,   # the number of significant betas. NULL defaults to all significant.

@@ -465,23 +465,32 @@ summarize_pos_rate <- function(fits, model_pars, threshold = 0.9, fr = FALSE){
                                               threshold = threshold,
                                               par = 'phi')
 
+      pp <- cbind(pos_rate_phi, pos_rate_beta) %>%
+        mutate(model = names(fits)[i])
+
       if(fr){ # this function needs to be modified
               # currently, a wide range of thetas will translate into a single
               # frequency, I think we either need to:
               # 1) fix the way we are simulating to use frequencies,
               # 2) change the fourier covariates to cover fractional freqs,
               # or 3) change the below so that we weight the two neighboring freqs with the appropriate beta
-        fr_post <- fits[[i]]$par_ests$fr_hat
-        seasonal <- model_pars$seasonality %>%
+        fr_post <- fits[[i]]$par_ests$fr_hat %>%
+          mutate(cs = rep(c('c', 's'), length.out = nrow(.)))
+        seasonal <- model_pars$seasonality_missing %>%
+          mutate(cs = case_when(freq == 1 ~ 's',
+                                TRUE ~ 'c')) %>%
           filter(abs(beta)>0.05) %>%
-          mutate(freq = round(365/theta))
-        pos_rate_fr <- calculate_true_pos_rate(fr_post,
-                                               )
-      }
+          right_join(select(fr_post, freq, cs)) %>%
+          arrange(freq) %>% mutate(beta = case_when(is.na(beta) ~ 0,
+                                                    TRUE ~ beta))
+        pos_rate_fr <- calculate_true_pos_rate(fr_post, seasonal$beta,
+                                               threshold = threshold,
+                                               par = 'fr')
 
-      pr <- cbind(pos_rate_phi, pos_rate_beta) %>%
-        mutate(model = fits[[i]]$model) %>%
-        bind_rows(pr)
+        pp <- cbind(pos_rate_fr, pp)
+      }
+    pr <- bind_rows(pr, pp)
+
   }
 
   pr$TPR_threshold = threshold

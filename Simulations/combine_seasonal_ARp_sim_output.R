@@ -44,7 +44,8 @@ for(i in 1:length(filelist)){
     )
 
     tpr <- summarize_pos_rate(out$mod_fits, out$model_pars,
-                              threshold = 0.9, fr = TRUE)
+                              threshold = 0.9, fr = TRUE) %>%
+      select(-model)
 
     dd <- bind_cols(dd, tpr)
 

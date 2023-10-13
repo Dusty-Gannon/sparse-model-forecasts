@@ -200,7 +200,8 @@ simulate_seasonal_AR_p_timeseries <- function(input_pars = NULL){
 
   model_pars <- list(  # default parameters if any are not supplied
     n = 365,           # length of time series
-    phi = c(0.5, 0.1), # default vector of AR terms
+    # phi = c(0.5, 0.1), # default vector of AR terms
+    n_phi = 5,         # the number of AR terms to randomly select
     sd = 1,            # standard deviation of the innovations
     beta_n = 5,        # number of covariates to include
     beta_p = 0,        # number of lags of covariate 1 to include
@@ -246,14 +247,17 @@ simulate_seasonal_AR_p_timeseries <- function(input_pars = NULL){
 
   model_pars$beta <- beta[beta_keep]
   model_pars$seasonality_full <- X_full$seasonality
-  model_pars$seasonality <- X_full$seasonality %>%
+  model_pars$seasonality_missing <- X_full$seasonality %>%
     filter(!x %in% beta_keep) %>%
-    group_by(theta) %>%
+    group_by(freq) %>%
     summarize(beta = sum(beta))
 
   # create seasonally fluctuating mean
   # mu2 <-  1.5 * 1:n_tot/365 + 2 * cos(pi * 1:n_tot / 365) + sin(pi * 1:n_tot / 30) +
   #   0.5 * sin(pi * 1:n_tot / 10)
+
+  model_pars$phi <- ar_param_sim(model_pars$n_phi)
+
 
   # add the AR-2 errors
   y <- ts(mu + arima.sim(list(ar = model_pars$phi), n = n_tot,
@@ -325,12 +329,12 @@ generate_AR_covariates <- function(n,
 
   generate_seasonal_covariate <- function(n_tot, max_season = 365, sd = 0.1){
     a <- rnorm(4)
-    theta <- round(runif(2, 1, max_season/4))
+    freq <- round(runif(2, 2, 100))
     mu <-  a[1] * 1:n_tot/max_season + a[2] * cos(2*pi * 1:n_tot / max_season) +
-      a[3] * sin(2*pi * 1:n_tot / theta[1]) +
-      a[4] * sin(2*pi * 1:n_tot / theta[2]) + rnorm(n_tot, 0, sd)
+      a[3] * sin(2*pi * 1:n_tot / (max_season / freq[1])) +
+      a[4] * sin(2*pi * 1:n_tot / (max_season / freq[2])) + rnorm(n_tot, 0, sd)
     return(list(mu = mu,
-                seasonality = data.frame(theta = c(0, theta, max_season),
+                seasonality = data.frame(freq = c(0, 1, freq),
                                          beta = a)))
   }
 

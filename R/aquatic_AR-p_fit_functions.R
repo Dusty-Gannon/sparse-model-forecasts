@@ -190,7 +190,9 @@ fit_seasonal_ARp_models <- function(model_pars,
       ar_err_gauss,
       data = dat_gauss,
       chains = 4, cores = 4,
-      iter = iter, warmup = warmup
+      iter = iter, warmup = warmup,
+      control = list(adapt_delta = ad,
+                     max_treedepth = mtd)
     )
     fits[['gauss_fit']] <- gauss_fit
   }
