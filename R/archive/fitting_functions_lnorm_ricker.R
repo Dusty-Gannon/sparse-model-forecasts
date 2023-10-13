@@ -23,7 +23,7 @@ fit_growth_models <- function(N, stan_mod, tsteps, dist_vec = NULL, ...){
 
   # compile data to feed into Stan
   N_het <- t(N[-1, tsteps])
-  N_het_std <- scale(N_het)
+  N_het_std <- scale(N_het, center = F)
   N_foc <- as.double(N[1, tsteps])
   n <- length(tsteps)
   y <- log(N_foc[2:n] / N_foc[1:(n - 1)])
@@ -58,12 +58,12 @@ fit_growth_models <- function(N, stan_mod, tsteps, dist_vec = NULL, ...){
   # compile non-shrinking variables
   if(is.null(dist_vec)){
     X_alpha <- matrix(
-      data = as.double(scale(N_foc[1:(n - 1)])),
+      data = as.double(scale(N_foc[1:(n - 1)], center = F)),
       ncol = 1
     )
   } else{
     X_alpha <- cbind(
-      as.double(scale(N_foc[1:(n - 1)])),
+      as.double(scale(N_foc[1:(n - 1)], center = F)),
       dist_vec[tsteps][1:(n - 1)]
     )
   }
@@ -179,31 +179,35 @@ fit_spts_growth_models <- function(N, stan_mod, tsteps, disturbances = NULL, ...
   K <- dim(N)[3]
 
   # compile data to feed into Stan
-  N_het <- matrix(nrow = (n - 1) * K, ncol = S - 1)
-  for(k in 1:K){
-    rids <- ((k - 1) * (n - 1) + 1):(k * (n - 1))
-    N_het[rids, ] <- t(N[-1, tsteps[1]:tsteps[n - 1], k])
+  N_het <- t(N[-1, tsteps[1]:tsteps[n - 1], 1])
+  for(k in 2:K){
+    N_het <- rbind(
+      N_het,
+      t(N[-1, tsteps[1]:tsteps[n - 1], k])
+    )
   }
-  N_het_std <- scale(N_het)
+  N_het_std <- scale(N_het, center = F)
 
-  # convert focal density to a list
+  # convert focal density in each plot to a list
   N_foc_l <- lapply(
     1:K,
-    function(k){
+    function(k, N, tsteps){
       as.double(N[1, tsteps, k])
-    }
+    },
+    N = N,
+    tsteps = tsteps
   )
 
   # get a vector of focal density
-  N_foc <- as.vector(sapply(
-    N_foc_l,
-    function(v, n){
-      as.double(v[1:(n - 1)])
-    },
-    n = n
-  ))
+  N_foc <- vector(mode = "double")
+  for(k in 1:K){
+    N_foc <- c(
+      N_foc,
+      as.double(N_foc_l[[k]][1:(n - 1)])
+    )
+  }
 
-  # convert focal density to growth and then concatenate
+  # calculate growth and then concatenate
   y <- as.vector(sapply(
     N_foc_l,
     function(v, n){
@@ -253,12 +257,12 @@ fit_spts_growth_models <- function(N, stan_mod, tsteps, disturbances = NULL, ...
   # compile non-shrinking variables
   if(is.null(disturbances)){
     X_alpha <- matrix(
-      data = as.double(scale(N_foc)),
+      data = as.double(scale(N_foc, center = F)),
       ncol = 1
     )
   } else{
     X_alpha <- cbind(
-      as.double(scale(N_foc)),
+      as.double(scale(N_foc), center = F),
       dist_vec
     )
   }
@@ -324,8 +328,9 @@ fit_spts_growth_models <- function(N, stan_mod, tsteps, disturbances = NULL, ...
 #'
 #' @return List with summaries and posterior draws
 #'
-fit_n_summarize <- function(X, stan_mod, tsteps = 51:100, pip = 0.9, dist = FALSE, sp = FALSE){
+fit_n_summarize <- function(X, stan_mod, tsteps = 51:100, pip = 0.9, dist = FALSE, sp = FALSE, ...){
 
+  cntrl_args <- list(...)
   if(isFALSE(sp)){
     if(dist){
       if(X$sim_params$dist_prob > 0){
@@ -333,14 +338,16 @@ fit_n_summarize <- function(X, stan_mod, tsteps = 51:100, pip = 0.9, dist = FALS
           N = X$N,
           stan_mod = stan_mod,
           tsteps = tsteps,
-          dist_vec = X$dist_foc[2:length(X$dist_foc)]
+          dist_vec = X$dist_foc[2:length(X$dist_foc)],
+          cntrl_args
         )
       } else{
         beta_post <- fit_growth_models(
           N = X$N,
           stan_mod = stan_mod,
           tsteps = tsteps,
-          dist_vec = NULL
+          dist_vec = NULL,
+          cntrl_args
         )
       }
     } else{
@@ -370,7 +377,8 @@ fit_n_summarize <- function(X, stan_mod, tsteps = 51:100, pip = 0.9, dist = FALS
       beta_post <- fit_spts_growth_models(
         N = X$N,
         stan_mod = stan_mod,
-        tsteps = tsteps
+        tsteps = tsteps,
+        cntrl_args
       )
 
     } else{
@@ -379,7 +387,8 @@ fit_n_summarize <- function(X, stan_mod, tsteps = 51:100, pip = 0.9, dist = FALS
         N = X$N,
         stan_mod = stan_mod,
         tsteps = tsteps,
-        disturbances = X$disturbances
+        disturbances = X$disturbances,
+        cntrl_args
       )
 
     }
