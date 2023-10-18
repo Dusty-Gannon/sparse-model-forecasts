@@ -59,13 +59,14 @@ RMSE_AIC=function(model,testData){
 #' @export
 #'
 #' @examples
-confusionRates<-function(timeseries,model,strongCutoff=0.3){
-  positives=length(strong1)
-  negatives=(length(timeseries$beta)-length(strong1)-1)
+AICconfusionRates<-function(timeseries,model,strongCutoff=0.3){
 
   strong1<-which(abs(timeseries$beta)>strongCutoff)
   strong2<-paste0("driver_",strong1)
   strongaic<-names(model$coefficients)
+
+  positives=length(strong1)
+  negatives=(length(timeseries$beta)-length(strong1)-1)
 
   truePos=length(intersect(strongaic,strong2))
   trueNeg=negatives-length(strongaic)+length(intersect(strongaic,strong2))
@@ -196,6 +197,8 @@ STANgetpredict=function(model){
   return(predictionInfo)
 }
 
+STANgetpost=function(fit, par)
+  post
 
 #trials
 start=Sys.time()
@@ -212,7 +215,7 @@ RMSESTANlistraw=mapply(function(x,y) RMSE_bayes(x,y),STANy,STANpredlist) # get R
 RMSESTANlist=colMeans(RMSESTANlistraw)
 Sys.time()-start
 
-AICconfusion=mapply(function(x,y) confusionRates(x,y),ts1,AICmodlist)
+AICconfusion=mapply(function(x,y) AICconfusionRates(x,y),ts1,AICmodlist)
 mean(AICconfusion[1,])# TPR is 0.992
 mean(AICconfusion[2,])# TNR is 0.498
 
@@ -222,11 +225,6 @@ hist(RMSEAIClist,xlim=c(0,2.5),ylim=c(0,50),breaks=seq(0,2.5,by=0.1),xlab="RMSE"
 mean(RMSESTANlist)
 mean(RMSEAIClist)
 
+## STAN confusion functions (in process)
 
-
-
-
-
-
-
-
+#STANconfusion=mapply(function(x,y) STANconfusionRates(x,y), ts1, STANmodlist
