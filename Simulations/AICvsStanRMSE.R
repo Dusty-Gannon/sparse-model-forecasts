@@ -220,6 +220,7 @@ STANbetapost <- function(modelfit) {
   return(beta_post)
 }
 
+
 ## The STANconfusionRates() code leans HEAVILY on Alice C's 'calculate_true_pos_rate()', but some things don't make sense to me"
 ##    - the 'zero' values for beta
 ##    - there is one definition of 'true positive' in the description, but it looks like the code is doing something else...
@@ -292,7 +293,6 @@ STANconfusionRates<-function(par_post, par_vals, par='beta', threshold=0.90) {
 
 
 
-
 #trials
 start=Sys.time()
 ts1=getTS(100) # make timeseries
@@ -325,3 +325,4 @@ hist(RMSEAIClist,xlim=c(0,2.5),ylim=c(0,50),breaks=seq(0,2.5,by=0.1),xlab="RMSE"
 
 mean(RMSESTANlist)
 mean(RMSEAIClist)
+
