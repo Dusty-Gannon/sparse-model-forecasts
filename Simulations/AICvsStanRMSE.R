@@ -200,7 +200,7 @@ STANbetapost <- function(modelfit) {
   # extract the posterior betas
   beta_pred=rstan::extract(modelfit, pars = 'beta')$beta
 
-  # create a data frame summarizing these betas
+  # create a data frame w summary stats for these posterior betas
   beta_post <- data.frame(
     mean = apply(beta_pred, 2, mean),
     median = apply(beta_pred, 2, median),
@@ -230,7 +230,7 @@ STANbetapost <- function(modelfit) {
 #' For a model fit to simulated AR-p data, a true positive is a correctly
 #' identified beta or phi parameter as non-zero. **We define a true positive as
 #' any parameter estimate for which 90% of the posterior mass lies above or
-#' below zero, given that the true parameter is non-zero.** -> but that's not how this function calculates true_pos, as far as I can tell... - CT
+#' below zero, given that the true parameter is non-zero.**  CHECK THIS IN AM
 #'
 #' Title
 #'
@@ -270,16 +270,16 @@ STANconfusionRates<-function(par_post, par_vals, par='beta', threshold=0.90) {
   # False Positive Rate
   false_pos = sum((ests$effect != 'negative' & ests$post_mass == 'negative')|
                     (ests$effect != 'positive' & ests$post_mass == 'positive'))/
-    sum(ests$post_mass != 'zero')
+    sum(ests$effect == 'zero')
 
   # True Negative Rate
   true_neg = sum(ests$effect == 'zero' & ests$post_mass == 'zero')/
-    sum(ests$post_mass == 'zero')
+    sum(ests$effect == 'zero')
 
   # False Negative Rate
   false_neg = sum((ests$effect == 'negative' & ests$post_mass != 'negative')|
                     (ests$effect == 'positive' & ests$post_mass != 'positive'))/
-    sum(ests$post_mass == 'zero')
+    sum(ests$effect != 'zero')
 
   TFP <- data.frame(TPR = true_pos,
                     TNR = true_neg,
@@ -290,7 +290,6 @@ STANconfusionRates<-function(par_post, par_vals, par='beta', threshold=0.90) {
   return( TFP )
 
 }
-
 
 
 #trials
@@ -306,8 +305,7 @@ STANpredlist=lapply(STANmodlist,FUN=function(x) STANgetpredict(x)) # get STAN pr
 STANy=lapply(ts1test,"[",,1)
 
 STANbetalist=lapply(STANmodlist, FUN=function(x) STANbetapost(x)) # get summary of stan predictions for beta
-#ts_betas=lapply(ts1....)  # How do I extract the beta values from the timeseries list?
-
+# ts_betas=lapply(ts1....)  # How do I extract the beta values from the timeseries list?
 
 RMSESTANlistraw=mapply(function(x,y) RMSE_bayes(x,y),STANy,STANpredlist) # get RMSE STAN
 RMSESTANlist=colMeans(RMSESTANlistraw)
@@ -318,7 +316,7 @@ mean(AICconfusion[1,])# TPR is 0.992
 mean(AICconfusion[2,])# TNR is 0.498
 
 STANconfusion=mapply(function(x,y) STANconfusionRates(x,y), STANbetalist, ts_betas) #returns a matrix of false pos, false neg,
-## NB: currently just using Alice C's function here; mine would have been almost identical/ I wouldn't have changed much so it doesn't make sense to me to duplicate it
+## NB: this is VERY close to Alice C's function, not 100% sure it's the best fit for what we want here.
 
 hist(RMSESTANlist,xlim=c(0,2.5),ylim=c(0,50),breaks=seq(0,2.5,by=0.1),xlab="RMSE",main="RMSE using horseshoe priors")
 hist(RMSEAIClist,xlim=c(0,2.5),ylim=c(0,50),breaks=seq(0,2.5,by=0.1),xlab="RMSE",main="RMSE using stepwise AIC")
