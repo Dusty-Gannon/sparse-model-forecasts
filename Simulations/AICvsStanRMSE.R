@@ -281,21 +281,14 @@ STANconfusionRates<-function(par_post, par_vals, par='beta', threshold=0.90) {
                     (ests$effect == 'positive' & ests$post_mass != 'positive'))/
     sum(ests$effect != 'zero')
 
-  # This is nice for one dataset, but not when running for a list of datasets (can't summarize easily)
-  # TFP <- data.frame(TPR = true_pos,
-  #                   TNR = true_neg,
-  #                   FPR = false_pos,
-  #                   FNR = false_neg) %>%
-  #   rename_with(function(x) paste0(par, '_', x))
-  #
-  # return( TFP )
 
-  TPR = true_pos
-  TNR = true_neg
-  FPR = false_pos
-  FNR = false_neg
+  TFP <- data.frame(TPR = true_pos,
+                    TNR = true_neg,
+                    FPR = false_pos,
+                    FNR = false_neg) %>%
+    rename_with(function(x) paste0(par, '_', x))
 
-  return(c(TPR, TNR, FPR, FNR))
+  return( TFP )
 
 }
 
@@ -325,10 +318,10 @@ mean(AICconfusion[2,])# TNR is 0.498
 
 STANconfusion=mapply(function(x,y) STANconfusionRates(x,y), STANbetalist, ts_betas)#returns a matrix of TPR, TNR, FPR, FNR (redundant but so I could check myself)
 
-TPR_beta <- mean(STANconfusion[1,])   # 0.759
-TNR_beta <- mean(STANconfusion[2,])   # 0.946
-FPR_beta <- mean(STANconfusion[3,])   # 0.054
-FNR_beta <- mean(STANconfusion[4,])   # 0.241
+TPR_beta <- mean(unlist(STANconfusion[1,]))   # 0.759
+TNR_beta <- mean(unlist(STANconfusion[2,]))   # 0.946
+FPR_beta <- mean(unlist(STANconfusion[3,]))   # 0.054
+FNR_beta <- mean(unlist(STANconfusion[4,]))   # 0.241
 
 hist(RMSESTANlist,xlim=c(0,2.5),ylim=c(0,50),breaks=seq(0,2.5,by=0.1),xlab="RMSE",main="RMSE using horseshoe priors")
 hist(RMSEAIClist,xlim=c(0,2.5),ylim=c(0,50),breaks=seq(0,2.5,by=0.1),xlab="RMSE",main="RMSE using stepwise AIC")
