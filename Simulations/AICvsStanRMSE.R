@@ -316,7 +316,7 @@ AICconfusion=mapply(function(x,y) AICconfusionRates(x,y),ts1,AICmodlist)
 mean(AICconfusion[1,])# TPR is 0.992
 mean(AICconfusion[2,])# TNR is 0.498
 
-STANconfusion=mapply(function(x,y) STANconfusionRates(x,y), STANbetalist, ts_betas)#returns a matrix of TPR, TNR, FPR, FNR (redundant but added so I could check myself)
+STANconfusion=mapply(function(x,y) STANconfusionRates(x,y), STANbetalist, ts_betas) #returns a matrix of TPR, TNR, FPR, FNR (redundant but added so I could check myself)
 
 
 TPR_STANbeta <- mean(unlist(STANconfusion[1,]))   # 0.759
