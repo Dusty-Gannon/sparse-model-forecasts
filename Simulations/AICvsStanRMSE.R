@@ -318,10 +318,12 @@ mean(AICconfusion[2,])# TNR is 0.498
 
 STANconfusion=mapply(function(x,y) STANconfusionRates(x,y), STANbetalist, ts_betas)#returns a matrix of TPR, TNR, FPR, FNR (redundant but so I could check myself)
 
+
 TPR_STANbeta <- mean(unlist(STANconfusion[1,]))   # 0.759
 TNR_STANbeta <- mean(unlist(STANconfusion[2,]))   # 0.946
 FPR_STANbeta <- mean(unlist(STANconfusion[3,]))   # 0.054
 FNR_STANbeta <- mean(unlist(STANconfusion[4,]))   # 0.241
+
 
 hist(RMSESTANlist,xlim=c(0,2.5),ylim=c(0,50),breaks=seq(0,2.5,by=0.1),xlab="RMSE",main="RMSE using horseshoe priors")
 hist(RMSEAIClist,xlim=c(0,2.5),ylim=c(0,50),breaks=seq(0,2.5,by=0.1),xlab="RMSE",main="RMSE using stepwise AIC")
