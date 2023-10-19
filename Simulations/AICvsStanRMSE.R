@@ -281,13 +281,21 @@ STANconfusionRates<-function(par_post, par_vals, par='beta', threshold=0.90) {
                     (ests$effect == 'positive' & ests$post_mass != 'positive'))/
     sum(ests$effect != 'zero')
 
-  TFP <- data.frame(TPR = true_pos,
-                    TNR = true_neg,
-                    FPR = false_pos,
-                    FNR = false_neg) %>%
-    rename_with(function(x) paste0(par, '_', x))
+  # This is nice for one dataset, but not when running for a list of datasets (can't summarize easily)
+  # TFP <- data.frame(TPR = true_pos,
+  #                   TNR = true_neg,
+  #                   FPR = false_pos,
+  #                   FNR = false_neg) %>%
+  #   rename_with(function(x) paste0(par, '_', x))
+  #
+  # return( TFP )
 
-  return( TFP )
+  TPR = true_pos
+  TNR = true_neg
+  FPR = false_pos
+  FNR = false_neg
+
+  return(c(TPR, TNR, FPR, FNR))
 
 }
 
@@ -305,7 +313,7 @@ STANpredlist=lapply(STANmodlist,FUN=function(x) STANgetpredict(x)) # get STAN pr
 STANy=lapply(ts1test,"[",,1)
 
 STANbetalist=lapply(STANmodlist, FUN=function(x) STANbetapost(x)) # get summary of stan predictions for beta
-# ts_betas=lapply(ts1....)  # How do I extract the beta values from the timeseries list?
+ts_betas=lapply(ts1, FUN=function(x) x$beta[2:51])  # removing the beta[1], 0 in all cases, so there are 50 ts_betas to match the 50 modeled betas
 
 RMSESTANlistraw=mapply(function(x,y) RMSE_bayes(x,y),STANy,STANpredlist) # get RMSE STAN
 RMSESTANlist=colMeans(RMSESTANlistraw)
@@ -315,8 +323,12 @@ AICconfusion=mapply(function(x,y) AICconfusionRates(x,y),ts1,AICmodlist)
 mean(AICconfusion[1,])# TPR is 0.992
 mean(AICconfusion[2,])# TNR is 0.498
 
-STANconfusion=mapply(function(x,y) STANconfusionRates(x,y), STANbetalist, ts_betas) #returns a matrix of false pos, false neg,
-## NB: this is VERY close to Alice C's function, not 100% sure it's the best fit for what we want here.
+STANconfusion=mapply(function(x,y) STANconfusionRates(x,y), STANbetalist, ts_betas)#returns a matrix of TPR, TNR, FPR, FNR (redundant but so I could check myself)
+
+TPR_beta <- mean(STANconfusion[1,])   # 0.759
+TNR_beta <- mean(STANconfusion[2,])   # 0.946
+FPR_beta <- mean(STANconfusion[3,])   # 0.054
+FNR_beta <- mean(STANconfusion[4,])   # 0.241
 
 hist(RMSESTANlist,xlim=c(0,2.5),ylim=c(0,50),breaks=seq(0,2.5,by=0.1),xlab="RMSE",main="RMSE using horseshoe priors")
 hist(RMSEAIClist,xlim=c(0,2.5),ylim=c(0,50),breaks=seq(0,2.5,by=0.1),xlab="RMSE",main="RMSE using stepwise AIC")
