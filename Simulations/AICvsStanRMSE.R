@@ -7,6 +7,7 @@
 #
 # Plot and compare
 
+library(dplyr)
 library(MASS)
 library(rstan)
 library(here)
@@ -173,12 +174,12 @@ STANselect<-function(dataSet,testSet,m0=5,K=50,n=100,nfit=60,slab_scl=1,slab_df=
     P0=1, # for intercept
     P=K, # number of covariates
     y=dataSet$y,
-    X=dataSet[,2:51],
+    X=dataSet[,2:(K+1)],
     tau0=tau_0,
     slab_scl=slab_scl,
     slab_df=slab_df,
     N_new=n-nfit,
-    X_new=testSet[,2:51]
+    X_new=testSet[,2:(K+1)]
   )
 
   # sample the posterior
@@ -312,43 +313,4 @@ STANconfusionRates<-function(par_post, par_vals, par='beta', threshold=0.90) {
   return( TFP )
 
 }
-
-
-#trials
-start=Sys.time()
-ts1=getTS(100) # make timeseries
-ts1clean=lapply(ts1,FUN=function(x) cleanTS(x)) # clean them
-ts1test=lapply(ts1clean,FUN=function(x) splitTS(x,set="test")) #testing set
-ts1train=lapply(ts1clean,FUN=function(x) splitTS(x,set="train")) #training set
-AICmodlist=lapply(ts1train,FUN=function(x) AICselect(x)) # do model selection AIC
-RMSEAIClist=mapply(function(x,y) RMSE_AIC(x,y), AICmodlist,ts1test) # get RMSE AIC
-STANmodlist=mapply(function(x,y) STANselect(x,y,nfit=60),ts1train,ts1test) # do model selection STAN
-STANpredlist=lapply(STANmodlist,FUN=function(x) STANgetpredict(x)) # get STAN predictions for y
-STANy=lapply(ts1test,"[",,1)
-
-STANbetalist=lapply(STANmodlist, FUN=function(x) STANbetapost(x)) # get summary of stan predictions for beta
-ts_betas=lapply(ts1, FUN=function(x) x$beta[2:51])  # removing the beta[1], 0 in all cases, so there are 50 ts_betas to match the 50 modeled betas
-
-RMSESTANlistraw=mapply(function(x,y) RMSE_bayes(x,y),STANy,STANpredlist) # get RMSE STAN
-RMSESTANlist=colMeans(RMSESTANlistraw)
-Sys.time()-start
-
-AICconfusion=mapply(function(x,y) AICconfusionRates(x,y),ts1,AICmodlist)
-mean(AICconfusion[1,])# TPR is 0.992
-mean(AICconfusion[2,])# TNR is 0.498
-
-STANconfusion=mapply(function(x,y) STANconfusionRates(x,y), STANbetalist, ts_betas) #returns a matrix of TPR, TNR, FPR, FNR (redundant but added so I could check myself)
-
-
-TPR_STANbeta <- mean(unlist(STANconfusion[1,]))   # 0.759
-TNR_STANbeta <- mean(unlist(STANconfusion[2,]))   # 0.946
-FPR_STANbeta <- mean(unlist(STANconfusion[3,]))   # 0.054
-FNR_STANbeta <- mean(unlist(STANconfusion[4,]))   # 0.241
-
-
-hist(RMSESTANlist,xlim=c(0,2.5),ylim=c(0,50),breaks=seq(0,2.5,by=0.1),xlab="RMSE",main="RMSE using horseshoe priors")
-hist(RMSEAIClist,xlim=c(0,2.5),ylim=c(0,50),breaks=seq(0,2.5,by=0.1),xlab="RMSE",main="RMSE using stepwise AIC")
-
-mean(RMSESTANlist)
-mean(RMSEAIClist)
 
