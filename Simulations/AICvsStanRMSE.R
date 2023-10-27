@@ -84,6 +84,13 @@ AICconfusionRates<-function(timeseries,model,strongCutoff=0.3){
 #' @param numTrials number of timeseries that you want
 #' @param n length of timeseries
 #' @param K number of betas/covariates
+#' @param num_strong number of strong predictors
+#' @param prob_cycle probability of a covariate having a yearly cycle
+#' @param trend_fraction probability of a covariate having a trend
+#' @param freq frequency of observations per time step
+#' @param sigma Standard deviation of the noise component
+#' @param correlated Logical value giving whether correlated covariates should be used
+#' @param rateCorr Amount of correlation to use, making the rate parameter smaller increases the possible cov values
 #'
 #' @return list of numTrials timeseries of length n
 #' @export
@@ -119,6 +126,7 @@ cleanTS<-function(ts){
 #' @param tsclean cleaned time series with y in column 1 and x in the other columns
 #' @param set either "test" or "train"
 #' @param nfit the number of observations to be used to fit the model (to train the data)
+#' @param n full length of time series
 #'
 #' @return the testing or training set you requested
 #' @export
@@ -182,6 +190,19 @@ STANselect<-function(dataSet,testSet,m0=5,K=50,n=100,nfit=60,slab_scl=1,slab_df=
   )
 
   return(mfit_FHScompare)
+}
+
+#' Title
+#'
+#' @param model model fit from stan
+#'
+#' @return the predictions the model made for the testing data
+#' @export
+#'
+#' @examples
+STANgetpredict=function(model){
+  predictionInfo=rstan::extract(model, pars = "y_pred")$y_pred
+  return(predictionInfo)
 }
 
 

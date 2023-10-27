@@ -15,6 +15,8 @@
 #' @param num_strong Number of strong drivers
 #' @param prob_cycle Probability that a driver experiences a seasonal cycle.
 #' @param sigma Standard deviation of the noise component.
+#' @param correlated Whether or not to generate correlated covariates
+#' @param rateCorr magnitude of correlation between covariates
 #'
 #' @return List with the response, \code{y}, the model matrix, \code{X},
 #' and the regression coefficients used to construct the response, \code{beta}.
@@ -33,7 +35,7 @@
 #'
 basic_timeseries <- function(
     K, num_strong, n, freq,
-    trend_fraction = 0.5, prob_cycle = 0.5, sigma = 0.5
+    trend_fraction = 0.5, prob_cycle = 0.5, sigma = 0.5, correlated=F, rateCorr=2
   ){
 
   # get total number of samples
