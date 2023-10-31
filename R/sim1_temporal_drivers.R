@@ -15,6 +15,8 @@
 #' @param num_strong Number of strong drivers
 #' @param prob_cycle Probability that a driver experiences a seasonal cycle.
 #' @param sigma Standard deviation of the noise component.
+#' @param correlated Whether or not to generate correlated covariates
+#' @param rateCorr magnitude of correlation between covariates
 #'
 #' @return List with the response, \code{y}, the model matrix, \code{X},
 #' and the regression coefficients used to construct the response, \code{beta}.
@@ -33,7 +35,7 @@
 #'
 basic_timeseries <- function(
     K, num_strong, n, freq,
-    trend_fraction = 0.5, prob_cycle = 0.5, sigma = 0.5
+    trend_fraction = 0.5, prob_cycle = 0.5, sigma = 0.5, correlated=F, rateCorr=2
   ){
 
   # get total number of samples
@@ -67,24 +69,64 @@ basic_timeseries <- function(
     replace = T
   ) * rbinom(K, size = 1, prob = prob_cycle)
 
-  # construct the variables
-  xvars <- purrr::map(
-    1:K,
-    ~ {
-      if(S[.x] > 0){
-        runif(1, max = 0.5) * cos(pi * 1:N / S[.x]) +
-        runif(1, max = 0.5) * sin(pi * 1:N / S[.x]) +
-          means[.x] + trends[.x] * 1:N / freq +
-          rnorm(N, sd = sds[.x])
-      } else {
-        rnorm(
-          N,
-          mean = means[.x] + trends[.x] * 1/N * freq,
-          sd = sds[.x]
-        )
+  # if correlated covariates are desired, build them here:
+  if(correlated){
+    # To create a covariance matrix, step one is to create an orthogonal matrix,
+    # which can be done using QR decomposition of an arbitrary matrix
+    Q <- qr.Q(qr(matrix(rnorm(K^2), nrow = K, ncol = K)))
+
+    # step two is to generate a diagonal matrix with the standard deviations
+    D <- diag(x = rgamma(K, shape = 2, rate = rateCorr)) # making the rate parameter smaller increases the possible cov values
+
+    # now use matrix multiplication to generate Sigma (covariance matrix)
+    Sigma <- t(Q) %*% D %*% Q
+
+    # to test that this is positive definite, check that all eigenvalues are positive
+    # sum(eigen(Sigma)$values < 0)
+
+    # create un-correlated matrix by using random draws
+    u=matrix(rnorm(N * K),
+             nrow = N,
+             ncol = K)
+    # then Cholesky decompose Sigma and multiply by the uncorrelated matrix
+    X_corr <- u %*% chol(Sigma)
+
+    # construct the variables
+    xvars <- purrr::map(
+      1:K,
+      ~ {
+        if(S[.x] > 0){
+          runif(1, max = 0.5) * cos(pi * 1:N / S[.x]) +
+            runif(1, max = 0.5) * sin(pi * 1:N / S[.x]) +
+            means[.x] + trends[.x] * 1:N / freq +
+            X_corr[,.x]
+        } else {
+          mean = means[.x] + trends[.x] * 1/N * freq + X_corr[,.x]
+
+        }
       }
-    }
-  )
+    )
+
+  } else {
+    # construct the variables without correlation
+    xvars <- purrr::map(
+      1:K,
+      ~ {
+        if(S[.x] > 0){
+          runif(1, max = 0.5) * cos(pi * 1:N / S[.x]) +
+            runif(1, max = 0.5) * sin(pi * 1:N / S[.x]) +
+            means[.x] + trends[.x] * 1:N / freq +
+            rnorm(N, sd = sds[.x])
+        } else {
+          rnorm(
+            N,
+            mean = means[.x] + trends[.x] * 1/N * freq,
+            sd = sds[.x]
+          )
+        }
+      }
+    )
+  }
 
   # convert to a matrix
   X <- cbind(
