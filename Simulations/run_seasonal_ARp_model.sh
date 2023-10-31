@@ -7,15 +7,15 @@
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=alice.carter@flbs.umt.edu
 #SBATCH --job-name=ARp_sim1
-#SBATCH --mem=30G
-#SBATCH --time=96:00:00
+#SBATCH --mem=50G
+#SBATCH --time=120:00:00
 #SBATCH -o slurmlogs/slurm_%A%a.out
 #SBATCH -e slurmlogs/slurm_%A%a.err
 #SBATCH --array=1-150
 
 # Set the parameter combination to use and generate names of R scripts and log file
 Rscript=fit_AR-p_seasonal_model_sims.R
-OutDir='ARp_err_sims_10_13'
+OutDir='ARp_err_sims_10_31'
 
 # Change to the relevant working directory
 mkdir /project/modelscape/analyses/sponges/Data/aquatic_sim_data/$OutDir
