@@ -8,7 +8,7 @@
 
 
 # Set the parameter combination to use and generate names of R scripts and log file
-OutDir='ARp_err_sims_9_18'
+OutDir='ARp_err_sims_10_13'
 
 module load arcc/1.0 gcc/12.2.0 r/4.2.2
 

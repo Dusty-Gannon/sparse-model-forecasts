@@ -105,7 +105,7 @@ unpack_seasonal_ARp_fits <- function(fits, model_pars){
       q0.95 = apply(fr_post, 2, quantile, probs = 0.95),
       q0.99 = apply(fr_post, 2, quantile, probs = 0.99)
     ) %>%
-      mutate(freq = as.numeric(str_match(freq, '[CS]([0-9]+)-.*')[, 2]))
+      mutate(freq = as.numeric(stringr::str_match(freq, '[CS]([0-9]+)-.*')[, 2]))
 
     phi_hat <- data.frame(
       mean = apply(phi_post, 2, mean),

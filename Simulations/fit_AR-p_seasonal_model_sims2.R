@@ -29,12 +29,15 @@ for(i in 1:(reps-1)){
   sim_df <- rbind(sim_df, s_df)
 }
 
+head(sim_df)
+write(paste('sim dataframe is ', nrow(sim_df), ' rows'))
 mods_per_node <- 9
 array_size <- nrow(sim_df)/mods_per_node
 
 ARp_beta_sims <- function(input_pars){
 
     model_pars <- simulate_seasonal_AR_p_timeseries(input_pars)
+    model_pars
     out <- fit_seasonal_ARp_models(model_pars, fit_flat = FALSE)
     sim_list <- unpack_seasonal_ARp_fits(fits = out$fits, model_pars = out$model_pars)
 
@@ -46,7 +49,10 @@ ARp_beta_sims <- function(input_pars){
 # outdir <- 'test_seasonal'; array_num <- 1; i = 1
 args <- commandArgs(trailingOnly = TRUE)
 outdir <- args[1]
+write(paste('directory = ', outdir))
+
 array_num <- as.numeric(args[2])
+write(paste('array number = ', array_num))
 
 for(i in 1:mods_per_node){
 
@@ -75,11 +81,13 @@ for(i in 1:mods_per_node){
       holdout = 100
     )
 
+    input_pars	
     sim_dat <- ARp_beta_sims(input_pars)
 
     # Save the results
     fname <- paste0("/simdat_run", mod_num, ".rds")
     fpath <- paste0("Data/aquatic_sim_data/", outdir, fname)
+    write(paste('saving to ', fpath))
     saveRDS(sim_dat, file = paste0("/project/modelscape/analyses/sponges/", fpath))
     # saveRDS(sim_dat, file =  fpath)
 
