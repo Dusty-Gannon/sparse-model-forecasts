@@ -64,7 +64,7 @@ for(i in 1:mods_per_node){
     # simulate AR-p data (will update in future to have variable inputs)
     input_pars <- list(
       n = nsteps,        # length of time series
-      sd = sigma,        # standard deviation of the innovations
+      sd = 1,            # standard deviation of the innovations
       # phi = c(0.5, 0.1), # default vector of AR terms
       n_phi = 5,
       beta_n = 5,        # number of covariates to include
