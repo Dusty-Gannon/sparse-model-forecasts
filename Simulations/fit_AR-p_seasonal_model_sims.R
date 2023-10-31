@@ -17,11 +17,11 @@ ar_err_gauss <- stan_model("Stan/AR-p_err3_Gauss_DG.stan")
 ar_err_hs <- stan_model("Stan/AR-p_err3_FHS_DG.stan")
 
 beta <- c(0, 2, 4) # how many of the important betas did you measure?
-sigmas <- c(0.5, 2, 5)
-lengths <- 365 * (1:3)
+# sigmas <- c(0.5, 2, 5)
+lengths <- 365 * (3:1)
 
-s_df <- expand.grid(beta, sigmas, lengths)
-colnames(s_df) <- c('beta', 'sigma', 'length')
+s_df <- expand.grid(beta, lengths)
+colnames(s_df) <- c('beta', 'length')
 
 reps <- 50
 sim_df <- s_df
@@ -29,7 +29,7 @@ for(i in 1:(reps-1)){
   sim_df <- rbind(sim_df, s_df)
 }
 
-mods_per_node <- 9
+mods_per_node <- 3
 array_size <- nrow(sim_df)/mods_per_node
 
 ARp_beta_sims <- function(input_pars){
@@ -64,7 +64,7 @@ for(i in 1:mods_per_node){
     # simulate AR-p data (will update in future to have variable inputs)
     input_pars <- list(
       n = nsteps,        # length of time series
-      sd = sigma,        # standard deviation of the innovations
+      sd = 1,            # standard deviation of the innovations
       # phi = c(0.5, 0.1), # default vector of AR terms
       n_phi = 5,
       beta_n = 5,        # number of covariates to include
