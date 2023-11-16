@@ -15,8 +15,9 @@
 #' @param num_strong Number of strong drivers
 #' @param prob_cycle Probability that a driver experiences a seasonal cycle.
 #' @param sigma Standard deviation of the noise component.
-#' @param correlated Whether or not to generate correlated covariates
-#' @param rateCorr magnitude of correlation between covariates
+#' @param probWeakCorr probability of a weak driver being correlated to a strong driver
+#' @param probStrongCorr probability of a strong driver being correlated to a weak driver
+#' @param corrLevel Correlation level desired between strong and weak drivers, if they are correlated
 #'
 #' @return List with the response, \code{y}, the model matrix, \code{X},
 #' and the regression coefficients used to construct the response, \code{beta}.
@@ -35,11 +36,16 @@
 #'
 basic_timeseries <- function(
     K, num_strong, n, freq,
-    trend_fraction = 0.5, prob_cycle = 0.5, sigma = 0.5, correlated=F, rateCorr=2
+    trend_fraction = 0.5, prob_cycle = 0.5, sigma = 0.5, probWeakCorr=0.2, probStrongCorr=0.5, corrLevel=0.7
   ){
 
   # get total number of samples
   N <- n * freq
+
+  # total number of drivers
+
+
+
 
   # add trends to some fraction
   trends <- c(
@@ -56,8 +62,8 @@ basic_timeseries <- function(
     (1:N) / freq
   )
 
-  # ar coefficients
-  ars <- runif(K, max = 0.8)
+  # ar coefficients (excluded from these time series)
+  # ars <- runif(K, max = 0.8)
 
   # variances
   sds <- runif(K, min = 0.3, max = 2)
@@ -69,47 +75,9 @@ basic_timeseries <- function(
     replace = T
   ) * rbinom(K, size = 1, prob = prob_cycle)
 
-  # if correlated covariates are desired, build them here:
-  if(correlated){
-    # To create a covariance matrix, step one is to create an orthogonal matrix,
-    # which can be done using QR decomposition of an arbitrary matrix
-    Q <- qr.Q(qr(matrix(rnorm(K^2), nrow = K, ncol = K)))
 
-    # step two is to generate a diagonal matrix with the standard deviations
-    D <- diag(x = rgamma(K, shape = 2, rate = rateCorr)) # making the rate parameter smaller increases the possible cov values
-
-    # now use matrix multiplication to generate Sigma (covariance matrix)
-    Sigma <- t(Q) %*% D %*% Q
-
-    # to test that this is positive definite, check that all eigenvalues are positive
-    # sum(eigen(Sigma)$values < 0)
-
-    # create un-correlated matrix by using random draws
-    u=matrix(rnorm(N * K),
-             nrow = N,
-             ncol = K)
-    # then Cholesky decompose Sigma and multiply by the uncorrelated matrix
-    X_corr <- u %*% chol(Sigma)
-
-    # construct the variables
-    xvars <- purrr::map(
-      1:K,
-      ~ {
-        if(S[.x] > 0){
-          runif(1, max = 0.5) * cos(pi * 1:N / S[.x]) +
-            runif(1, max = 0.5) * sin(pi * 1:N / S[.x]) +
-            means[.x] + trends[.x] * 1:N / freq +
-            X_corr[,.x]
-        } else {
-          mean = means[.x] + trends[.x] * 1/N * freq + X_corr[,.x]
-
-        }
-      }
-    )
-
-  } else {
-    # construct the variables without correlation
-    xvars <- purrr::map(
+  # construct the variables without correlation
+  xvars <- purrr::map(
       1:K,
       ~ {
         if(S[.x] > 0){
@@ -125,14 +93,8 @@ basic_timeseries <- function(
           )
         }
       }
-    )
-  }
-
-  # convert to a matrix
-  X <- cbind(
-    rep(1, N),
-    Reduce(cbind, xvars)
   )
+
 
   # construct beta
   k_prime <- K - num_strong # number of small effect variables
@@ -147,6 +109,69 @@ basic_timeseries <- function(
     0,
     beta[sample(1:K, size = K)]
   )
+
+  # substitute in the correlated covariates
+  # goal: we want to make some weakly explanatory drivers correlate with some strong explanatory drivers
+  # for now, weak drivers do not correlate with each other, and strong drivers do not correlate with each other
+  correlatedVariable = function(x, r){
+    r2 = r^2
+    ve = 1-r2
+    SD = sqrt(ve)
+    e  = rnorm(length(x), mean=0, sd=SD)
+    y  = r*x + e
+    return(y)
+  }
+
+  if(probWeakCorr>0 & probStrongCorr>0){
+    # remove the intercept column
+    beta0=beta[-1]
+
+    # select the strong drivers to correlate to
+    b1=which(abs(beta0)>0.5)
+    # randomly, choose if a strong driver has a correlated weak driver
+    strong1=runif(length(b1),0,1)<probStrongCorr
+    # gives the strong drivers selected to have correlated weak drivers
+    strong2=b1[strong1]
+
+
+    # select the weak drivers to correlate to
+    b2=which(abs(beta0)<=0.5)
+    # remove the first beta (zero)
+
+    # randomly, choose if a weak driver has a correlated strong driver
+    weak1=runif(length(b2),0,1)<probWeakCorr
+    # gives the weak drivers selected to have correlated strong drivers
+    weak2=b2[weak1]
+
+    # Randomly assign weak and strong drivers together
+    if(length(strong2)>0&length(weak2)>0){
+      # assign each strong driver at least one weak driver
+      strongAssign=sample(weak2, length(strong2), replace=F)
+      # calculate the new correlated variables
+      newCorrVars1=lapply(xvars[strong2],correlatedVariable,corrLevel)
+      # plug the new correlated variables in for the appropriate weak drivers
+      xvars[strongAssign]<-newCorrVars1
+
+      if(length(weak2)>length(strong2)){
+        # assign the rest of the weak ones to chosen strong ones
+        weakAssign=sample(strong2,length(weak2)-length(strong2),replace=T)
+        # calculate the new correlated variables
+        newCorrVars2=lapply(xvars[weakAssign],correlatedVariable,corrLevel)
+        # plug the new correlated variables in for the appropriate weak drivers
+        weak3=weak2[-which(weak2%in%strongAssign)]
+        xvars[weak3]=newCorrVars2
+      }
+
+    }
+
+  }
+
+  # convert to a matrix
+  X <- cbind(
+    rep(1, N),
+    Reduce(cbind, xvars)
+  )
+
 
   # construct the response
   y <- as.double(X %*% beta) + rnorm(n, sd = sigma)
