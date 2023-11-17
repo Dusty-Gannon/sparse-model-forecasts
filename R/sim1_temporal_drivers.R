@@ -145,8 +145,15 @@ basic_timeseries <- function(
 
     # Randomly assign weak and strong drivers together
     if(length(strong2)>0&length(weak2)>0){
-      # assign each strong driver at least one weak driver
-      strongAssign=sample(weak2, length(strong2), replace=F)
+
+      ### What happens if there is not at least one weak driver for each strong driver
+      if(length(weak2)<length(strong2)){
+        strongAssign=rep(weak2,length(strong2))
+      } else {
+        # assign each strong driver at least one weak driver
+        strongAssign=sample(weak2, length(strong2), replace=F)
+      }
+
       # calculate the new correlated variables
       newCorrVars1=lapply(xvars[strong2],correlatedVariable,corrLevel)
       # plug the new correlated variables in for the appropriate weak drivers
