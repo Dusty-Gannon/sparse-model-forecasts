@@ -34,5 +34,5 @@ corrLevel=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $11}
 nameID=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $12}' $config)
 
 
-Rscript Simulations/AICvsStanBatch.R numTrials n K num_strong prob_cycle trend_fraction freq sigma probWeakCorr probStrongCorr corrLevel nameID > Data/AICvsStan_data/outputCompareACP1.txt
+Rscript Simulations/AICvsStanBatch.R ${numTrials} ${n} ${K} ${num_strong} ${prob_cycle} ${trend_fraction} ${freq} ${sigma} ${probWeakCorr} ${probStrongCorr} ${corrLevel} ${nameID} > Data/AICvsStan_data/outputCompareACP1.txt
 
