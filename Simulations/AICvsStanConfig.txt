@@ -1,0 +1,5 @@
+"numTrials" "n" "K" "num_strong" "prob_cycle" "trend_fraction" "freq" "sigma" "probWeakCorr" "probStrongCorr" "corrLevel" "nameID"
+"1" "1000" "100" "50" "5" "0" "0" "1" "0.5" "0" "0" "0" "trial1"
+"2" "1000" "100" "50" "5" "0.5" "0.5" "1" "0.5" "0" "0" "0" "trial2"
+"3" "1000" "100" "50" "5" "0.5" "0.5" "1" "0.5" "0.2" "0.4" "0.4" "trial3"
+"4" "1000" "100" "50" "5" "0.5" "0.5" "1" "0.5" "0.2" "0.4" "0.8" "trial4"
