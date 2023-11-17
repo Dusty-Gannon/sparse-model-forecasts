@@ -1,5 +1,5 @@
 # AICvsStan config file prep
-
+library(here)
 
 #1. short TS, without seasons or trend
 trial1=c(1000,100,50,5,0,0,1,0.5,0,0,0.0,"ACPtrial1")
@@ -15,6 +15,8 @@ trial4=c(1000,100,50,5,0.5,0.5,1,0.5,0.2,0.4,0.8,"ACPtrial4")
 
 configx=as.data.frame(matrix(data=c(trial1,trial2,trial3,trial4),nrow=4,ncol=12,byrow=T))
 
-colnames(configx)=c("numTrials","n","K","num_strong","prob_cycle","trend_fraction","freq","sigma","probWeakCorr","probStrongCorr","corrLevel","nameID")
+configx=cbind(1:4,configx)
+
+colnames(configx)=c("ArrayTaskID","numTrials","n","K","num_strong","prob_cycle","trend_fraction","freq","sigma","probWeakCorr","probStrongCorr","corrLevel","nameID")
 
 write.table(configx,file=here("Simulations/AICvsStanConfig.txt"))
