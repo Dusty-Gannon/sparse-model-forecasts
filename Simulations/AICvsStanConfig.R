@@ -18,5 +18,6 @@ configx=as.data.frame(matrix(data=c(trial1,trial2,trial3,trial4),nrow=4,ncol=12,
 configx=cbind(1:4,configx)
 
 colnames(configx)=c("ArrayTaskID","numTrials","n","K","num_strong","prob_cycle","trend_fraction","freq","sigma","probWeakCorr","probStrongCorr","corrLevel","nameID")
+rownames(configx)=NULL
 
 write.table(configx,file=here("Simulations/AICvsStanConfig.txt"))
