@@ -8,7 +8,8 @@ source("Simulations/AICvsStanRMSE.R")
 args<-commandArgs(TRUE)
 
 
-# args= c(5, 100, 20, 5, 0.2, 0.2, 1, 0.5, T, 2, "ACP1")
+# sample arguments
+# args= c(5, 100, 20, 5, 0.2, 0.2, 1, 0.5, 0, 0, 0.7, "ACP1")
 # arguments come in as strings
 numTrials=as.numeric(args[1])
 n=as.numeric(args[2])
@@ -18,13 +19,14 @@ prob_cycle=as.numeric(args[5])
 trend_fraction=as.numeric(args[6])
 freq=as.numeric(args[7])
 sigma=as.numeric(args[8])
-correlated=as.logical(args[9])
-rateCorr=as.numeric(args[10])
-nameID=args[11]
+probWeakCorr=as.numeric(args[9])
+probStrongCorr=as.numeric(args[10])
+corrLevel=as.numeric(args[11])
+nameID=args[12]
 
 
 
-ts1=getTS(numTrials = numTrials, n = n, K = K, num_strong = num_strong,prob_cycle = prob_cycle, trend_fraction = trend_fraction,freq=freq,sigma=sigma,correlated=correlated,rateCorr=rateCorr) # make timeseries
+ts1=getTS(numTrials = numTrials, n = n, K = K, num_strong = num_strong,prob_cycle = prob_cycle, trend_fraction = trend_fraction,freq=freq,sigma=sigma,probWeakCorr=probWeakCorr,probStrongCorr=probStrongCorr,corrLevel=corrLevel) # make timeseries
 cat("we got the time series list")
 
 #trials
