@@ -18,18 +18,18 @@ ar_err_hs <- stan_model("Stan/AR-p_err3_FHS_DG.stan")
 
 beta <- c(0, 2, 4) # how many of the important betas did you measure?
 # sigmas <- c(0.5, 2, 5)
-lengths <- 365 * (3:1)
+lengths <- 365 * (3:2)
 
 s_df <- expand.grid(beta, lengths)
 colnames(s_df) <- c('beta', 'length')
 
-reps <- 50
+reps <- 100
 sim_df <- s_df
 for(i in 1:(reps-1)){
   sim_df <- rbind(sim_df, s_df)
 }
 
-mods_per_node <- 3
+mods_per_node <- 2
 array_size <- nrow(sim_df)/mods_per_node
 
 ARp_beta_sims <- function(input_pars){

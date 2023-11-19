@@ -97,10 +97,10 @@ AICconfusionRates<-function(timeseries,model,strongCutoff=0.3){
 #' @export
 #'
 #' @examples
-getTS<-function(numTrials,n=100,K=50, num_strong=5, prob_cycle=0, trend_fraction=0,freq = 1, sigma = 0.5,correlated=F,rateCorr=2){
+getTS<-function(numTrials,n=100,K=50, num_strong=5, prob_cycle=0, trend_fraction=0,freq = 1, sigma = 0.5,probWeakCorr=0,probStrongCorr=0,corrLevel=0){
   ts_AICselection <- lapply(as.list(1:numTrials),
                             FUN = function(x)
-                              basic_timeseries(K = K, num_strong = num_strong, n = n, freq = freq, prob_cycle = prob_cycle, trend_fraction = trend_fraction, sigma = sigma, correlated=correlated, rateCorr = rateCorr)
+                              basic_timeseries(K = K, num_strong = num_strong, n = n, freq = freq, prob_cycle = prob_cycle, trend_fraction = trend_fraction, sigma = sigma, probWeakCorr=probWeakCorr, probStrongCorr = probStrongCorr, corrLevel=corrLevel)
   )
   return(ts_AICselection)
 }

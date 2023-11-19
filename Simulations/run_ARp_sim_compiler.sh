@@ -3,12 +3,13 @@
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=alice.carter@flbs.umt.edu
 #SBATCH --job-name=ARp_sim_compile
+#SBATCH -o slurm_compile.out
 #SBATCH --mem=30G
 #SBATCH --time=2:00:00
 
 
 # Set the parameter combination to use and generate names of R scripts and log file
-OutDir='ARp_err_sims_9_18'
+OutDir='ARp_err_sims_10_31'
 
 module load arcc/1.0 gcc/12.2.0 r/4.2.2
 

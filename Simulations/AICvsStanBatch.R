@@ -7,7 +7,9 @@ source("Simulations/AICvsStanRMSE.R")
 # this gets the arguments from the shell script
 args<-commandArgs(TRUE)
 
-# args= c(5, 100, 20, 5, 0.2, 0.2, 1, 0.5, T, 2, "ACP1")
+
+# sample arguments
+# args= c(5, 100, 20, 5, 0.2, 0.2, 1, 0.5, 0, 0, 0.7, "ACP1")
 # arguments come in as strings
 numTrials=as.numeric(args[1])
 n=as.numeric(args[2])
@@ -17,12 +19,15 @@ prob_cycle=as.numeric(args[5])
 trend_fraction=as.numeric(args[6])
 freq=as.numeric(args[7])
 sigma=as.numeric(args[8])
-correlated=as.logical(args[9])
-rateCorr=as.numeric(args[10])
-nameID=args[11]
+probWeakCorr=as.numeric(args[9])
+probStrongCorr=as.numeric(args[10])
+corrLevel=as.numeric(args[11])
+nameID=args[12]
 
-ts1=getTS(numTrials = numTrials, n = n, K = K, num_strong = num_strong,prob_cycle = prob_cycle, trend_fraction = trend_fraction,freq=freq,sigma=sigma,correlated=correlated,rateCorr=rateCorr) # make timeseries
 
+
+ts1=getTS(numTrials = numTrials, n = n, K = K, num_strong = num_strong,prob_cycle = prob_cycle, trend_fraction = trend_fraction,freq=freq,sigma=sigma,probWeakCorr=probWeakCorr,probStrongCorr=probStrongCorr,corrLevel=corrLevel) # make timeseries
+cat("we got the time series list")
 
 #trials
 ts1clean=lapply(ts1,FUN=function(x) cleanTS(x)) # clean them
@@ -64,14 +69,14 @@ FNR_STANbeta <- mean(unlist(STANconfusion[4,]))   # 0.241
 # Save RMSESTANlist
 # Save RMSEAIClist
 saveRDS(RMSESTANlist,file=paste0("Data/AICvsStan_data/RMSESTAN_",nameID,".rds")) # customize these, allow args input?
-saveRDS(RMSEAIClist,file="Data/AICvsStan_data/RMSEAIC_",nameID,".rds")
+saveRDS(RMSEAIClist,file=paste0("Data/AICvsStan_data/RMSEAIC_",nameID,".rds"))
 
 # Save the confusion matrices
-saveRDS(AICconfusion,file="Data/AICvsStan_data/AICconfusion_",nameID,".rds")
-saveRDS(STANconfusion,file="Data/AICvsStan_data/STANconfusion_",nameID,".rds")
+saveRDS(AICconfusion,file=paste0("Data/AICvsStan_data/AICconfusion_",nameID,".rds"))
+saveRDS(STANconfusion,file=paste0("Data/AICvsStan_data/STANconfusion_",nameID,".rds"))
 
 # Save the lists of models for possible future analysis
-saveRDS(AICmodlist,file="Data/AICvsStan_data/AICmodlist_",nameID,".rds")
-saveRDS(STANmodlist,file="Data/AICvsStan_data/STANmodlist_",nameID,".rds")
+saveRDS(AICmodlist,file=paste0("Data/AICvsStan_data/AICmodlist_",nameID,".rds"))
+saveRDS(STANmodlist,file=paste0("Data/AICvsStan_data/STANmodlist_",nameID,".rds"))
 
 
