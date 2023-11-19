@@ -9,7 +9,7 @@ library(tidyverse)
 mod_cols <- c("#a52a2aff", "#33406fff")
 
 dd <- read_csv('Data/aquatic_sim_data/ARp_sims_6_01_condensed.csv')
-dd <- read_csv('Data/aquatic_sim_data/ARp_err_sims_10_13_condensed.csv')
+dd <- read_csv('Data/aquatic_sim_data/ARp_err_sims_10_31_condensed.csv')
 
 dd <- dd %>%
   mutate(siglab = factor(paste0('sigma = ', sigma),
@@ -32,13 +32,13 @@ png('Manuscript/Figures/ARp_err_model_convergence.png',
     width = 8, height = 5, units = 'in', res = 300)
   left_join(con_runs, total_runs) %>%
     mutate(converged_runs = runs/total_runs,
-           Sigma = factor(sigma)) %>%
-    ggplot(aes(n, converged_runs, col = model, lty = Sigma)) +
+           N_betas = factor(betas)) %>%
+    ggplot(aes(n, converged_runs, col = model, lty = N_betas)) +
     geom_line(size = 0.9) +
     scale_color_manual('Prior', values = mod_cols) +
     theme_classic() +
-    theme(legend.position = c(0.75, 0.25),
-          legend.box = 'horizontal')+
+    # theme(legend.position = c(0.75, 0.25),
+    #       legend.box = 'horizontal')+
     # xlim(60,150)+
     ylab('Percent convergence') +
     xlab('Time series length')
@@ -53,15 +53,15 @@ for(i in 1:nrow(total_runs)){
   tmp <- dd %>%
     filter(divergent_trans <= divergent_trans_cap,
            n == total_runs$n[i],
-           sigma == total_runs$sigma[i],
+           betas == total_runs$betas[i],
            model == total_runs$model[i])
-  # rows <- sample(1:nrow(tmp), min_size, replace = TRUE)
-  rows <- sample(1:nrow(tmp), min_size, replace = FALSE)
+  rows <- sample(1:nrow(tmp), min_size, replace = TRUE)
+  # rows <- sample(1:nrow(tmp), min_size, replace = FALSE)
 
   dat <- bind_rows(dat, tmp[rows,])
 }
 
-dat <- filter(dd, divergent_trans <= divergent_trans_cap)
+# dat <- filter(dd, divergent_trans <= divergent_trans_cap)
 
 # dd -> dat
 # Plot model results:
@@ -145,14 +145,16 @@ dummy_plot <- ggplot(dummy_df, aes(Model, y, fill = Model)) +
 # dev.off()
 
 dat %>%
-  pivot_longer(cols = starts_with(c('beta', 'phi')),
+  select(-sigma, -siglab, -prior) %>%
+  pivot_longer(cols = starts_with(c('beta_', 'phi_')),
                values_to = 'value',
                names_to = c('parameter', 'rate'),
                names_pattern = '(beta|phi)_([a-z_]+$)') %>%
   pivot_wider(values_from = 'value', names_from = 'rate') %>%
 ggplot(aes(n, true_pos, col = model)) +
   geom_point() +
-  facet_grid(siglab~parameter) +
+  geom_line() +
+  facet_grid(betas~parameter) +
   scale_color_manual(values = mod_cols) +
   theme_bw()
 
@@ -265,7 +267,7 @@ ggpubr::ggarrange(tpr, frmse, common.legend = TRUE,
                   nrow = 2, align = 'v', heights = c(2,1))
 
 dat %>%
-  group_by(n, model) %>%
+  group_by(n, model, betas) %>%
   summarize(true_se = sd(fr_true_pos),
             false_se = sd(fr_false_pos),
             true_pos = mean(fr_true_pos),
@@ -278,15 +280,10 @@ dat %>%
   mutate(Rate = factor(TF, levels = c('true', 'false')))%>%
   ggplot(aes(n, pos, col = model, lty = Rate))+
   geom_line()+
-  labs(x = 'timeseries length',
-       y = 'positive detection rate')+
-  # geom_ribbon(aes(ymin = pos - se,
-  #                   ymax = pos + se, fill = model), alpha = 0.2, col = NA)+
-  # geom_line(aes(y = fr_false_pos), lty = 2)+
-  # geom_errorbar(aes(ymin = fr_false_pos - fr_false_se,
-  #                   ymax = fr_false_pos + fr_false_se))+
+  labs(x = 'Time series length',
+       y = 'Detection rate')+
   scale_color_manual('Prior', values = mod_cols) +
-  # scale_linetype_manual('Prior', values = c(1,2)) +
+  facet_wrap(.~betas)+
   theme_classic()
 
 dat %>%

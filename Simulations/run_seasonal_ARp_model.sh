@@ -11,7 +11,7 @@
 #SBATCH --time=168:00:00
 #SBATCH -o slurmlogs/slurm_%A%a.out
 #SBATCH -e slurmlogs/slurm_%A%a.err
-#SBATCH --array=1-300
+#SBATCH --array=1
 
 # Set the parameter combination to use and generate names of R scripts and log file
 Rscript=fit_AR-p_seasonal_model_sims.R
