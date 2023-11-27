@@ -2,18 +2,18 @@
 library(here)
 
 #1. short TS, without seasons or trend
-trial1=c(1000,100,50,5,0,0,1,0.5,0,0,0.0)
+trial1=c(100,100,50,5,0,0,1,0.5,0,0,0.0)
 
 #2. with seasons and trend
-trial2=c(1000,100,50,5,0.5,0.5,1,0.5,0,0,0.0)
+trial2=c(100,100,50,5,0.5,0.5,1,0.5,0,0,0.0)
 
 #3. with seasons and trend and medium correlation
-trial3=c(1000,100,50,5,0.5,0.5,1,0.5,0.2,0.4,0.4)
+trial3=c(100,100,50,5,0.5,0.5,1,0.5,0.2,0.4,0.4)
 
 #4. with season and trend and larger correlation
-trial4=c(1000,100,50,5,0.5,0.5,1,0.5,0.2,0.4,0.8)
+trial4=c(100,100,50,5,0.5,0.5,1,0.5,0.2,0.4,0.8)
 
-configx=as.data.frame(matrix(data=c(trial1,trial2,trial3,trial4),nrow=4,ncol=11,byrow=T))
+configx=as.data.frame(matrix(data=c(rep(trial1,10),rep(trial2,10),rep(trial3,10),rep(trial4,10)),nrow=40,ncol=11,byrow=T))
 
 configx=cbind(1:4,configx)
 
