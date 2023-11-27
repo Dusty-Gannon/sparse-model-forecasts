@@ -15,9 +15,9 @@ trial4=c(100,100,50,5,0.5,0.5,1,0.5,0.2,0.4,0.8)
 
 configx=as.data.frame(matrix(data=c(rep(trial1,10),rep(trial2,10),rep(trial3,10),rep(trial4,10)),nrow=40,ncol=11,byrow=T))
 
-configx=cbind(1:4,configx)
+configx=cbind(1:40,configx)
 
-configx[,13]=paste0("ACPtrial",1:4)
+configx[,13]=paste0("ACPtrial",1:40)
 
 colnames(configx)=c("ArrayTaskID","numTrials","n","K","num_strong","prob_cycle","trend_fraction","freq","sigma","probWeakCorr","probStrongCorr","corrLevel","nameID")
 rownames(configx)=NULL
