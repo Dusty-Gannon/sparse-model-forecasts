@@ -18,7 +18,9 @@ ar_err_hs <- stan_model("Stan/AR-p_err3_FHS_DG.stan")
 
 beta <- c(0, 2, 4) # how many of the important betas did you measure?
 # sigmas <- c(0.5, 2, 5)
-lengths <- 365 * c(3,3,2,2,1)
+# lengths <- 365 * c(3,3,2,2,1)
+#beta <- 2
+lengths <- 365*2
 
 s_df <- expand.grid(beta, lengths)
 colnames(s_df) <- c('beta', 'length')
@@ -31,14 +33,17 @@ for(i in 1:(reps-1)){
 
 mods_per_node <- 3
 array_size <- nrow(sim_df)/mods_per_node
+write(sim_df, stdout(), append = TRUE)
 
 ARp_beta_sims <- function(input_pars){
 
     model_pars <- simulate_seasonal_AR_p_timeseries(input_pars)
-    write('after making model pars', stderr())
-
+    write('after making model pars', stdout(), append = TRUE)
+    write(model_pars, stdout(), append = TRUE)
+		
     out <- fit_seasonal_ARp_models(model_pars, fit_flat = FALSE)
-    write('after runing models', stderr())
+    write('after runing models', stdout(), append = TRUE)
+
     sim_list <- unpack_seasonal_ARp_fits(fits = out$fits, model_pars = out$model_pars)
 
     return(sim_list)
@@ -62,7 +67,7 @@ for(i in 1:mods_per_node){
     # add new lines to error and out file identifying which model this is
     write(paste('model number = ', mod_num, ', nsteps = ', nsteps,
                 ', sigma = ', sigma, ', beta = ', beta),
-          stderr())
+          stdout(), append = TRUE)
 
     # simulate AR-p data (will update in future to have variable inputs)
     input_pars <- list(
