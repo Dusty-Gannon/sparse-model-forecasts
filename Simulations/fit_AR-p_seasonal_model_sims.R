@@ -8,7 +8,7 @@ devtools::load_all()
 #rstan_options(auto_write = TRUE)
 setwd("/project/modelscape/analyses/sponges/")
 
-set.seed(53)
+# set.seed(1)
 #### Simulate data and run regularized and non-regularized AR-p_beta models ####
 # store data inputs and model fits in a log file
 
@@ -20,32 +20,31 @@ ar_err_hs <- stan_model("Stan/AR-p_err3_FHS_DG.stan")
 beta <- c(0, 2, 4) # how many of the important betas did you measure?
 # sigmas <- c(0.5, 2, 5)
 lengths <- 365 * c(1, 2, 3)
-# lengths <- 365*2
 
 s_df <- expand.grid(lengths, beta)
 colnames(s_df) <- c('length', 'beta')
 
-sim_df <- s_df
-# reps <- 100
-# for(i in 1:(reps-1)){
-#   sim_df <- rbind(sim_df, s_df)
-# }
+# sim_df <- s_df
+reps <- 200
+for(i in 1:(reps-1)){
+  sim_df <- rbind(sim_df, s_df)
+}
 
-mods_per_node <- 3
+mods_per_node <- 2
 array_size <- nrow(sim_df)/mods_per_node
 write(paste(sim_df), stdout(), append = TRUE)
 
 ARp_beta_sims <- function(input_pars){
 
     model_pars <- simulate_seasonal_AR_p_timeseries(input_pars)
-    write('after making model pars', paste('out', array_num, '.txt'), append = TRUE)
-    write(paste('phi = ', paste(model_pars$phi, collapse = ','),
-                'seasonality_missing = ', paste(model_pars$seasonality_missing, collapse = ','),
-                'beta = ', paste(model_pars$beta, collapse = ',')),
-          paste('out', array_num, '.txt'), append = TRUE)
+    # write('after making model pars', paste('out', array_num, '.txt'), append = TRUE)
+    # write(paste('phi = ', paste(model_pars$phi, collapse = ','),
+                # 'seasonality_missing = ', paste(model_pars$seasonality_missing, collapse = ','),
+                # 'beta = ', paste(model_pars$beta, collapse = ',')),
+          # paste('out', array_num, '.txt'), append = TRUE)
 
     out <- fit_seasonal_ARp_models(model_pars, fit_flat = FALSE)
-    write('after runing models', paste('out', array_num, '.txt'), append = TRUE)
+    # write('after runing models', paste('out', array_num, '.txt'), append = TRUE)
 
     sim_list <- unpack_seasonal_ARp_fits(fits = out$fits, model_pars = out$model_pars)
 
@@ -72,7 +71,7 @@ for(i in 1:mods_per_node){
                 ', sigma = ', sigma, ', beta = ', beta),
           paste('out', array_num, '.txt'), append = TRUE)
 
-    # simulate AR-p data (will update in future to have variable inputs)
+    # simulate AR-p data
     input_pars <- list(
       n = nsteps,        # length of time series
       sd = 1,            # standard deviation of the innovations
