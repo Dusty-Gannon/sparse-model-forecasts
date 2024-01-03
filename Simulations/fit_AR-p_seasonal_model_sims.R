@@ -38,14 +38,14 @@ write(paste(sim_df), stdout(), append = TRUE)
 ARp_beta_sims <- function(input_pars){
 
     model_pars <- simulate_seasonal_AR_p_timeseries(input_pars)
-    write('after making model pars', paste('out', array_num, '.txt'), append = TRUE)
+    write('after making model pars', paste0('/project/modelscape/analyses/sponges/Simulations/slurmlogs/out', array_num, '.txt'), append = TRUE)
     write(paste('phi = ', paste(model_pars$phi, collapse = ','),
                 'seasonality_missing = ', paste(model_pars$seasonality_missing, collapse = ','),
                 'beta = ', paste(model_pars$beta, collapse = ',')),
-          paste('out', array_num, '.txt'), append = TRUE)
+          paste0('/project/modelscape/analyses/sponges/Simulations/slurmlogs/out', array_num, '.txt'), append = TRUE)
 
     out <- fit_seasonal_ARp_models(model_pars, fit_flat = FALSE)
-    write('after runing models', paste('out', array_num, '.txt'), append = TRUE)
+    write('after runing models', paste0('/project/modelscape/analyses/sponges/Simulations/slurmlogs/out', array_num, '.txt'), append = TRUE)
 
     sim_list <- unpack_seasonal_ARp_fits(fits = out$fits, model_pars = out$model_pars)
 
@@ -70,7 +70,7 @@ for(i in 1:mods_per_node){
     # add new lines to error and out file identifying which model this is
     write(paste('model number = ', mod_num, ', nsteps = ', nsteps,
                 ', sigma = ', sigma, ', beta = ', beta),
-          paste('out', array_num, '.txt'), append = TRUE)
+          paste0('/project/modelscape/analyses/sponges/Simulations/slurmlogs/out', array_num, '.txt'), append = TRUE)
 
     # simulate AR-p data (will update in future to have variable inputs)
     input_pars <- list(
