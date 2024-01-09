@@ -22,4 +22,4 @@ configx[,13]=paste0("ACPtrial",1:40)
 colnames(configx)=c("ArrayTaskID","numTrials","n","K","num_strong","prob_cycle","trend_fraction","freq","sigma","probWeakCorr","probStrongCorr","corrLevel","nameID")
 rownames(configx)=NULL
 
-write.table(configx,file=here("Simulations/AICvsStanConfig.txt"),row.names = F)
+write.table(configx,file=here("Simulations/AICvsStanConfig.txt"),row.names = F,quote=F)
