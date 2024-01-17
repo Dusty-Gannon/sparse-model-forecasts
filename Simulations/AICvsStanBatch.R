@@ -76,7 +76,7 @@ saveRDS(AICconfusion,file=paste0("Data/AICvsStan_data/AICconfusion_",nameID,".rd
 saveRDS(STANconfusion,file=paste0("Data/AICvsStan_data/STANconfusion_",nameID,".rds"))
 
 # Save the lists of models for possible future analysis
-saveRDS(AICmodlist,file=paste0("Data/AICvsStan_data/AICmodlist_",nameID,".rds"))
-saveRDS(STANmodlist,file=paste0("Data/AICvsStan_data/STANmodlist_",nameID,".rds"))
+# saveRDS(AICmodlist,file=paste0("Data/AICvsStan_data/AICmodlist_",nameID,".rds"))
+# saveRDS(STANmodlist,file=paste0("Data/AICvsStan_data/STANmodlist_",nameID,".rds"))
 
 
