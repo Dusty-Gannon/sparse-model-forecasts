@@ -8,13 +8,12 @@ library(tidyverse)
 
 mod_cols <- c("#a52a2aff", "#33406fff")
 
-dd <- read_csv('Data/aquatic_sim_data/ARp_sims_6_01_condensed.csv')
 dd <- read_csv('Data/aquatic_sim_data/ARp_err_sims_10_31_condensed.csv')
+dd <- read_csv('Data/aquatic_sim_data/ARp_err_sims_01_03_condensed.csv') %>%
+  bind_rows(dd)
 
 dd <- dd %>%
-  mutate(siglab = factor(paste0('sigma = ', sigma),
-                         levels = c('sigma = 0.5', 'sigma = 2', 'sigma = 5')),
-         prior = case_when(model == 'not_reg' ~ 'Gaussian',
+  mutate(prior = case_when(model == 'not_reg' ~ 'Gaussian',
                            model == 'reg' ~ 'Horseshoe'))
 
 divergent_trans_cap <- 20
@@ -145,7 +144,7 @@ dummy_plot <- ggplot(dummy_df, aes(Model, y, fill = Model)) +
 # dev.off()
 
 dat %>%
-  select(-sigma, -siglab, -prior) %>%
+  select(-sigma, -prior) %>%
   pivot_longer(cols = starts_with(c('beta_', 'phi_')),
                values_to = 'value',
                names_to = c('parameter', 'rate'),
@@ -277,13 +276,18 @@ dat %>%
                names_to = c('TF', 'val'),
                names_sep = '_', values_to = 'percent') %>%
   pivot_wider(values_from = 'percent', names_from = 'val') %>%
-  mutate(Rate = factor(TF, levels = c('true', 'false')))%>%
-  ggplot(aes(n, pos, col = model, lty = Rate))+
-  geom_line()+
+  mutate(Rate = case_when(TF == 'true' ~ 'true pos',
+                          TF == 'false' ~ 'false pos'),
+         Rate = factor(Rate, levels = c('true pos', 'false pos')))%>%
+  ggplot(aes(n, pos, col = model))+
+  geom_line(size = 1.2)+
+  geom_ribbon(aes(ymin = pos - se, ymax = pos + se, fill = model),
+              col = NA, alpha = 0.2)+
   labs(x = 'Time series length',
        y = 'Detection rate')+
   scale_color_manual('Prior', values = mod_cols) +
-  facet_wrap(.~betas)+
+  scale_fill_manual('Prior', values = mod_cols) +
+  facet_grid(Rate~betas, scales = 'free_y')+
   theme_classic()
 
 dat %>%
@@ -306,4 +310,7 @@ dat %>%
   ggplot(aes(factor(n), rmse_forecast, fill = model))+
   geom_boxplot(alpha = 0.5) +
   scale_fill_manual('Prior', values = mod_cols) +
-  scale_y_log10()
+  # scale_y_log10()+
+  labs(y = 'Forecast RMSE', x = 'timeseries length')+
+  ylim(2,12)+
+  theme_classic()
