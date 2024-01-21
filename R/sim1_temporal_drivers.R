@@ -113,13 +113,23 @@ basic_timeseries <- function(
   # substitute in the correlated covariates
   # goal: we want to make some weakly explanatory drivers correlate with some strong explanatory drivers
   # for now, weak drivers do not correlate with each other, and strong drivers do not correlate with each other
-  correlatedVariable = function(x, r){
+  correlatedVariable = function(x1, r){
+
+    m1=mean(x1)
+    sd1=sd(x1)
+
+    x=(x1-m1)/sd1
+
     r2 = r^2
     ve = 1-r2
     SD = sqrt(ve)
     e  = rnorm(length(x), mean=0, sd=SD)
     y  = r*x + e
-    return(y)
+
+    y1=y*sd1+m1
+
+    x=(x-m1)/sd1
+    return(y1)
   }
 
   if(probWeakCorr>0 & probStrongCorr>0){
