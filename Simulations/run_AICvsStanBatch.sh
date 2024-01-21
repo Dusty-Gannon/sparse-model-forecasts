@@ -11,7 +11,7 @@
 #SBATCH --mail-user=apatte12@uwyo.edu
 ### enter any job name that you prefer
 #SBATCH --job-name=AICvsSTANfull
-#SBATCH --array=1-4
+#SBATCH --array=1-40
 
 
 module load arcc/1.0 gcc/12.2.0 r/4.2.2
@@ -34,5 +34,5 @@ corrLevel=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $12}
 nameID=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $13}' $config)
 
 
-Rscript Simulations/AICvsStanBatch.R ${numTrials} ${n} ${K} ${num_strong} ${prob_cycle} ${trend_fraction} ${freq} ${sigma} ${probWeakCorr} ${probStrongCorr} ${corrLevel} ${nameID} > Data/AICvsStan_data/outputCompareACP1.txt
+Rscript Simulations/AICvsStanBatch.R ${numTrials} ${n} ${K} ${num_strong} ${prob_cycle} ${trend_fraction} ${freq} ${sigma} ${probWeakCorr} ${probStrongCorr} ${corrLevel} ${nameID} > Data/AICvsStan_data/outputCompareACP1_${nameID}.txt
 
