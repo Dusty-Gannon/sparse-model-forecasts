@@ -9,8 +9,9 @@ args<-commandArgs(TRUE)
 
 
 # sample arguments
-# args= c(5, 100, 20, 5, 0.2, 0.2, 1, 0.5, 0, 0, 0.7, "ACP1")
+# args= c(50, 100, 50, 5, 0.2, 0.2, 1, 0.5, 0.9, 0.9, 0.9, "ACP1")
 # arguments come in as strings
+#args= c(50, 100, 50, 5, 0.2, 0.2, 1, 0.5, 0.9, 0.2, 0.9, "ACP1")
 numTrials=as.numeric(args[1])
 n=as.numeric(args[2])
 K=as.numeric(args[3])
@@ -24,10 +25,12 @@ probStrongCorr=as.numeric(args[10])
 corrLevel=as.numeric(args[11])
 nameID=args[12]
 
-
-
 ts1=getTS(numTrials = numTrials, n = n, K = K, num_strong = num_strong,prob_cycle = prob_cycle, trend_fraction = trend_fraction,freq=freq,sigma=sigma,probWeakCorr=probWeakCorr,probStrongCorr=probStrongCorr,corrLevel=corrLevel) # make timeseries
 cat("we got the time series list")
+
+# exploring distribution of correlations
+#length(which(cor(ts1[[1]]$X)>0.7))/length(cor(ts1[[1]]$X))
+#hist(cor(ts1[[1]]$X))
 
 #trials
 ts1clean=lapply(ts1,FUN=function(x) cleanTS(x)) # clean them

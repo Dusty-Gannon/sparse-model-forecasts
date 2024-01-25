@@ -36,7 +36,7 @@
 #'
 basic_timeseries <- function(
     K, num_strong, n, freq,
-    trend_fraction = 0.5, prob_cycle = 0.5, sigma = 0.5, probWeakCorr=0.2, probStrongCorr=0.5, corrLevel=0.7
+    trend_fraction = 0.5, prob_cycle = 0.5, sigma = 0.5, probWeakCorr=0.2, numStrongCorr=1, strongSelf=F, corrLevel=0.7
   ){
 
   # get total number of samples
@@ -129,20 +129,34 @@ basic_timeseries <- function(
     y1=y*sd1+m1
 
     x=(x-m1)/sd1
-    return(y1)
+    mult1=sample(c(-1,1),1)
+    return(y1*mult1)
   }
 
-  if(probWeakCorr>0 & probStrongCorr>0){
+  if(probWeakCorr>0 & numStrongCorr>0){
     # remove the intercept column
     beta0=beta[-1]
+
+    # check if numStrongCorr is above numstrong
+    if(numStrongCorr>num_strong){
+      numStrongCorr=num_strong
+    }
 
     # select the strong drivers to correlate to
     b1=which(abs(beta0)>0.5)
     # randomly, choose if a strong driver has a correlated weak driver
-    strong1=runif(length(b1),0,1)<probStrongCorr
+    #strong1=runif(length(b1),0,1)<probStrongCorr
     # gives the strong drivers selected to have correlated weak drivers
-    strong2=b1[strong1]
+    #strong2=b1[strong1]
+    strong2=sample(b1,numStrongCorr)
 
+    if(strongSelf&numStrongCorr>1){
+      # correlate the strong variables to each other
+      strongMain=sample(strong2,1)
+      strongSub=strong2[-which(strong2==strongMain)]
+      newStrongVars=lapply(xvars[rep(strongMain,length(strongSub))],correlatedVariable,corrLevel)
+      xvars[strongSub]=newStrongVars
+    }
 
     # select the weak drivers to correlate to
     b2=which(abs(beta0)<=0.5)
