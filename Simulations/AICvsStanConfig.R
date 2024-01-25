@@ -1,25 +1,39 @@
 # AICvsStan config file prep
 library(here)
 
-#1. short TS, without seasons, trend, or correlation
-trial1=c(100,100,50,5,0,0,1,0.5,0,0,0.0)
 
-#2. with seasons and trend, but no correlation
-trial2=c(100,100,50,5,0.5,0.5,1,0.5,0,0,0.0)
+#numTrials,n=100,K=50, num_strong=5, prob_cycle=0, trend_fraction=0,freq = 1, sigma = 0.5,probWeakCorr=0,numStrongCorr=0,strongSelf=F,corrLevel=0
 
-#3. with season and trend and correlation
-trial3=c(100,100,50,5,0.5,0.5,1,0.5,0.2,0.4,0.8)
+# first columns
+numTrials=rep(50,36)
+n=rep(100,36)
+K=rep(50,36)
+numstrong=rep(5,36)
+prob_cycle=rep(0.5,36)
+trend_fraction=rep(0.5,36)
+freq=rep(1,36)
+sigma=rep(0.5,36)
 
+# last columns
+probWeakCorr=c(rep(0.2,12),rep(0.5,12),rep(0.8,12))
+numStrongCorr=rep(c(rep(1,6),rep(3,6)),3)
+strongSelf=rep(c(rep(T,3),rep(F,3)),6)
+corrLevel=rep(c(0.5,0.7,0.9),12)
+
+# combine them
+configx=as.data.frame(matrix(data=c(numTrials,n,K,numstrong,prob_cycle,trend_fraction,freq,sigma,probWeakCorr,numStrongCorr,strongSelf,corrLevel),nrow=36,ncol=12,byrow=F))
+configx[,11]<-as.logical(configx[,11])
 # number of trials per category
-n=50
+nx=3
 
-configx=as.data.frame(matrix(data=c(rep(trial1,n),rep(trial2,n),rep(trial3,n)),nrow=3*n,ncol=11,byrow=T))
+configx=rbind(configx,configx,configx)
 
-configx=cbind(1:(3*n),configx)
 
-configx[,13]=paste0("ACPtrial",1:(3*n))
+configx=cbind(1:(36*nx),configx)
 
-colnames(configx)=c("ArrayTaskID","numTrials","n","K","num_strong","prob_cycle","trend_fraction","freq","sigma","probWeakCorr","probStrongCorr","corrLevel","nameID")
+configx[,14]=paste0("ACPtrial",1:(36*nx))
+
+colnames(configx)=c("ArrayTaskID","numTrials","n","K","num_strong","prob_cycle","trend_fraction","freq","sigma","probWeakCorr","numStrongCorr","strongSelf","corrLevel","nameID")
 rownames(configx)=NULL
 
 write.table(configx,file=here("Simulations/AICvsStanConfig.txt"),row.names = F,quote=F)
