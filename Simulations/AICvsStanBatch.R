@@ -2,7 +2,7 @@
 source("Simulations/AICvsStanRMSE.R")
 
 # Arguments we need for the get time series function...
-# numTrials,n=100,K=50, num_strong=5, prob_cycle=0, trend_fraction=0,freq = 1, sigma = 0.5,correlated=F,rateCorr=2
+# numTrials,n=100,K=50, num_strong=5, prob_cycle=0, trend_fraction=0,freq = 1, sigma = 0.5,probWeakCorr=0,numStrongCorr=0,strongSelf=F,corrLevel=0
 
 # this gets the arguments from the shell script
 args<-commandArgs(TRUE)
@@ -21,11 +21,12 @@ trend_fraction=as.numeric(args[6])
 freq=as.numeric(args[7])
 sigma=as.numeric(args[8])
 probWeakCorr=as.numeric(args[9])
-probStrongCorr=as.numeric(args[10])
-corrLevel=as.numeric(args[11])
-nameID=args[12]
+numStrongCorr=as.numeric(args[10])
+strongSelf=as.numeric(args[11])
+corrLevel=as.numeric(args[12])
+nameID=args[13]
 
-ts1=getTS(numTrials = numTrials, n = n, K = K, num_strong = num_strong,prob_cycle = prob_cycle, trend_fraction = trend_fraction,freq=freq,sigma=sigma,probWeakCorr=probWeakCorr,probStrongCorr=probStrongCorr,corrLevel=corrLevel) # make timeseries
+ts1=getTS(numTrials = numTrials, n = n, K = K, num_strong = num_strong,prob_cycle = prob_cycle, trend_fraction = trend_fraction,freq=freq,sigma=sigma,probWeakCorr=probWeakCorr,numStrongCorr=numStrongCorr,strongSelf=strongSelf,corrLevel=corrLevel) # make timeseries
 cat("we got the time series list")
 
 # exploring distribution of correlations
