@@ -22,7 +22,7 @@ freq=as.numeric(args[7])
 sigma=as.numeric(args[8])
 probWeakCorr=as.numeric(args[9])
 numStrongCorr=as.numeric(args[10])
-strongSelf=as.numeric(args[11])
+strongSelf=as.logical(args[11])
 corrLevel=as.numeric(args[12])
 nameID=args[13]
 
