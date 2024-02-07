@@ -11,7 +11,7 @@ args<-commandArgs(TRUE)
 # sample arguments
 # args= c(50, 100, 50, 5, 0.2, 0.2, 1, 0.5, 0.9, 0.9, 0.9, "ACP1")
 # arguments come in as strings
-#args= c(50, 100, 50, 5, 0.2, 0.2, 1, 0.5, 0.9, 0.2, 0.9, "ACP1")
+args= c(50, 100, 50, 5, 0.5, 0.5, 1, 0.5, 0.2, 1, "TRUE",0.5, "ACPtrial1")
 numTrials=as.numeric(args[1])
 n=as.numeric(args[2])
 K=as.numeric(args[3])
@@ -24,9 +24,14 @@ probWeakCorr=as.numeric(args[9])
 numStrongCorr=as.numeric(args[10])
 strongSelf=as.logical(args[11])
 corrLevel=as.numeric(args[12])
-nameID=args[13]
+corrChange=as.logical(args[13])
+propChange=as.numeric(args[14])
+changeSize=as.numeric(args[15])
+changeTimeVar=as.numeric(args[16])
 
-ts1=getTS(numTrials = numTrials, n = n, K = K, num_strong = num_strong,prob_cycle = prob_cycle, trend_fraction = trend_fraction,freq=freq,sigma=sigma,probWeakCorr=probWeakCorr,numStrongCorr=numStrongCorr,strongSelf=strongSelf,corrLevel=corrLevel) # make timeseries
+nameID=args[17]
+
+ts1=getTS(numTrials = numTrials, n = n, K = K, num_strong = num_strong,prob_cycle = prob_cycle, trend_fraction = trend_fraction,freq=freq,sigma=sigma,probWeakCorr=probWeakCorr,numStrongCorr=numStrongCorr,strongSelf=strongSelf,corrLevel=corrLevel,corrChange=corrChange, propChange=propChange, changeSize=changeSize, changeTimeVar=changeTimeVar) # make timeseries
 cat("we got the time series list")
 
 # exploring distribution of correlations

@@ -15,25 +15,29 @@ freq=rep(1,36)
 sigma=rep(0.5,36)
 
 # last columns
-probWeakCorr=c(rep(0.2,12),rep(0.5,12),rep(0.8,12))
-numStrongCorr=rep(c(rep(1,6),rep(3,6)),3)
-strongSelf=rep(c(rep(T,3),rep(F,3)),6)
-corrLevel=rep(c(0.5,0.7,0.9),12)
+probWeakCorr=rep(0.2,36)
+numStrongCorr=rep(3,36)
+strongSelf=rep(T,36)
+corrLevel=rep(0.7,36)
+
+# de-correlation
+corrChange=rep(T,36)
+propChange=c(rep(0.25,12),rep(0.5,12),rep(0.75,12))
+changeSize=rep(c(rep(0.5,6),rep(0.2,6)),3)
+changeTimeVar=rep(c(rep(1,3),rep(5,3)),6)
 
 # combine them
-configx=as.data.frame(matrix(data=c(numTrials,n,K,numstrong,prob_cycle,trend_fraction,freq,sigma,probWeakCorr,numStrongCorr,strongSelf,corrLevel),nrow=36,ncol=12,byrow=F))
+configx=as.data.frame(matrix(data=c(numTrials,n,K,numstrong,prob_cycle,trend_fraction,freq,sigma,probWeakCorr,numStrongCorr,strongSelf,corrLevel,corrChange,propChange,changeSize,changeTimeVar),nrow=36,ncol=16,byrow=F))
 configx[,11]<-as.logical(configx[,11])
-# number of trials per category
-nx=3
-
-configx=rbind(configx,configx,configx)
+configx[,13]<-as.logical(configx[,13])
 
 
-configx=cbind(1:(36*nx),configx)
 
-configx[,14]=paste0("ACPtrial",1:(36*nx))
+configx=cbind(1:36,configx)
 
-colnames(configx)=c("ArrayTaskID","numTrials","n","K","num_strong","prob_cycle","trend_fraction","freq","sigma","probWeakCorr","numStrongCorr","strongSelf","corrLevel","nameID")
+configx[,18]=paste0("ACPtrial",1:36)
+
+colnames(configx)=c("ArrayTaskID","numTrials","n","K","num_strong","prob_cycle","trend_fraction","freq","sigma","probWeakCorr","numStrongCorr","strongSelf","corrLevel","corrChange","propChange","changeSize","changeTimeVar","nameID")
 rownames(configx)=NULL
 
 write.table(configx,file=here("Simulations/AICvsStanConfig.txt"),row.names = F,quote=F)
