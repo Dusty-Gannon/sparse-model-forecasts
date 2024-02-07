@@ -36,7 +36,8 @@
 #'
 basic_timeseries <- function(
     K, num_strong, n, freq,
-    trend_fraction = 0.5, prob_cycle = 0.5, sigma = 0.5, probWeakCorr=0.2, numStrongCorr=1, strongSelf=F, corrLevel=0.7
+    trend_fraction = 0.5, prob_cycle = 0.5, sigma = 0.5, probWeakCorr=0.2, numStrongCorr=1, strongSelf=F, corrLevel=0.7,
+    corrChange=F, propChange=0.5, changeSize=0.5, changeTimeVar=5
   ){
 
   # get total number of samples
@@ -178,8 +179,26 @@ basic_timeseries <- function(
         strongAssign=sample(weak2, length(strong2), replace=F)
       }
 
+
       # calculate the new correlated variables
       newCorrVars1=lapply(xvars[strong2],correlatedVariable,corrLevel)
+
+      # allow for some "de-correlation" to occur
+      if(corrChange){
+        # select some of strong2 for de-correlation
+        strong2d=sample(strong2,round(length(strong2)*propChange),replace=F)
+        # calculate de-correlated variables
+        newCorrVars1d=lapply(xvars[strong2d],correlatedVariable,(corrLevel*changeSize))
+        # choose de-correlation time step- when we switch from correlated to de-correlated variables
+        changeTimes=round(rnorm(length(strong2d),mean=(N*0.6),sd=changeTimeVar))
+        # put together the combined variables
+        for(i in 1:length(strong2d)){
+          dvar=c(newCorrVars1[[which(strong2==strong2d[i])]][1:changeTimes[i]],newCorrVars1d[[i]][(changeTimes[i]+1):N])
+        }
+
+      }
+
+
       # plug the new correlated variables in for the appropriate weak drivers
       xvars[strongAssign]<-newCorrVars1
 
@@ -188,6 +207,22 @@ basic_timeseries <- function(
         weakAssign=sample(strong2,length(weak2)-length(strong2),replace=T)
         # calculate the new correlated variables
         newCorrVars2=lapply(xvars[weakAssign],correlatedVariable,corrLevel)
+
+        # allow for some "de-correlation" to occur
+        if(corrChange){
+          # select some of strong2 for de-correlation
+          weakd=sample(weakAssign,round(length(weakAssign)*propChange),replace=F)
+          # calculate de-correlated variables
+          newCorrVars2d=lapply(xvars[weakd],correlatedVariable,(corrLevel*changeSize))
+          # choose de-correlation time step- when we switch from correlated to de-correlated variables
+          changeTimes=round(rnorm(length(weakd),mean=(N*0.6),sd=changeTimeVar))
+          # put together the combined variables
+          for(i in 1:length(weakd)){
+            dvar=c(newCorrVars2[[which(weakAssign==weakd[i])]][1:changeTimes[i]],newCorrVars2d[[i]][(changeTimes[i]+1):N])
+          }
+
+        }
+
         # plug the new correlated variables in for the appropriate weak drivers
         weak3=weak2[-which(weak2%in%strongAssign)]
         xvars[weak3]=newCorrVars2
