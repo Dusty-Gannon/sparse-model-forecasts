@@ -10,8 +10,8 @@
 ### please enter your own email address below in order to track the results
 #SBATCH --mail-user=apatte12@uwyo.edu
 ### enter any job name that you prefer
-#SBATCH --job-name=AICvsSTANcorr
-#SBATCH --array=1-108
+#SBATCH --job-name=AICvsSTANdecorr
+#SBATCH --array=1-36
 
 
 module load arcc/1.0 gcc/12.2.0 r/4.2.2
@@ -32,8 +32,12 @@ probWeakCorr=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $
 numStrongCorr=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $11}' $config)
 strongSelf=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $12}' $config)
 corrLevel=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $13}' $config)
-nameID=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $14}' $config)
+corrChange=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $14}' $config)
+propChange=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $15}' $config)
+changeSize=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $16}' $config)
+changeTimeVar=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $17}' $config)
+nameID=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $18}' $config)
 
 
-Rscript Simulations/AICvsStanBatch.R ${numTrials} ${n} ${K} ${num_strong} ${prob_cycle} ${trend_fraction} ${freq} ${sigma} ${probWeakCorr} ${numStrongCorr} ${strongSelf} ${corrLevel} ${nameID} > Data/AICvsStan_data/outputCompareACP1_${nameID}.txt
+Rscript Simulations/AICvsStanBatch.R ${numTrials} ${n} ${K} ${num_strong} ${prob_cycle} ${trend_fraction} ${freq} ${sigma} ${probWeakCorr} ${numStrongCorr} ${strongSelf} ${corrLevel} ${corrChange} ${propChange} ${changeSize} ${changeTimeVar} ${nameID} > Data/AICvsStan_data/outputCompareACP1_${nameID}.txt
 
