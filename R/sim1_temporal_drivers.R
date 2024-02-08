@@ -187,13 +187,15 @@ basic_timeseries <- function(
       if(corrChange){
         # select some of strong2 for de-correlation
         strong2d=sample(strong2,round(length(strong2)*propChange),replace=F)
-        # calculate de-correlated variables
-        newCorrVars1d=lapply(xvars[strong2d],correlatedVariable,(corrLevel*changeSize))
-        # choose de-correlation time step- when we switch from correlated to de-correlated variables
-        changeTimes=round(rnorm(length(strong2d),mean=(N*0.6),sd=changeTimeVar))
-        # put together the combined variables
-        for(i in 1:length(strong2d)){
-          dvar=c(newCorrVars1[[which(strong2==strong2d[i])]][1:changeTimes[i]],newCorrVars1d[[i]][(changeTimes[i]+1):N])
+        if(length(strong2d)>0){
+          # calculate de-correlated variables
+          newCorrVars1d=lapply(xvars[strong2d],correlatedVariable,(corrLevel*changeSize))
+          # choose de-correlation time step- when we switch from correlated to de-correlated variables
+          changeTimes=round(rnorm(length(strong2d),mean=(N*0.6),sd=changeTimeVar))
+          # put together the combined variables
+          for(i in 1:length(strong2d)){
+            dvar=c(newCorrVars1[[which(strong2==strong2d[i])]][1:changeTimes[i]],newCorrVars1d[[i]][(changeTimes[i]+1):N])
+          }
         }
 
       }
@@ -212,13 +214,15 @@ basic_timeseries <- function(
         if(corrChange){
           # select some of strong2 for de-correlation
           weakd=sample(weakAssign,round(length(weakAssign)*propChange),replace=F)
-          # calculate de-correlated variables
-          newCorrVars2d=lapply(xvars[weakd],correlatedVariable,(corrLevel*changeSize))
-          # choose de-correlation time step- when we switch from correlated to de-correlated variables
-          changeTimes=round(rnorm(length(weakd),mean=(N*0.6),sd=changeTimeVar))
-          # put together the combined variables
-          for(i in 1:length(weakd)){
-            dvar=c(newCorrVars2[[which(weakAssign==weakd[i])]][1:changeTimes[i]],newCorrVars2d[[i]][(changeTimes[i]+1):N])
+          if(length(weakd)>0){
+            # calculate de-correlated variables
+            newCorrVars2d=lapply(xvars[weakd],correlatedVariable,(corrLevel*changeSize))
+            # choose de-correlation time step- when we switch from correlated to de-correlated variables
+            changeTimes=round(rnorm(length(weakd),mean=(N*0.6),sd=changeTimeVar))
+            # put together the combined variables
+            for(i in 1:length(weakd)){
+              dvar=c(newCorrVars2[[which(weakAssign==weakd[i])]][1:changeTimes[i]],newCorrVars2d[[i]][(changeTimes[i]+1):N])
+            }
           }
 
         }
