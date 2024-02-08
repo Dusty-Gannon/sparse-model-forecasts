@@ -11,7 +11,7 @@ args<-commandArgs(TRUE)
 # sample arguments
 # args= c(50, 100, 50, 5, 0.2, 0.2, 1, 0.5, 0.9, 0.9, 0.9, "ACP1")
 # arguments come in as strings
-args= c(50, 100, 50, 5, 0.5, 0.5, 1, 0.5, 0.2, 1, "TRUE",0.5, "ACPtrial1")
+#args= c(50, 100, 50, 5, 0.5, 0.5, 1, 0.5, 0.2, 1, "TRUE",0.5, "ACPtrial1")
 numTrials=as.numeric(args[1])
 n=as.numeric(args[2])
 K=as.numeric(args[3])
