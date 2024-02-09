@@ -133,7 +133,7 @@ basic_timeseries <- function(
     mult1=sample(c(-1,1),1)
     return(y1*mult1)
   }
-
+## problem note
   if(probWeakCorr>0 & numStrongCorr>0){
     # remove the intercept column
     beta0=beta[-1]
@@ -221,7 +221,14 @@ basic_timeseries <- function(
             changeTimes=round(rnorm(length(weakd),mean=(N*0.6),sd=changeTimeVar))
             # put together the combined variables
             for(i in 1:length(weakd)){
-              dvar=c(newCorrVars2[[which(weakAssign==weakd[i])]][1:changeTimes[i]],newCorrVars2d[[i]][(changeTimes[i]+1):N])
+              lsame=which(weakd==weakd[i])
+              if(length(lsame)>1){
+                id2=which(lsame==i)
+              } else {
+                id2=1
+              }
+
+              dvar=c(newCorrVars2[[which(weakAssign==weakd[i])[id2]]][1:changeTimes[i]],newCorrVars2d[[i]][(changeTimes[i]+1):N])
             }
           }
 
