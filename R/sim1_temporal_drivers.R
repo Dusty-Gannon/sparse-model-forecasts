@@ -36,7 +36,8 @@
 #'
 basic_timeseries <- function(
     K, num_strong, n, freq,
-    trend_fraction = 0.5, prob_cycle = 0.5, sigma = 0.5, probWeakCorr=0.2, probStrongCorr=0.5, corrLevel=0.7
+    trend_fraction = 0.5, prob_cycle = 0.5, sigma = 0.5, probWeakCorr=0.2, numStrongCorr=1, strongSelf=F, corrLevel=0.7,
+    corrChange=F, propChange=0.5, changeSize=0.5, changeTimeVar=5
   ){
 
   # get total number of samples
@@ -129,20 +130,34 @@ basic_timeseries <- function(
     y1=y*sd1+m1
 
     x=(x-m1)/sd1
-    return(y1)
+    mult1=sample(c(-1,1),1)
+    return(y1*mult1)
   }
-
-  if(probWeakCorr>0 & probStrongCorr>0){
+## problem note
+  if(probWeakCorr>0 & numStrongCorr>0){
     # remove the intercept column
     beta0=beta[-1]
+
+    # check if numStrongCorr is above numstrong
+    if(numStrongCorr>num_strong){
+      numStrongCorr=num_strong
+    }
 
     # select the strong drivers to correlate to
     b1=which(abs(beta0)>0.5)
     # randomly, choose if a strong driver has a correlated weak driver
-    strong1=runif(length(b1),0,1)<probStrongCorr
+    #strong1=runif(length(b1),0,1)<probStrongCorr
     # gives the strong drivers selected to have correlated weak drivers
-    strong2=b1[strong1]
+    #strong2=b1[strong1]
+    strong2=sample(b1,numStrongCorr)
 
+    if(strongSelf&numStrongCorr>1){
+      # correlate the strong variables to each other
+      strongMain=sample(strong2,1)
+      strongSub=strong2[-which(strong2==strongMain)]
+      newStrongVars=lapply(xvars[rep(strongMain,length(strongSub))],correlatedVariable,corrLevel)
+      xvars[strongSub]=newStrongVars
+    }
 
     # select the weak drivers to correlate to
     b2=which(abs(beta0)<=0.5)
@@ -164,8 +179,28 @@ basic_timeseries <- function(
         strongAssign=sample(weak2, length(strong2), replace=F)
       }
 
+
       # calculate the new correlated variables
       newCorrVars1=lapply(xvars[strong2],correlatedVariable,corrLevel)
+
+      # allow for some "de-correlation" to occur
+      if(corrChange){
+        # select some of strong2 for de-correlation
+        strong2d=sample(strong2,round(length(strong2)*propChange),replace=F)
+        if(length(strong2d)>0){
+          # calculate de-correlated variables
+          newCorrVars1d=lapply(xvars[strong2d],correlatedVariable,(corrLevel*changeSize))
+          # choose de-correlation time step- when we switch from correlated to de-correlated variables
+          changeTimes=round(rnorm(length(strong2d),mean=(N*0.6),sd=changeTimeVar))
+          # put together the combined variables
+          for(i in 1:length(strong2d)){
+            dvar=c(newCorrVars1[[which(strong2==strong2d[i])]][1:changeTimes[i]],newCorrVars1d[[i]][(changeTimes[i]+1):N])
+          }
+        }
+
+      }
+
+
       # plug the new correlated variables in for the appropriate weak drivers
       xvars[strongAssign]<-newCorrVars1
 
@@ -174,6 +209,31 @@ basic_timeseries <- function(
         weakAssign=sample(strong2,length(weak2)-length(strong2),replace=T)
         # calculate the new correlated variables
         newCorrVars2=lapply(xvars[weakAssign],correlatedVariable,corrLevel)
+
+        # allow for some "de-correlation" to occur
+        if(corrChange){
+          # select some of strong2 for de-correlation
+          weakd=sample(weakAssign,round(length(weakAssign)*propChange),replace=F)
+          if(length(weakd)>0){
+            # calculate de-correlated variables
+            newCorrVars2d=lapply(xvars[weakd],correlatedVariable,(corrLevel*changeSize))
+            # choose de-correlation time step- when we switch from correlated to de-correlated variables
+            changeTimes=round(rnorm(length(weakd),mean=(N*0.6),sd=changeTimeVar))
+            # put together the combined variables
+            for(i in 1:length(weakd)){
+              lsame=which(weakd==weakd[i])
+              if(length(lsame)>1){
+                id2=which(lsame==i)
+              } else {
+                id2=1
+              }
+
+              dvar=c(newCorrVars2[[which(weakAssign==weakd[i])[id2]]][1:changeTimes[i]],newCorrVars2d[[i]][(changeTimes[i]+1):N])
+            }
+          }
+
+        }
+
         # plug the new correlated variables in for the appropriate weak drivers
         weak3=weak2[-which(weak2%in%strongAssign)]
         xvars[weak3]=newCorrVars2
