@@ -2,15 +2,16 @@
 source("Simulations/AICvsStanRMSE.R")
 
 # Arguments we need for the get time series function...
-# numTrials,n=100,K=50, num_strong=5, prob_cycle=0, trend_fraction=0,freq = 1, sigma = 0.5,correlated=F,rateCorr=2
+# numTrials,n=100,K=50, num_strong=5, prob_cycle=0, trend_fraction=0,freq = 1, sigma = 0.5,probWeakCorr=0,numStrongCorr=0,strongSelf=F,corrLevel=0
 
 # this gets the arguments from the shell script
 args<-commandArgs(TRUE)
 
 
 # sample arguments
-# args= c(5, 100, 20, 5, 0.2, 0.2, 1, 0.5, 0, 0, 0.7, "ACP1")
+# args= c(50, 100, 50, 5, 0.2, 0.2, 1, 0.5, 0.9, 0.9, 0.9, "ACP1")
 # arguments come in as strings
+#args= c(50, 100, 50, 5, 0.5, 0.5, 1, 0.5, 0.2, 1, "TRUE",0.5, "FALSE", 0.5, 0.5, 5,"ACPtrial1")
 numTrials=as.numeric(args[1])
 n=as.numeric(args[2])
 K=as.numeric(args[3])
@@ -20,14 +21,22 @@ trend_fraction=as.numeric(args[6])
 freq=as.numeric(args[7])
 sigma=as.numeric(args[8])
 probWeakCorr=as.numeric(args[9])
-probStrongCorr=as.numeric(args[10])
-corrLevel=as.numeric(args[11])
-nameID=args[12]
+numStrongCorr=as.numeric(args[10])
+strongSelf=as.logical(args[11])
+corrLevel=as.numeric(args[12])
+corrChange=as.logical(args[13])
+propChange=as.numeric(args[14])
+changeSize=as.numeric(args[15])
+changeTimeVar=as.numeric(args[16])
 
+nameID=args[17]
 
-
-ts1=getTS(numTrials = numTrials, n = n, K = K, num_strong = num_strong,prob_cycle = prob_cycle, trend_fraction = trend_fraction,freq=freq,sigma=sigma,probWeakCorr=probWeakCorr,probStrongCorr=probStrongCorr,corrLevel=corrLevel) # make timeseries
+ts1=getTS(numTrials = numTrials, n = n, K = K, num_strong = num_strong,prob_cycle = prob_cycle, trend_fraction = trend_fraction,freq=freq,sigma=sigma,probWeakCorr=probWeakCorr,numStrongCorr=numStrongCorr,strongSelf=strongSelf,corrLevel=corrLevel,corrChange=corrChange, propChange=propChange, changeSize=changeSize, changeTimeVar=changeTimeVar) # make timeseries
 cat("we got the time series list")
+
+# exploring distribution of correlations
+#length(which(cor(ts1[[1]]$X)>0.7))/length(cor(ts1[[1]]$X))
+#hist(cor(ts1[[1]]$X))
 
 #trials
 ts1clean=lapply(ts1,FUN=function(x) cleanTS(x)) # clean them

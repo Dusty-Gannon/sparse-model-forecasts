@@ -2,7 +2,7 @@
 
 #SBATCH --account=modelscape
 #SBATCH --nodes=1
-#SBATCH --time=24:00:00
+#SBATCH --time=72:00:00
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=1
 #SBATCH --mem-per-cpu=24G
@@ -10,8 +10,8 @@
 ### please enter your own email address below in order to track the results
 #SBATCH --mail-user=apatte12@uwyo.edu
 ### enter any job name that you prefer
-#SBATCH --job-name=AICvsSTANfull
-#SBATCH --array=1-40
+#SBATCH --job-name=AICvsSTANdecorr
+#SBATCH --array=1-36
 
 
 module load arcc/1.0 gcc/12.2.0 r/4.2.2
@@ -29,10 +29,15 @@ trend_fraction=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print
 freq=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $8}' $config)
 sigma=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $9}' $config)
 probWeakCorr=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $10}' $config)
-probStrongCorr=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $11}' $config)
-corrLevel=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $12}' $config)
-nameID=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $13}' $config)
+numStrongCorr=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $11}' $config)
+strongSelf=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $12}' $config)
+corrLevel=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $13}' $config)
+corrChange=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $14}' $config)
+propChange=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $15}' $config)
+changeSize=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $16}' $config)
+changeTimeVar=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $17}' $config)
+nameID=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $18}' $config)
 
 
-Rscript Simulations/AICvsStanBatch.R ${numTrials} ${n} ${K} ${num_strong} ${prob_cycle} ${trend_fraction} ${freq} ${sigma} ${probWeakCorr} ${probStrongCorr} ${corrLevel} ${nameID} > Data/AICvsStan_data/outputCompareACP1_${nameID}.txt
+Rscript Simulations/AICvsStanBatch.R ${numTrials} ${n} ${K} ${num_strong} ${prob_cycle} ${trend_fraction} ${freq} ${sigma} ${probWeakCorr} ${numStrongCorr} ${strongSelf} ${corrLevel} ${corrChange} ${propChange} ${changeSize} ${changeTimeVar} ${nameID} > Data/AICvsStan_data/outputCompareACP1_${nameID}.txt
 
