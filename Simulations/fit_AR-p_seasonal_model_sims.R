@@ -24,7 +24,7 @@ lengths <- 365 * c(1, 2, 3)
 s_df <- expand.grid(lengths, beta)
 colnames(s_df) <- c('length', 'beta')
 
-# sim_df <- s_df
+sim_df <- s_df
 reps <- 200
 for(i in 1:(reps-1)){
   sim_df <- rbind(sim_df, s_df)
