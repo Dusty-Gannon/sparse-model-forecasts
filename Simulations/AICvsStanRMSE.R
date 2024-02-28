@@ -11,8 +11,9 @@ library(dplyr)
 library(MASS)
 library(rstan)
 library(here)
-devtools::load_all()
-
+source("R/model_checking.R")
+source("R/sim1_temporal_drivers.R")
+source("R/stat_model_sim_functions.R")
 # compile the stan model
 stanFHS<-stan_model(here("Stan/sparse_reg_FHS.stan"))
 
