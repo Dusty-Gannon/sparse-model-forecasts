@@ -48,6 +48,10 @@ for(i in 1:length(filelist)){
       select(-model)
 
     dd <- bind_cols(dd, tpr)
+    dd$mod_run <- rep(filelist[i], 2)
+
+    rmse_arima <- fit_arima_model(out$model_pars)
+    dd$rmse_forecast_arima <- rep(rmse_arima, 2)
 
     df <- rbind(df,dd)
 }

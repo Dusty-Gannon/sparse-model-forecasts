@@ -1,0 +1,1 @@
+model number =  1 , nsteps =  365 , sigma =  1 , beta =  0

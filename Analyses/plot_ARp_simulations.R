@@ -9,6 +9,9 @@ library(tidyverse)
 mod_cols <- c("#a52a2aff", "#33406fff")
 
 dd <- read_csv('Data/aquatic_sim_data/ARp_err_sims_10_31_condensed.csv')
+dd <- read_csv('Data/aquatic_sim_data/ARp_err_sims_02_12_condensed.csv')
+dd <- read_csv('Data/aquatic_sim_data/ARp_err_sims_01_03_condensed.csv') %>%
+  bind_rows(dd)
 dd <- read_csv('Data/aquatic_sim_data/ARp_err_sims_01_03_condensed.csv') %>%
   bind_rows(dd)
 
@@ -45,17 +48,20 @@ png('Manuscript/Figures/ARp_err_model_convergence.png',
 dev.off()
 
 # Subsample model fits so that the same number is in each category.
-min_size = max(min(c(con_runs$runs)), 50)
+# min_size = max(min(c(con_runs$runs)), 50)
 min_size = min(c(con_runs$runs))
 dat <- data.frame()
 for(i in 1:nrow(total_runs)){
   tmp <- dd %>%
+    group_by(model_number) %>%
+    summarize(divergent_trans = max(divergent_trans)) %>%
+    ungroup() %>%
     filter(divergent_trans <= divergent_trans_cap,
            n == total_runs$n[i],
            betas == total_runs$betas[i],
            model == total_runs$model[i])
-  rows <- sample(1:nrow(tmp), min_size, replace = TRUE)
-  # rows <- sample(1:nrow(tmp), min_size, replace = FALSE)
+  # rows <- sample(1:nrow(tmp), min_size, replace = TRUE)
+  rows <- sample(1:nrow(tmp), min_size, replace = FALSE)
 
   dat <- bind_rows(dat, tmp[rows,])
 }
@@ -88,16 +94,21 @@ frmse <- dat %>%
         # legend.key.size = unit(1, 'line')
         )
 frmse <- dat %>%
+  pivot_wider(id_cols = c('betas', 'n', 'rmse_forecast_arima'),
+              values_from = 'rmse_forecast', names_from = 'model') %>%
+  rename(arima = rmse_forecast_arima) %>%
+  pivot_longer(cols = c('arima', 'gauss', 'hs'),
+               values_to = 'rmse_forecast', names_to = 'model') %>%
   ggplot(aes(factor(n), rmse_forecast, fill = model)) +
   # geom_point(alpha = 0.3, size = 0.85) +
   geom_boxplot(alpha = 0.5) +
   geom_smooth(se = FALSE) +
-  scale_fill_manual('Prior', values = mod_cols) +
+  # scale_fill_manual('Prior', values = mod_cols) +
   scale_y_log10() +
-  # facet_grid(.~siglab)+
+  facet_grid(betas~.)+
   ylab('Forecast RMSE')+
-  xlab('Time Series Length')
-  # theme_classic()+
+  xlab('Time Series Length')+
+  theme_bw()
   # theme(panel.border = element_rect(fill = NA),
   #       panel.spacing = unit(0, 'line'),
   #       legend.position = c(0.92, 0.83),
