@@ -15,16 +15,16 @@ freq=rep(1,36)
 sigma=rep(0.5,36)
 
 # last columns
-probWeakCorr=rep(0.2,36)
+probWeakCorr=rep(0.8,36)
 numStrongCorr=rep(3,36)
 strongSelf=rep(T,36)
-corrLevel=rep(0.7,36)
+corrLevel=rep(0.9,36)
 
 # de-correlation
 corrChange=rep(T,36)
-propChange=c(rep(0.25,12),rep(0.5,12),rep(0.75,12))
-changeSize=rep(c(rep(0.5,6),rep(0.2,6)),3)
-changeTimeVar=rep(c(rep(1,3),rep(5,3)),6)
+propChange=c(rep(0.5,18),rep(0.75,18))
+changeSize=rep(0,36)
+changeTimeVar=rep(0,36)
 
 # combine them
 configx=as.data.frame(matrix(data=c(numTrials,n,K,numstrong,prob_cycle,trend_fraction,freq,sigma,probWeakCorr,numStrongCorr,strongSelf,corrLevel,corrChange,propChange,changeSize,changeTimeVar),nrow=36,ncol=16,byrow=F))
