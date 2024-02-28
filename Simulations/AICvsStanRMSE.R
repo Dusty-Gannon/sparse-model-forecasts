@@ -12,6 +12,7 @@ library(MASS)
 library(rstan)
 library(here)
 source("R/model_checking.R")
+source("R/sim1_temporal_drivers.R")
 # compile the stan model
 stanFHS<-stan_model(here("Stan/sparse_reg_FHS.stan"))
 
