@@ -7,6 +7,8 @@ source("Simulations/AICvsStanRMSE.R")
 # this gets the arguments from the shell script
 args<-commandArgs(TRUE)
 
+cat(args)
+
 
 # sample arguments
 # args= c(50, 100, 50, 5, 0.2, 0.2, 1, 0.5, 0.9, 0.9, 0.9, "ACP1")
