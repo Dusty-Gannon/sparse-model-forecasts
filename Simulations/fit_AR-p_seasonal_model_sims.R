@@ -24,11 +24,8 @@ lengths <- 365 * c(1, 2, 3)
 s_df <- expand.grid(lengths, beta)
 colnames(s_df) <- c('length', 'beta')
 
-# sim_df <- s_df
-reps <- 200
-for(i in 1:(reps-1)){
-  sim_df <- rbind(sim_df, s_df)
-}
+rep_df <- do.call(rbind, replicate(200, s_df, simplify = FALSE))
+sim_df <- do.call(rbind, rep_df)
 
 mods_per_node <- 2
 array_size <- nrow(sim_df)/mods_per_node
@@ -58,7 +55,8 @@ args <- commandArgs(trailingOnly = TRUE)
 outdir <- args[1]
 array_num <- as.numeric(args[2])
 
-for(i in 1:mods_per_node){
+for(i in 2:3){
+# for(i in 1:mods_per_node){
 
     mod_num = mods_per_node * (array_num - 1) + i
 
