@@ -11,7 +11,7 @@
 #SBATCH --mail-user=apatte12@uwyo.edu
 ### enter any job name that you prefer
 #SBATCH --job-name=AICvsSTANdecorr
-#SBATCH --array=1-36
+#SBATCH --array=1-72
 
 
 module load arcc/1.0 gcc/12.2.0 r/4.2.2
