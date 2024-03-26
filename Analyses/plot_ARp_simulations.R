@@ -8,11 +8,10 @@ library(tidyverse)
 
 mod_cols <- c("#a52a2aff", "#33406fff")
 
-dd <- read_csv('Data/aquatic_sim_data/ARp_err_sims_10_31_condensed.csv')
 dd <- read_csv('Data/aquatic_sim_data/ARp_err_sims_02_12_condensed.csv')
 dd <- read_csv('Data/aquatic_sim_data/ARp_err_sims_01_03_condensed.csv') %>%
   bind_rows(dd)
-dd <- read_csv('Data/aquatic_sim_data/ARp_err_sims_01_03_condensed.csv') %>%
+dd <- read_csv('Data/aquatic_sim_data/ARp_err_sims_10_31_condensed.csv') %>%
   bind_rows(dd)
 
 dd <- dd %>%
@@ -33,7 +32,7 @@ con_runs <- filter(dd, divergent_trans <= divergent_trans_cap) %>%
 png('Manuscript/Figures/ARp_err_model_convergence.png',
     width = 8, height = 5, units = 'in', res = 300)
   left_join(con_runs, total_runs) %>%
-    mutate(converged_runs = runs/total_runs,
+    mutate(converged_runs = runs/total_runs*100,
            N_betas = factor(betas)) %>%
     ggplot(aes(n, converged_runs, col = model, lty = N_betas)) +
     geom_line(size = 0.9) +
@@ -42,6 +41,7 @@ png('Manuscript/Figures/ARp_err_model_convergence.png',
     # theme(legend.position = c(0.75, 0.25),
     #       legend.box = 'horizontal')+
     # xlim(60,150)+
+    ylim(0,100)+
     ylab('Percent convergence') +
     xlab('Time series length')
 
@@ -50,13 +50,25 @@ dev.off()
 # Subsample model fits so that the same number is in each category.
 # min_size = max(min(c(con_runs$runs)), 50)
 min_size = min(c(con_runs$runs))
+min_size = 227
 dat <- data.frame()
+
+good_fits <- dd %>%
+  mutate(divergent_trans = case_when(model == 'gauss' ~ 0,
+                                     TRUE ~ divergent_trans)) %>%
+  group_by(mod_run) %>%
+  summarize(divergent_trans = max(divergent_trans)) %>%
+  ungroup() %>%
+  filter(divergent_trans <= divergent_trans_cap)
+good_fits <- dd %>%
+  group_by(mod_run) %>%
+  summarize(divergent_trans = max(divergent_trans)) %>%
+  ungroup() %>%
+  filter(divergent_trans <= divergent_trans_cap)
+
 for(i in 1:nrow(total_runs)){
   tmp <- dd %>%
-    group_by(model_number) %>%
-    summarize(divergent_trans = max(divergent_trans)) %>%
-    ungroup() %>%
-    filter(divergent_trans <= divergent_trans_cap,
+    filter(mod_run %in% good_fits$mod_run,
            n == total_runs$n[i],
            betas == total_runs$betas[i],
            model == total_runs$model[i])
@@ -65,6 +77,7 @@ for(i in 1:nrow(total_runs)){
 
   dat <- bind_rows(dat, tmp[rows,])
 }
+
 
 # dat <- filter(dd, divergent_trans <= divergent_trans_cap)
 
@@ -101,7 +114,7 @@ frmse <- dat %>%
                values_to = 'rmse_forecast', names_to = 'model') %>%
   ggplot(aes(factor(n), rmse_forecast, fill = model)) +
   # geom_point(alpha = 0.3, size = 0.85) +
-  geom_boxplot(alpha = 0.5) +
+  geom_violin(alpha = 0.5) +
   geom_smooth(se = FALSE) +
   # scale_fill_manual('Prior', values = mod_cols) +
   scale_y_log10() +
@@ -109,6 +122,42 @@ frmse <- dat %>%
   ylab('Forecast RMSE')+
   xlab('Time Series Length')+
   theme_bw()
+
+dat_frmse <- dat %>%
+  pivot_wider(id_cols = c('betas', 'n', 'rmse_forecast_arima'),
+              values_from = 'rmse_forecast', names_from = 'model') %>%
+  rename(arima = rmse_forecast_arima) %>%
+  pivot_longer(cols = c('arima', 'gauss', 'hs'),
+               values_to = 'rmse_forecast', names_to = 'model')
+dat_frmse2 <- dat %>%
+  filter(model != 'gauss') %>%
+  select(-model) %>%
+  rename(arima = rmse_forecast_arima, hs = rmse_forecast) %>%
+  pivot_longer(cols = c('arima', 'hs'),
+               values_to = 'rmse_forecast', names_to = 'model')
+
+dat_frmse2 %>%
+
+  # group_by(betas, n, model) %>%
+  group_by(n, model) %>%
+  summarize(med_rmse = median(rmse_forecast, na.rm = TRUE),
+            lower = quantile(rmse_forecast, 0.025, na.rm = TRUE),
+            upper = quantile(rmse_forecast, 0.975, na.rm = TRUE)) %>%
+  ggplot(aes(n, med_rmse, col = model)) +
+  # geom_line(aes(lty = factor(betas)), size = 1) +
+  geom_line( size = 1) +
+  geom_point(data = dat_frmse2, aes(n, rmse_forecast), alpha = 0.3)+
+  # geom_ribbon(aes(ymin = lower, ymax = upper, fill = model),
+  #             alpha = 0.3, col = NA) +
+  # facet_grid(betas~.)+
+  ylab('Forecast RMSE')+
+  xlab('Time Series Length')+
+  scale_y_log10() +
+  theme_bw()
+  # e = 0.85) +
+  geom_violin(alpha = 0.5) +
+  geom_smooth(se = FALSE) +
+  # scale_fill_manual('Prior', values = mod_cols) +
   # theme(panel.border = element_rect(fill = NA),
   #       panel.spacing = unit(0, 'line'),
   #       legend.position = c(0.92, 0.83),
@@ -325,3 +374,4 @@ dat %>%
   labs(y = 'Forecast RMSE', x = 'timeseries length')+
   ylim(2,12)+
   theme_classic()
+
