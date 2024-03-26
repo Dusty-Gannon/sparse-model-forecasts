@@ -15,7 +15,7 @@
 
 # Set the parameter combination to use and generate names of R scripts and log file
 Rscript=fit_AR-p_seasonal_model_sims.R
-OutDir='ARp_err_sims_01_02b'
+OutDir='ARp_err_sims_02_12'
 
 # Change to the relevant working directory
 mkdir /project/modelscape/analyses/sponges/Data/aquatic_sim_data/$OutDir

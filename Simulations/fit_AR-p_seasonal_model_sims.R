@@ -24,8 +24,11 @@ lengths <- 365 * c(1, 2, 3)
 s_df <- expand.grid(lengths, beta)
 colnames(s_df) <- c('length', 'beta')
 
-rep_df <- do.call(rbind, replicate(200, s_df, simplify = FALSE))
-sim_df <- do.call(rbind, rep_df)
+sim_df <- s_df
+reps <- 200
+for(i in 1:(reps-1)){
+  sim_df <- rbind(sim_df, s_df)
+}
 
 mods_per_node <- 2
 array_size <- nrow(sim_df)/mods_per_node
@@ -67,7 +70,7 @@ for(i in 2:3){
     # add new lines to error and out file identifying which model this is
     write(paste('model number = ', mod_num, ', nsteps = ', nsteps,
                 ', sigma = ', sigma, ', beta = ', beta),
-          paste('out', array_num, '.txt'), append = TRUE)
+          paste0('/project/modelscape/analyses/sponges/Simulations/slurmlogs/out', array_num, '.txt'), append = TRUE)
 
     # simulate AR-p data
     input_pars <- list(

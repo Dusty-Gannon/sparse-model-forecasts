@@ -195,6 +195,7 @@ basic_timeseries <- function(
           # put together the combined variables
           for(i in 1:length(strong2d)){
             dvar=c(newCorrVars1[[which(strong2==strong2d[i])]][1:changeTimes[i]],newCorrVars1d[[i]][(changeTimes[i]+1):N])
+            newCorrVars1[[which(strong2==strong2d[i])]]<-dvar
           }
         }
 
@@ -229,6 +230,7 @@ basic_timeseries <- function(
               }
 
               dvar=c(newCorrVars2[[which(weakAssign==weakd[i])[id2]]][1:changeTimes[i]],newCorrVars2d[[i]][(changeTimes[i]+1):N])
+              newCorrVars2[[which(weakAssign==weakd[i])[id2]]]=dvar
             }
           }
 
