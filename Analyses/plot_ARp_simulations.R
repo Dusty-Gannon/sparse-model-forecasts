@@ -49,8 +49,8 @@ dev.off()
 
 # Subsample model fits so that the same number is in each category.
 # min_size = max(min(c(con_runs$runs)), 50)
-min_size = min(c(con_runs$runs))
-min_size = 227
+# min_size = min(c(con_runs$runs))
+min_size = min(c(con_runs$runs[con_runs$model == 'hs']))
 dat <- data.frame()
 
 good_fits <- dd %>%
@@ -60,11 +60,12 @@ good_fits <- dd %>%
   summarize(divergent_trans = max(divergent_trans)) %>%
   ungroup() %>%
   filter(divergent_trans <= divergent_trans_cap)
-good_fits <- dd %>%
-  group_by(mod_run) %>%
-  summarize(divergent_trans = max(divergent_trans)) %>%
-  ungroup() %>%
-  filter(divergent_trans <= divergent_trans_cap)
+
+# good_fits <- dd %>%
+#   group_by(mod_run) %>%
+#   summarize(divergent_trans = max(divergent_trans)) %>%
+#   ungroup() %>%
+#   filter(divergent_trans <= divergent_trans_cap)
 
 for(i in 1:nrow(total_runs)){
   tmp <- dd %>%
@@ -132,20 +133,28 @@ dat_frmse <- dat %>%
 dat_frmse2 <- dat %>%
   filter(model != 'gauss') %>%
   select(-model) %>%
-  rename(arima = rmse_forecast_arima, hs = rmse_forecast) %>%
-  pivot_longer(cols = c('arima', 'hs'),
-               values_to = 'rmse_forecast', names_to = 'model')
+  rename('Auto Arima' = rmse_forecast_arima,
+         'Horseshoe \nPrior' = rmse_forecast) %>%
+  # mutate(model = case_when(model == 'hs' ~ 'Horseshoe \nPrior',
+  #                          model == 'arima' ~ 'Auto \nArima',
+  #                          TRUE ~ model)) %>%
+  pivot_longer(cols = c('Auto Arima', 'Horseshoe \nPrior'),
+               values_to = 'rmse_forecast', names_to = 'model') %>%
+  mutate(n = case_when(model == 'Auto Arima' ~ n - 2.5,
+                       TRUE ~ n + 2.5))
 
-dat_frmse2 %>%
+frmse2 <- dat_frmse2 %>%
 
-  # group_by(betas, n, model) %>%
-  group_by(n, model) %>%
+  group_by(betas, n, model) %>%
+  # group_by(n, model) %>%
   summarize(med_rmse = median(rmse_forecast, na.rm = TRUE),
             lower = quantile(rmse_forecast, 0.025, na.rm = TRUE),
             upper = quantile(rmse_forecast, 0.975, na.rm = TRUE)) %>%
   ggplot(aes(n, med_rmse, col = model)) +
-  # geom_line(aes(lty = factor(betas)), size = 1) +
-  geom_line( size = 1) +
+  geom_line(aes(lty = factor(betas)), size = 1) +
+  # geom_line( size = 1) +
+  # geom_violin(data = dat_frmse2, aes(factor(n), rmse_forecast, fill = model),
+  #             alpha = 0.3)#+
   geom_point(data = dat_frmse2, aes(n, rmse_forecast), alpha = 0.3)+
   # geom_ribbon(aes(ymin = lower, ymax = upper, fill = model),
   #             alpha = 0.3, col = NA) +
@@ -153,11 +162,11 @@ dat_frmse2 %>%
   ylab('Forecast RMSE')+
   xlab('Time Series Length')+
   scale_y_log10() +
+  scale_color_manual('Model', values = mod_cols) +
+  scale_linetype_manual('N Known \nCovariates', values = c(1,2,3)) +
   theme_bw()
-  # e = 0.85) +
-  geom_violin(alpha = 0.5) +
-  geom_smooth(se = FALSE) +
-  # scale_fill_manual('Prior', values = mod_cols) +
+
+
   # theme(panel.border = element_rect(fill = NA),
   #       panel.spacing = unit(0, 'line'),
   #       legend.position = c(0.92, 0.83),
@@ -169,7 +178,7 @@ dat_frmse2 %>%
 
 png('Manuscript/Figures/ARp_err_forecast_rmses.png',
     width = 6.5, height = 3.2, units = 'in', res = 300)
-    frmse
+    frmse2
 dev.off()
 
 ggplot(datr, aes(n, rmse_forecast)) +

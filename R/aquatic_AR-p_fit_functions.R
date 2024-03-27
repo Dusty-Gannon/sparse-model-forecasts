@@ -252,6 +252,7 @@ fit_arima_model <- function(model_pars){
  #fit the models
 
   if(is.na(X)){
+    fit_ar <- forecast::tbats(model_pars$y[1:n])
     fit_ar <- forecast::auto.arima(model_pars$y[1:n])
     ar_for <- forecast::forecast(fit_ar, h = model_pars$holdout)
     ar_beta <- NA
@@ -267,7 +268,8 @@ fit_arima_model <- function(model_pars){
   # calculate forecast RMSE
   rmse <- sqrt(mean((ar_for$mean - model_pars$y[(n+1):length(model_pars$y)])^2))
 
-  return(rmse)
+  return(list(rmse = rmse,
+              ar_forecast = ar_for))
 
 }
 
