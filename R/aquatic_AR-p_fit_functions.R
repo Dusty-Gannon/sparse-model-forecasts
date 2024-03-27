@@ -252,7 +252,7 @@ fit_arima_model <- function(model_pars){
  #fit the models
 
   if(is.na(X)){
-    fit_ar <- forecast::tbats(model_pars$y[1:n])
+    # fit_ar <- forecast::tbats(model_pars$y[1:n])
     fit_ar <- forecast::auto.arima(model_pars$y[1:n])
     ar_for <- forecast::forecast(fit_ar, h = model_pars$holdout)
     ar_beta <- NA
