@@ -8,7 +8,76 @@ library(here)
 # Figure 1:
 ################################################
 
+source(here("Simulations/AICvsStanRMSE.R"))
 
+set.seed(3782309)
+n=100
+K=50
+
+timeSeries1=getTS(numTrials = 1, n = n, K = K, num_strong = 5,prob_cycle = 0.5, trend_fraction = 0.5,freq=1,sigma=0.5,probWeakCorr=0.8,numStrongCorr=3,strongSelf=T,corrLevel=0.5,corrChange=F, propChange=0.75, changeSize=0, changeTimeVar=0)
+cleanSeries1=cleanTS(timeSeries1[[1]])
+testSeries1=splitTS(cleanSeries1,set="test",n=n,nfit=round(0.6*n))
+trainSeries1=splitTS(cleanSeries1,set="train",n=n,nfit=round(0.6*n))
+
+AICseries1=AICselect(trainSeries1)
+STANseries1=STANselect(trainSeries1,testSeries1,nfit=60,n=100,K=50)
+AICpred=predict(AICseries1,testSeries1,se.fit = T)
+
+
+par(mfrow=c(3,1))
+par(mar=c(4,4,1,1))
+
+#95% confidence intervals for AIC
+plot(0,0,type="n",ylim=c(-6,4),xlim=c(0,100),xlab="Time",ylab="y (stepwise AIC)")
+polygon(c(61:100,100:61),c(AICpred$fit+1.96*AICpred$se.fit,rev(AICpred$fit-1.96*AICpred$se.fit)),col="lightblue",border=NA)
+lines(timeSeries1[[1]]$y,type="l",xlim=c(0,100))
+lines(61:100,AICpred$fit,col="blue",xlim=c(0,100),type="l")
+
+#95% confidence intervals for STAN
+STANfit=apply(STANgetpredict(STANseries1),2,median)
+STAN975=apply(STANgetpredict(STANseries1),2,quantile,0.975)
+STAN025=apply(STANgetpredict(STANseries1),2,quantile,0.025)
+
+plot(0,0,type="n",ylim=c(-6,4),xlim=c(0,100),xlab="Time",ylab="y (Horseshoe)")
+polygon(c(61:100,100:61),c(STAN975,rev(STAN025)),col="deeppink",border=NA)
+lines(timeSeries1[[1]]$y,type="l",xlim=c(0,100))
+lines(61:100,STANfit,col="deeppink4",xlim=c(0,100),type="l")
+
+# coefficient recovery plots
+plot(timeSeries1[[1]]$beta,xlab="parameter",ylab="value",pch=0,cex=2)
+abline(h=0)
+
+#get AIC coefficients in order
+coefAIC=numeric(51)
+seAIC=numeric(51)
+
+coefAIC[1]=summary(AICseries1)[4]$coefficients[1,1]
+seAIC[1]=summary(AICseries1)[4]$coefficients[1,2]
+for(i in 1:50){
+
+  finder=which(rownames(summary(AICseries1)[4]$coefficients)==paste0("driver_",i))
+  if(length(finder)==0){
+    coefAIC[i]=0
+    seAIC[i]=0
+  } else {
+    coefAIC[i]=summary(AICseries1)[4]$coefficients[finder,1]
+    seAIC[i]=summary(AICseries1)[4]$coefficients[finder,2]
+  }
+
+}
+
+# plot AIC coefficients
+points(x=1:51-0.2,coefAIC,pch=16,col="blue")
+segments(x0=1:51-0.2,y0=coefAIC-1.96*seAIC,y1=coefAIC+1.96*seAIC,col="blue")
+
+# get STAN coefficients in shape
+
+
+betapost=extract(STANseries1, pars = "beta")$beta
+means = apply(betapost, 2, mean)
+
+points(x=2:51+0.2,means,col="deeppink",pch=16)
+segments(x0=2:51+0.2,y0=apply(betapost, 2, quantile, probs = 0.025),y1=apply(betapost, 2, quantile, probs = 0.975),col="deeppink")
 
 
 ################################################
