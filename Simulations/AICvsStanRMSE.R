@@ -118,7 +118,7 @@ getTS<-function(numTrials,n=100,K=50, num_strong=5, prob_cycle=0, trend_fraction
 cleanTS<-function(ts){
   K=length(ts$beta)-1
   simDat_df <- data.frame("y" = ts$y, ts$X[,2:(K+1)])
-  names(simDat_df) <- c("y",paste0("driver_",2:(K+1)))
+  names(simDat_df) <- c("y",paste0("driver_",1:(K)))
   return(simDat_df)
 }
 
@@ -164,7 +164,7 @@ STANselect<-function(dataSet,testSet,m0=5,K=50,n=100,nfit=60,slab_scl=1,slab_df=
   tau_0=tau0(
     y=dataSet$y,
     m0=m0,
-    M=K,
+    M=K+1,
     N=nfit,
     fam="gaussian"
   )
@@ -173,14 +173,14 @@ STANselect<-function(dataSet,testSet,m0=5,K=50,n=100,nfit=60,slab_scl=1,slab_df=
   datlist<-list(
     N=nfit, # length of time series
     P0=1, # for intercept
-    P=K, # number of covariates
+    P=K+1, # number of covariates
     y=dataSet$y,
-    X=dataSet[,2:(K+1)],
+    X=cbind(rep(1,nfit),dataSet[,2:(K+1)]),
     tau0=tau_0,
     slab_scl=slab_scl,
     slab_df=slab_df,
     N_new=n-nfit,
-    X_new=testSet[,2:(K+1)]
+    X_new=cbind(rep(1,n-nfit),testSet[,2:(K+1)])
   )
 
   # sample the posterior

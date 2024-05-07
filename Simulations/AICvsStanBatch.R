@@ -13,7 +13,7 @@ cat(args)
 # sample arguments
 # args= c(50, 100, 50, 5, 0.2, 0.2, 1, 0.5, 0.9, 0.9, 0.9, "ACP1")
 # arguments come in as strings
-#args= c(50, 100, 50, 5, 0.5, 0.5, 1, 0.5, 0.2, 1, "TRUE",0.5, "FALSE", 0.5, 0.5, 5,"ACPtrial1")
+#args= c(5, 100, 50, 5, 0.5, 0.5, 1, 0.5, 0.2, 1, "TRUE",0.5, "FALSE", 0.5, 0.5, 5,"ACPtrial1")
 numTrials=as.numeric(args[1])
 n=as.numeric(args[2])
 K=as.numeric(args[3])
@@ -59,7 +59,8 @@ AICconfusion=mapply(function(x,y) AICconfusionRates(x,y),ts1,AICmodlist)
 mean(AICconfusion[1,])# TPR is 0.992
 mean(AICconfusion[2,])# TNR is 0.498
 
-STANbetalist=lapply(STANmodlist, FUN=function(x) STANbetapost(x)) # get summary of stan predictions for beta
+STANbetalist1=lapply(STANmodlist, FUN=function(x) STANbetapost(x)) # get summary of stan predictions for beta
+STANbetalist=lapply(STANbetalist1, function(x) x[!(rownames(x) %in% c(1)),]) # remove row 1 (intercept) as this is not included for AIC method
 # ts_betas=lapply(ts1....)  # How do I extract the beta values from the timeseries list?
 ts_betas=lapply(ts1, FUN=function(x) x$beta[2:(K+1)])  # removing the beta[1], 0 in all cases, so there are 50 ts_betas to match the 50 modeled betas
 STANconfusion=mapply(function(x,y) STANconfusionRates(x,y), STANbetalist, ts_betas) #returns a matrix of false pos, false neg,
