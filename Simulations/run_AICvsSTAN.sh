@@ -18,7 +18,7 @@ module load arcc/1.0 gcc/12.2.0 r/4.2.2
 
 cd /project/modelscape/analyses/sponges
 
-config=Simulations/AICvsSTANconfig.txt
+config=Simulations/AICvsStanConfig.txt
 
 numTrials=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $2}' $config)
 n=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $3}' $config)
