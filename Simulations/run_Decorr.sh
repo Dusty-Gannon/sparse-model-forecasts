@@ -11,14 +11,14 @@
 #SBATCH --mail-user=apatte12@uwyo.edu
 ### enter any job name that you prefer
 #SBATCH --job-name=AICvsSTANdecorr
-#SBATCH --array=1-36
+#SBATCH --array=1-72
 
 
 module load arcc/1.0 gcc/12.2.0 r/4.2.2
 
 cd /project/modelscape/analyses/sponges
 
-config=Simulations/AICvsStanConfig.txt
+config=Simulations/DecorrConfig.txt
 
 numTrials=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $2}' $config)
 n=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $3}' $config)
