@@ -29,6 +29,7 @@ changeTimeVar=rep(0,36)
 # combine them
 configx=as.data.frame(matrix(data=c(numTrials,n,K,numstrong,prob_cycle,trend_fraction,freq,sigma,probWeakCorr,numStrongCorr,strongSelf,corrLevel,corrChange,propChange,changeSize,changeTimeVar),nrow=36,ncol=16,byrow=F))
 configx[,11]<-as.logical(configx[,11])
+configx[,13]<-as.logical(configx[,13])
 # number of trials per category
 nx=3
 
