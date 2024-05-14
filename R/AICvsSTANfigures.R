@@ -86,6 +86,7 @@ segments(x0=2:51+0.2,y0=apply(betapost, 2, quantile, probs = 0.025),y1=apply(bet
 corData2=read.csv(here("Simulations/AICvsSTANcorrResults.csv"))
 
 # Remove unwanted variables
+# fix strongSelf=F
 corData3=corData2[-which(corData2$strongSelf),]
 # fix numStrongCorr=3
 corData4=corData3[-which(corData3$numStrongCorr==1),]

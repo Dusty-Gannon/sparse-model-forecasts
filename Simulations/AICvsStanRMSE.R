@@ -64,7 +64,7 @@ RMSE_AIC=function(model,testData){
 AICconfusionRates<-function(timeseries,model,strongCutoff=0.3){
 
   strong1<-which(abs(timeseries$beta)>strongCutoff)
-  strong2<-paste0("driver_",strong1)
+  strong2<-paste0("driver_",strong1-1)
   strongaic<-names(model$coefficients)
 
   positives=length(strong1)
