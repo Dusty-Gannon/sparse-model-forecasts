@@ -13,6 +13,8 @@ dd <- read_csv('Data/aquatic_sim_data/ARp_err_sims_01_03_condensed.csv') %>%
   bind_rows(dd)
 dd <- read_csv('Data/aquatic_sim_data/ARp_err_sims_10_31_condensed.csv') %>%
   bind_rows(dd)
+dd <- read_csv('Data/aquatic_sim_data/ARp_err_sims_04_22_condensed.csv') %>%
+  bind_rows(dd)
 
 dd <- dd %>%
   mutate(prior = case_when(model == 'not_reg' ~ 'Gaussian',
@@ -139,7 +141,7 @@ dat_frmse2 <- dat %>%
   #                          model == 'arima' ~ 'Auto \nArima',
   #                          TRUE ~ model)) %>%
   pivot_longer(cols = c('Auto Arima', 'Horseshoe \nPrior'),
-               values_to = 'rmse_forecast', names_to = 'model') %>%
+               values_to = 'rmse_forecast', names_to = 'model') #%>%
   mutate(n = case_when(model == 'Auto Arima' ~ n - 2.5,
                        TRUE ~ n + 2.5))
 
@@ -166,15 +168,32 @@ frmse2 <- dat_frmse2 %>%
   scale_linetype_manual('N Known \nCovariates', values = c(1,2,3)) +
   theme_bw()
 
+frmse2 <- dat %>%
+  filter(model != 'gauss') %>%
+  select(-model) %>%
+  rename('Auto Arima' = rmse_forecast_arima,
+         'Horseshoe \nPrior' = rmse_forecast) %>%
+  pivot_longer(cols = c('Auto Arima', 'Horseshoe \nPrior'),
+               values_to = 'rmse_forecast', names_to = 'model') %>%
+  group_by(betas, n, model) %>%
+  summarize(med_rmse = median(rmse_forecast, na.rm = TRUE),
+            lower = quantile(rmse_forecast, 0.025, na.rm = TRUE),
+            upper = quantile(rmse_forecast, 0.975, na.rm = TRUE)) %>%
+  ggplot(aes(n, med_rmse, col = model)) +
+  geom_line(aes(lty = factor(betas)), size = 1) +
+  geom_violin(data = filter(dat_frmse2, model == 'Auto Arima'),
+              aes(n, rmse_forecast, group = n), fill = mod_cols[1],
+              alpha = 0.3, position = 'identity', width = 30)+
+  geom_violin(data = filter(dat_frmse2, model == 'Horseshoe \nPrior'),
+              aes(n, rmse_forecast, group = n),fill = mod_cols[2],
+              alpha = 0.3, position = 'identity', width = 70)+
+  ylab('Forecast RMSE')+
+  xlab('Time Series Length')+
+  scale_y_log10() +
+  scale_color_manual('Model', values = mod_cols) +
+  scale_linetype_manual('N Known \nCovariates', values = c(1,2,3)) +
+  theme_bw()
 
-  # theme(panel.border = element_rect(fill = NA),
-  #       panel.spacing = unit(0, 'line'),
-  #       legend.position = c(0.92, 0.83),
-  #       legend.title = element_text(size=8),
-  #       legend.text = element_text(size=7),
-  #       legend.spacing.y = unit(0.05, 'cm')
-  #       # legend.key.size = unit(1, 'line')
-  #       )
 
 png('Manuscript/Figures/ARp_err_forecast_rmses.png',
     width = 6.5, height = 3.2, units = 'in', res = 300)

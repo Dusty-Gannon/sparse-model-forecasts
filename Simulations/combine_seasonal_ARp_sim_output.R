@@ -52,8 +52,12 @@ for(i in 1:length(filelist)){
     dd$mod_run <- rep(filelist[i], 2)
 
     arima_fit <- fit_arima_model(out$model_pars)
+    arima_seasonal <- fit_seasonal_arima_model(out$model_pars)
 
     dd$rmse_forecast_arima <- rep(arima_fit$rmse, 2)
+    dd$rmse_forecast_arima_seasonal <- rep(arima_seasonal$rmse, 2)
+
+    # ar_for <- arima_seasonal$ar_forecast
 
     df <- rbind(df,dd)
 
