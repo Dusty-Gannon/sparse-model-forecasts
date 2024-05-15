@@ -252,6 +252,7 @@ fit_arima_model <- function(model_pars){
  #fit the models
 
   if(is.na(X)){
+    # fit_ar <- forecast::tbats(model_pars$y[1:n])
     fit_ar <- forecast::auto.arima(model_pars$y[1:n])
     ar_for <- forecast::forecast(fit_ar, h = model_pars$holdout)
     ar_beta <- NA
@@ -267,7 +268,80 @@ fit_arima_model <- function(model_pars){
   # calculate forecast RMSE
   rmse <- sqrt(mean((ar_for$mean - model_pars$y[(n+1):length(model_pars$y)])^2))
 
-  return(rmse)
+  return(list(rmse = rmse,
+              ar_forecast = ar_for))
+
+}
+
+
+#' Fit seasonal arima model
+#'
+#' This function fits an AR-p_beta model on a simulated dataset with the option
+#' to fit both a regularized and non regularized model version
+#'
+#' @param model_pars a list of parameters describing the AR-p time series as well
+#' as a matrix of covariates, vectors of beta and phi parameters, and a simulated
+#' time series. Must include:
+#'    + n: length of time series
+#'    + p: number of AR lags to consider
+#'    + tau_0: the prior guess for tau0
+#'    + X: matrix of covariates arranged with the first column as the intercept,
+#'    columns 2:(nlags covariate + 1) are lagged versions of covariate 1, and the
+#'    remaining columns are other covariates.
+#'    + y: response timeseries
+#'    + holdout: number of observation to hold out for model evaluation
+#' @return the forecast rmse
+#'
+#' @export
+#'
+
+
+fit_seasonal_arima_model <- function(model_pars){
+
+  # determine how many covariates to include:
+  n_beta <- length(model_pars$beta)-1
+  n <- (length(model_pars$y)-model_pars$holdout)
+  if(n_beta == 0){X = NA}
+  if(n_beta > 0){X = model_pars$X[, 3:(3+n_beta-1)]}
+
+  y <- ts(model_pars$y[1:n], frequency =365)
+  y_full <- ts(model_pars$y, frequency =365)
+ #fit the models
+  # minimize AICc to determine the number of seasonal terms to include:
+  AICs <- data.frame()
+
+  for(K in 1:20){
+
+    X_fit <- fourier(y,K=K)
+
+    if(!is.na(X)){ X_fit <- cbind(X[1:n,], X_fit)   }
+
+    mod <- auto.arima(y, xreg=X_fit, seasonal=FALSE)
+    mod_aic <- data.frame(K = K,
+                          AIC = mod$aic,
+                          AICc = mod$aicc)
+    AICs <- bind_rows(AICs, mod_aic)
+
+  }
+
+  K = which.min(AICs$AICc)
+
+  # fit arima model:
+
+  X_fit <- fourier(y_full, K=K)
+  if(!is.na(X)){ X_fit <- cbind(X, X_fit)   }
+
+  fit_ar <- forecast::auto.arima(y, xreg = X_fit[1:n,], seasonal = FALSE)
+  ar_for <- forecast::forecast(fit_ar, xreg = X_fit[(n+1):nrow(X_fit),],
+                               h = model_pars$holdout)
+  ar_beta <- fit_ar$coef
+  # autoplot(ar_for)
+
+  # calculate forecast RMSE
+  rmse <- sqrt(mean((ar_for$mean - model_pars$y[(n+1):length(model_pars$y)])^2))
+
+  return(list(rmse = rmse,
+              ar_forecast = ar_for))
 
 }
 
