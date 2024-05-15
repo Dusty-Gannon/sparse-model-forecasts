@@ -246,18 +246,19 @@ fit_arima_model <- function(model_pars){
   # determine how many covariates to include:
   n_beta <- length(model_pars$beta)-1
   n <- (length(model_pars$y)-model_pars$holdout)
+print(paste0('n_beta = ', n_beta, ';  n = ', n))
   if(n_beta == 0){X = NA}
   if(n_beta > 0){X = model_pars$X[, 3:(3+n_beta-1)]}
 
  #fit the models
 
-  if(is.na(X)){
+  if(sum(is.na(X))==1){
     fit_ar <- forecast::auto.arima(model_pars$y[1:n])
     ar_for <- forecast::forecast(fit_ar, h = model_pars$holdout)
     ar_beta <- NA
   }
 
-  if(!is.na(X)){
+  if(sum(is.na(X))==0){
     fit_ar <- forecast::auto.arima(model_pars$y[1:n],
                                    xreg = X[1:n,])
     ar_for <- forecast::forecast(fit_ar, xreg = X[(n+1):nrow(X),])
