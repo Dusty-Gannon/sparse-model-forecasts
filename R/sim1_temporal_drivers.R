@@ -8,16 +8,21 @@
 #' of those drivers.
 #'
 #' @param K Number of drivers.
+#' @param num_strong Number of strong drivers
 #' @param n Length of time series
 #' @param freq Frequency of sampling per time step (e.g., \code{n = 5} and
 #' \code{freq = 365}) would create 5 years of daily data.
 #' @param trend_fraction Fraction of drivers that have a trend.
-#' @param num_strong Number of strong drivers
 #' @param prob_cycle Probability that a driver experiences a seasonal cycle.
 #' @param sigma Standard deviation of the noise component.
 #' @param probWeakCorr probability of a weak driver being correlated to a strong driver
-#' @param probStrongCorr probability of a strong driver being correlated to a weak driver
-#' @param corrLevel Correlation level desired between strong and weak drivers, if they are correlated
+#' @param numStrongCorr number of strong drivers correlated to a weak driver
+#' @param strongSelf whether strong drivers correlated to weak drivers are also correlated to other strong drivers
+#' @param corrLevel Correlation level desired between strong and weak drivers (and maybe strong and strong drivers), if they are correlated
+#' @param corrChange whether correlation breaks down during the
+#' @param propChange number of correlations that will change, if they do change
+#' @param changeSize how much correlations will change, if they do change
+#' @param changeTimeVar how much variance is allowed in when each correlation breaks down
 #'
 #' @return List with the response, \code{y}, the model matrix, \code{X},
 #' and the regression coefficients used to construct the response, \code{beta}.
@@ -37,7 +42,7 @@
 basic_timeseries <- function(
     K, num_strong, n, freq,
     trend_fraction = 0.5, prob_cycle = 0.5, sigma = 0.5, probWeakCorr=0.2, numStrongCorr=1, strongSelf=F, corrLevel=0.7,
-    corrChange=F, propChange=0.5, changeSize=0.5, changeTimeVar=5
+    corrChange=F, propChange=1, changeSize=1, changeTimeVar=5
   ){
 
   # get total number of samples

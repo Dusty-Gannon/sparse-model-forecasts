@@ -5,6 +5,7 @@ library(tidyverse)
 devtools::load_all()
 setwd("/project/modelscape/analyses/sponges/")
 args <- commandArgs(trailingOnly = TRUE)
+# outdir <- 'test_seasonal'
 outdir <- args[1]
 
 filelist <- paste0('Data/aquatic_sim_data/', outdir, '/',
@@ -50,10 +51,40 @@ for(i in 1:length(filelist)){
     dd <- bind_cols(dd, tpr)
     dd$mod_run <- rep(filelist[i], 2)
 
-    rmse_arima <- fit_arima_model(out$model_pars)
-    dd$rmse_forecast_arima <- rep(rmse_arima, 2)
+    arima_fit <- fit_arima_model(out$model_pars)
+    arima_seasonal <- fit_seasonal_arima_model(out$model_pars)
+
+    dd$rmse_forecast_arima <- rep(arima_fit$rmse, 2)
+    dd$rmse_forecast_arima_seasonal <- rep(arima_seasonal$rmse, 2)
+
+    # ar_for <- arima_seasonal$ar_forecast
 
     df <- rbind(df,dd)
+
+    # hs_for <- t(apply(out$mod_fits$hs_fit$forecast, 2, quantile,
+    #                   probs = c(0.025, 0.5, 0.975)))
+    # colnames(hs_for) <- c('hs_lower', 'hs_med', 'hs_upper')
+    # ar_for <- arima_fit$ar_forecast
+    # ar_for <- data.frame(ar_lower = c(ar_for$fitted, as.numeric(ar_for$lower[,2])),
+    #                      ar_med = c(ar_for$fitted, ar_for$mean),
+    #                      ar_upper = c(ar_for$fitted, as.numeric(ar_for$upper[,2])))
+    # fcst <- data.frame(y = as.numeric(out$model_pars$y)) %>%
+    #   bind_cols(hs_for, ar_for)
+    #
+    #
+    # fcst[(nrow(fcst)-199):nrow(fcst),] %>%
+    #   mutate(time = 1:200) %>%
+    #   pivot_longer(cols = starts_with(c('hs', 'ar')),
+    #                names_to = c('model', 'stat'), values_to = 'val',
+    #                names_sep = '_') %>%
+    #   pivot_wider(names_from = 'stat', values_from = 'val') %>%
+    # ggplot(aes(time, y)) +
+    #   geom_ribbon(aes(ymin = lower, ymax = upper, fill = model), alpha = 0.3) +
+    #   geom_line(aes(y = med, col = model)) +
+    #   geom_line()+
+    #   geom_vline(xintercept = 100, lty = 2) +
+    #   theme_bw()
+
 }
 
 write.csv(df, paste0('Data/aquatic_sim_data/summary_files/', outdir, '_condensed.csv'),
