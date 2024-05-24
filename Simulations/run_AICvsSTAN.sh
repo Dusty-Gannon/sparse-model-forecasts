@@ -14,7 +14,7 @@
 #SBATCH --array=1-108
 
 
-module load arcc/1.0 gcc/12.2.0 r/4.2.2
+module load arcc/1.0 gcc/12.2.0 r/4.4.0
 
 cd /project/modelscape/analyses/sponges
 
