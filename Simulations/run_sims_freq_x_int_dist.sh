@@ -19,7 +19,7 @@ LogFile=./logfiles/dist_sims_rep
 cd /project/modelscape/analyses/sponges/Simulations
 
 # Load R and MPI
-module load arcc/1.0  gcc/12.2.0  r/4.2.2
+module load arcc/1.0  gcc/12.2.0  r/4.4.0
 
 # create task ids
 job=()

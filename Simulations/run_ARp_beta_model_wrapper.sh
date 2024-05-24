@@ -3,7 +3,7 @@
 # Set the parameter combination to use and generate names of R scripts and log file
 OutDir='ARp_err_sims_8_17'
 
-module load arcc/1.0 gcc/12.2.0 r/4.2.2
+module load arcc/1.0 gcc/12.2.0 r/4.4.0
 
 sbatch --wait run_ARp_beta_model.sh $OutDir
 

@@ -22,6 +22,6 @@ mkdir /project/modelscape/analyses/sponges/Data/aquatic_sim_data/$OutDir
 cd /project/modelscape/analyses/sponges/Simulations
 
 # Load R and MPI
-module load arcc/1.0 gcc/12.2.0 r/4.2.2
+module load arcc/1.0 gcc/12.2.0 r/4.4.0
 
 Rscript --vanilla $Rscript $OutDir $SLURM_ARRAY_TASK_ID
