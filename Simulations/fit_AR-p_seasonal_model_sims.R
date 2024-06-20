@@ -58,8 +58,8 @@ args <- commandArgs(trailingOnly = TRUE)
 outdir <- args[1]
 array_num <- as.numeric(args[2])
 
-for(i in 2:3){
-# for(i in 1:mods_per_node){
+# for(i in 2:3){
+for(i in 1:mods_per_node){
 
     mod_num = mods_per_node * (array_num - 1) + i
 
