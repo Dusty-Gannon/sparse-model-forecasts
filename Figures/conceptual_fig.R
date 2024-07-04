@@ -6,32 +6,26 @@ devtools::load_all()
 set.seed(3400)
 
 freq <- 100
-n <- 1
+n <- 5
 
 N <- freq * n
 
-ts <- basic_timeseries(
-  K = 20,
-  num_strong = 2,
-  n = n,
-  freq = freq,
-  trend_fraction = 0,
-  prob_cycle = 1
-)
-plot(ts$y, type = "l")
+ts <- sin(0.05 * 1:N) + 0.8 * sin(0.2 * 1:N) + 0.5*cos(0.5 * 1:N) +
+  0.2 * sin(0.7 * (1:N)) + arima.sim(model = list(ar = c(0.6, 0.2)), n = N, sd = 0.3)
+
+plot(ts, type = "l")
 
 # make y a time series object
-y <- stats::ts(ts$y, frequency = 100)
+y <- stats::ts(ts, frequency = 100)
 
-
+# do the fourier decomposition
 decomp <- forecast::fourier(
   y, K = 50
 )
 
 # combine into dataframe
-
 df <- data.frame(
-  y = ts$y,
+  y = ts,
   time = 1:N
 )
 
@@ -45,6 +39,9 @@ theme <- theme_classic() +
     axis.title.y = element_text(angle = 0, vjust = 0.5)
   )
 
+large <- colnames(decomp)[order(w)[1:3] - 1]
+small <- colnames(decomp)[order(w)[length(w):(length(w) - 2)] - 1]
+
 clrs <- PNWColors::pnw_palette("Bay", n = 6)
 
 raw <- ggplot(df, aes(x = time)) +
@@ -52,25 +49,23 @@ raw <- ggplot(df, aes(x = time)) +
   theme +
   xlab("")
 
+# convert names
+df <- rename_with(df, ~ gsub("-", "_", .x, fixed = TRUE))
+large <- gsub("-", "_", large)
+small <- gsub("-", "_", small)
 
-s1 <- ggplot(df, aes(x = time, y = `S1-100`)) +
+l1 <- ggplot(df, aes_string(x = "time", large[1])) +
   geom_line(color = clrs[1]) +
-  theme +
+  theme_void() +
   xlab("") +
   ylab(expression(w[1]))
 
-c1 <- ggplot(df, aes(x = time, y = `C1-100`)) +
+l2 <- ggplot(df, aes_string(x = "time", y = large[2])) +
   geom_line(color = clrs[2]) +
-  theme +
+  theme_void() +
   ylab(expression(w[2])) +
   xlab("")
 
-# now figure out which signals have largest weights
-large <- names(sort(abs(w[-1]), decreasing = T)[1:2])
-small <- names(sort(abs(w[-1]))[1:2])
-
-large_ids <- which(names(w) %in% large)
-small_ids <- which(names(w) %in% small)
 
 s11 <- ggplot(df, aes(x = time, y = `S11-100`)) +
   geom_line(color = clrs[3]) +
