@@ -48,7 +48,7 @@ mfit <- rstan::sampling(
   cores = 4, control = list(adapt_delta = 0.99)
 )
 
-# get unshrunk coefficients
+# get shrunk coefficients
 w <- colMeans(
   rstan::extract(mfit, pars = "beta")$beta
 )
@@ -66,13 +66,12 @@ small <- colnames(datlist$X)[
 large_ids <- which(colnames(datlist$X) %in% large)
 small_ids <- which(colnames(datlist$X) %in% small)
 
-clrs <- c(PNWColors::pnw_palette("Bay", 2), "#974e62")
+clrs <- c(PNWColors::pnw_palette("Bay", 20))
 
 raw <- ggplot(df, aes(x = time)) +
   geom_line(aes(y = y)) +
   theme +
-  xlab("") +
-  ggtitle("raw data")
+  xlab("")
 
 # convert names
 df <- cbind(
@@ -83,46 +82,41 @@ large <- gsub("-", "_", large)
 small <- gsub("-", "_", small)
 colnames(datlist$X) <- gsub("-", "_", colnames(datlist$X))
 
-l1 <- ggplot(df, aes_string(x = "time", large[1])) +
+s1 <- ggplot(df, aes(x = time, S1_120)) +
   geom_line(color = clrs[1]) +
   theme_void() +
   xlab("") +
-  ylab(expression(w[1])) +
-  ggtitle("example 1")
+  ylab(expression(w[1]))
 
-l2 <- ggplot(df, aes_string(x = "time", y = large[2])) +
+c1 <- ggplot(df, aes(x = time, y = C1_120)) +
   geom_line(color = clrs[1]) +
   theme_void() +
   ylab(expression(w[2])) +
-  xlab("") +
-  ggtitle("example 2")
+  xlab("")
 
 
-s1 <- ggplot(df, aes_string(x = "time", y = small[1])) +
+s2 <- ggplot(df, aes(x = time, y = S2_120)) +
   geom_line(color = clrs[2]) +
   theme_void()
 
-s2 <- ggplot(df, aes_string(x = "time", y = small[2])) +
+c2 <- ggplot(df, aes(x = time, y = C2_120)) +
   geom_line(color = clrs[2]) +
   theme_void()
 
-# s32 <- ggplot(df, aes(x = time, y = `S32-100`)) +
-#   geom_line(color = clrs[5]) +
-#   theme +
-#   ylab(expression(w[64])) +
-#   xlab("")
-#
-# c33 <- ggplot(df, aes(x = time, y = `C33-100`)) +
-#   geom_line(color = clrs[6]) +
-#   theme +
-#   ylab(expression(w[67]))
+s10 <- ggplot(df, aes(x = time, y = S10_120)) +
+  geom_line(color = clrs[16]) +
+  theme_void()
+
+c10 <- ggplot(df, aes(x = time, y = C10_120)) +
+  geom_line(color = clrs[16]) +
+  theme_void()
 
 
 # start second panel with linear combos and fitted values
 
 df <- df %>% mutate(
-  combo_1 = w_raw[1] + w_raw[large_ids[1]] * datlist$X[,large[1]] + 0.5 * datlist$X[, small[1]],
-  combo_2 = w_raw[1] + w_raw[large_ids[2]] * datlist$X[, large[2]] + 0.5 * datlist$X[, small[2]],
+  combo_1 = w_raw[1] +  0.8 * S1_120 + 0.5 * S10_120,
+  combo_2 = w_raw[1] + 0.5 * C1_120 + 0.2 * S2_120,
   y_hat = colMeans(
     rstan::extract(mfit, pars = "eta")$eta
   )
@@ -130,31 +124,84 @@ df <- df %>% mutate(
 
 comb1 <- ggplot(df, aes(x = time)) +
   geom_line(data = df, aes(y = y), col = "grey") +
-  geom_line(aes(y = combo_1), color = clrs[3], linewidth = 1) +
+  geom_line(aes(y = combo_1), linewidth = 0.8) +
   theme_void()
 
 comb2 <- ggplot(df, aes(x = time)) +
   geom_line(data = df, aes(y = y), col = "grey") +
-  geom_line(aes(y = combo_2), color = clrs[3], linewidth = 1) +
+  geom_line(aes(y = combo_2), linewidth = 0.8) +
   theme_void()
 
 fitted <- ggplot(df, aes(x = time)) +
   geom_line(data = df, aes(y = y), col = "grey") +
-  geom_line(aes(y = y_hat), color = "black", linewidth = 1) +
+  geom_line(aes(y = y_hat), color = "black", linewidth = 0.8) +
   theme +
-  ggtitle("fitted model")
+  xlab("Time")
 
-png(
-  filename = here::here("Figures/concept_fig_fourier.png"),
-  width = 6, height = 8, res = 300,
-  units = "in"
+if(!dir.exists(here::here("Figures/fourier_concept_subplots"))){
+  dir.create(here::here("Figures/fourier_concept_subplots"))
+}
+
+ggsave(
+  here::here("Figures/fourier_concept_subplots/data.png"),
+  plot = raw, device = "png",
+  width = 5, height = 1.5, units = "in",
+  dpi = 300
 )
-(raw) / ((l1 / s1) | comb1) /
-  ((l2 / s2) | comb2) /
-  fitted
-dev.off()
-
-
+ggsave(
+  here::here("Figures/fourier_concept_subplots/fitted.png"),
+  plot = fitted, device = "png",
+  width = 5, height = 1.5, units = "in",
+  dpi = 300
+)
+ggsave(
+  here::here("Figures/fourier_concept_subplots/s1.png"),
+  plot = s1, device = "png",
+  width = 3, height = 0.5, units = "in",
+  dpi = 300
+)
+ggsave(
+  here::here("Figures/fourier_concept_subplots/c1.png"),
+  plot = c1, device = "png",
+  width = 3, height = 0.5, units = "in",
+  dpi = 300
+)
+ggsave(
+  here::here("Figures/fourier_concept_subplots/s2.png"),
+  plot = s2, device = "png",
+  width = 3, height = 0.5, units = "in",
+  dpi = 300
+)
+ggsave(
+  here::here("Figures/fourier_concept_subplots/c2.png"),
+  plot = c2, device = "png",
+  width = 3, height = 0.5, units = "in",
+  dpi = 300
+)
+ggsave(
+  here::here("Figures/fourier_concept_subplots/s10.png"),
+  plot = s10, device = "png",
+  width = 3, height = 0.5, units = "in",
+  dpi = 300
+)
+ggsave(
+  here::here("Figures/fourier_concept_subplots/c10.png"),
+  plot = c10, device = "png",
+  width = 3, height = 0.5, units = "in",
+  dpi = 300
+)
+ggsave(
+  here::here("Figures/fourier_concept_subplots/combo1.png"),
+  plot = comb1, device = "png",
+  width = 3.5, height = 1, units = "in",
+  dpi = 300
+)
+ggsave(
+  here::here("Figures/fourier_concept_subplots/combo2.png"),
+  plot = comb2, device = "png",
+  width = 3.5, height = 1, units = "in",
+  dpi = 300
+)
 
   # ggsave(
   #   here::here("Figures/concept_fig_fourier.png"),
