@@ -110,10 +110,12 @@ frmse <- dat %>%
         # legend.key.size = unit(1, 'line')
         )
 frmse <- dat %>%
-  pivot_wider(id_cols = c('betas', 'n', 'rmse_forecast_arima'),
+  pivot_wider(id_cols = c('betas', 'n', 'rmse_forecast_arima',
+                          'rmse_forecast_arima_seasonal'),
               values_from = 'rmse_forecast', names_from = 'model') %>%
-  rename(arima = rmse_forecast_arima) %>%
-  pivot_longer(cols = c('arima', 'gauss', 'hs'),
+  rename(arima = rmse_forecast_arima,
+         arima_seasonal = rmse_forecast_arima_seasonal) %>%
+  pivot_longer(cols = c('arima', 'arima_seasonal', 'gauss', 'hs'),
                values_to = 'rmse_forecast', names_to = 'model') %>%
   ggplot(aes(factor(n), rmse_forecast, fill = model)) +
   # geom_point(alpha = 0.3, size = 0.85) +
@@ -127,20 +129,24 @@ frmse <- dat %>%
   theme_bw()
 
 dat_frmse <- dat %>%
-  pivot_wider(id_cols = c('betas', 'n', 'rmse_forecast_arima'),
+  pivot_wider(id_cols = c('betas', 'n', 'rmse_forecast_arima',
+                          'rmse_forecast_arima_seasonal'),
               values_from = 'rmse_forecast', names_from = 'model') %>%
-  rename(arima = rmse_forecast_arima) %>%
-  pivot_longer(cols = c('arima', 'gauss', 'hs'),
+  rename(arima = rmse_forecast_arima,
+         arima_seasonal = rmse_forecast_arima_seasonal) %>%
+  pivot_longer(cols = c('arima', 'arima_seasonal', 'gauss', 'hs'),
                values_to = 'rmse_forecast', names_to = 'model')
+
 dat_frmse2 <- dat %>%
   filter(model != 'gauss') %>%
   select(-model) %>%
   rename('Auto Arima' = rmse_forecast_arima,
+         'Seasonal Auto Arima' = rmse_forecast_arima_seasonal,
          'Horseshoe \nPrior' = rmse_forecast) %>%
   # mutate(model = case_when(model == 'hs' ~ 'Horseshoe \nPrior',
   #                          model == 'arima' ~ 'Auto \nArima',
   #                          TRUE ~ model)) %>%
-  pivot_longer(cols = c('Auto Arima', 'Horseshoe \nPrior'),
+  pivot_longer(cols = c('Auto Arima', 'Seasonal Auto Arima', 'Horseshoe \nPrior'),
                values_to = 'rmse_forecast', names_to = 'model') #%>%
   mutate(n = case_when(model == 'Auto Arima' ~ n - 2.5,
                        TRUE ~ n + 2.5))
@@ -164,7 +170,7 @@ frmse2 <- dat_frmse2 %>%
   ylab('Forecast RMSE')+
   xlab('Time Series Length')+
   scale_y_log10() +
-  scale_color_manual('Model', values = mod_cols) +
+  # scale_color_manual('Model', values = mod_cols) +
   scale_linetype_manual('N Known \nCovariates', values = c(1,2,3)) +
   theme_bw()
 
@@ -172,8 +178,9 @@ frmse2 <- dat %>%
   filter(model != 'gauss') %>%
   select(-model) %>%
   rename('Auto Arima' = rmse_forecast_arima,
-         'Horseshoe \nPrior' = rmse_forecast) %>%
-  pivot_longer(cols = c('Auto Arima', 'Horseshoe \nPrior'),
+         'Horseshoe \nPrior' = rmse_forecast,
+         'Seasonal Auto Arima' = rmse_forecast_arima_seasonal)%>%
+  pivot_longer(cols = c('Auto Arima', 'Seasonal Auto Arima', 'Horseshoe \nPrior'),
                values_to = 'rmse_forecast', names_to = 'model') %>%
   group_by(betas, n, model) %>%
   summarize(med_rmse = median(rmse_forecast, na.rm = TRUE),
@@ -182,15 +189,18 @@ frmse2 <- dat %>%
   ggplot(aes(n, med_rmse, col = model)) +
   geom_line(aes(lty = factor(betas)), size = 1) +
   geom_violin(data = filter(dat_frmse2, model == 'Auto Arima'),
-              aes(n, rmse_forecast, group = n), fill = mod_cols[1],
+              aes(n, rmse_forecast, group = n),# fill = mod_cols[1],
+              alpha = 0.3, position = 'identity', width = 30)+
+  geom_violin(data = filter(dat_frmse2, model == 'Seasonal Auto Arima'),
+              aes(n, rmse_forecast, group = n), #fill = mod_cols[1],
               alpha = 0.3, position = 'identity', width = 30)+
   geom_violin(data = filter(dat_frmse2, model == 'Horseshoe \nPrior'),
-              aes(n, rmse_forecast, group = n),fill = mod_cols[2],
+              aes(n, rmse_forecast, group = n),#fill = mod_cols[2],
               alpha = 0.3, position = 'identity', width = 70)+
   ylab('Forecast RMSE')+
   xlab('Time Series Length')+
   scale_y_log10() +
-  scale_color_manual('Model', values = mod_cols) +
+  # scale_color_manual('Model', values = mod_cols) +
   scale_linetype_manual('N Known \nCovariates', values = c(1,2,3)) +
   theme_bw()
 
