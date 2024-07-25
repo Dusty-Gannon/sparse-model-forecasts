@@ -11,7 +11,7 @@
 # Set the parameter combination to use and generate names of R scripts and log file
 OutDir='ARp_err_sims_02_12'
 
-module load arcc/1.0 gcc/12.2.0 r/4.2.2
+module load arcc/1.0 gcc/12.2.0 r/4.4.0
 
 # define the second R script that will be run
 Rscript=combine_seasonal_ARp_sim_output.R
