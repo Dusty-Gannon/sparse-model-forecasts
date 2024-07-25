@@ -335,12 +335,16 @@ fit_seasonal_arima_model <- function(model_pars){
   ar_for <- forecast::forecast(fit_ar, xreg = X_fit[(n+1):nrow(X_fit),],
                                h = model_pars$holdout)
   ar_beta <- fit_ar$coef
+
+
+
   # autoplot(ar_for)
 
   # calculate forecast RMSE
   rmse <- sqrt(mean((ar_for$mean - model_pars$y[(n+1):length(model_pars$y)])^2))
 
-  return(list(rmse = rmse,
+  return(list(fit_ar = fit_ar,
+              rmse = rmse,
               ar_forecast = ar_for))
 
 }
