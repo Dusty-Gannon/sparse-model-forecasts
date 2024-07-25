@@ -8,6 +8,8 @@ args <- commandArgs(trailingOnly = TRUE)
 # outdir <- 'test_seasonal'
 outdir <- args[1]
 
+# filelist <- paste0('Data/aquatic_sim_data/test_seasonal/',
+#                    list.files('Data/aquatic_sim_data/test_seasonal/'))
 filelist <- paste0('Data/aquatic_sim_data/', outdir, '/',
                    list.files(paste0('Data/aquatic_sim_data/', outdir, '/'))
                    )
@@ -54,9 +56,21 @@ for(i in 1:length(filelist)){
     arima_fit <- fit_arima_model(out$model_pars)
     arima_seasonal <- fit_seasonal_arima_model(out$model_pars)
 
-    dd$rmse_forecast_arima <- rep(arima_fit$rmse, 2)
-    dd$rmse_forecast_arima_seasonal <- rep(arima_seasonal$rmse, 2)
+    ar <- data.frame(
+      n = out$model_pars$n,
+      sigma = out$model_pars$sd,
+      betas = out$model_pars$beta_select,
+      model = 'arima',
+      rmse_forecast = arima_seasonal$rmse)
 
+    tpr_arima <- summarize_arima_pos_rate(arima_seasonal$fit_ar,
+                                          out$mod_fits$hs_fit,
+                                          out$model_pars,
+                                          fr = TRUE)
+
+    ar <- bind_cols(ar, tpr_arima)
+
+    dd <- bind_rows(dd, ar)
     # ar_for <- arima_seasonal$ar_forecast
 
     df <- rbind(df,dd)

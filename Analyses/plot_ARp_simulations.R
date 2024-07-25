@@ -110,10 +110,12 @@ frmse <- dat %>%
         # legend.key.size = unit(1, 'line')
         )
 frmse <- dat %>%
-  pivot_wider(id_cols = c('betas', 'n', 'rmse_forecast_arima'),
+  pivot_wider(id_cols = c('betas', 'n', 'rmse_forecast_arima',
+                          'rmse_forecast_arima_seasonal'),
               values_from = 'rmse_forecast', names_from = 'model') %>%
-  rename(arima = rmse_forecast_arima) %>%
-  pivot_longer(cols = c('arima', 'gauss', 'hs'),
+  rename(arima = rmse_forecast_arima,
+         arima_seasonal = rmse_forecast_arima_seasonal) %>%
+  pivot_longer(cols = c('arima', 'arima_seasonal', 'gauss', 'hs'),
                values_to = 'rmse_forecast', names_to = 'model') %>%
   ggplot(aes(factor(n), rmse_forecast, fill = model)) +
   # geom_point(alpha = 0.3, size = 0.85) +
@@ -127,20 +129,24 @@ frmse <- dat %>%
   theme_bw()
 
 dat_frmse <- dat %>%
-  pivot_wider(id_cols = c('betas', 'n', 'rmse_forecast_arima'),
+  pivot_wider(id_cols = c('betas', 'n', 'rmse_forecast_arima',
+                          'rmse_forecast_arima_seasonal'),
               values_from = 'rmse_forecast', names_from = 'model') %>%
-  rename(arima = rmse_forecast_arima) %>%
-  pivot_longer(cols = c('arima', 'gauss', 'hs'),
+  rename(arima = rmse_forecast_arima,
+         arima_seasonal = rmse_forecast_arima_seasonal) %>%
+  pivot_longer(cols = c('arima', 'arima_seasonal', 'gauss', 'hs'),
                values_to = 'rmse_forecast', names_to = 'model')
+
 dat_frmse2 <- dat %>%
   filter(model != 'gauss') %>%
   select(-model) %>%
   rename('Auto Arima' = rmse_forecast_arima,
+         'Seasonal Auto Arima' = rmse_forecast_arima_seasonal,
          'Horseshoe \nPrior' = rmse_forecast) %>%
   # mutate(model = case_when(model == 'hs' ~ 'Horseshoe \nPrior',
   #                          model == 'arima' ~ 'Auto \nArima',
   #                          TRUE ~ model)) %>%
-  pivot_longer(cols = c('Auto Arima', 'Horseshoe \nPrior'),
+  pivot_longer(cols = c('Auto Arima', 'Seasonal Auto Arima', 'Horseshoe \nPrior'),
                values_to = 'rmse_forecast', names_to = 'model') #%>%
   mutate(n = case_when(model == 'Auto Arima' ~ n - 2.5,
                        TRUE ~ n + 2.5))
@@ -164,7 +170,7 @@ frmse2 <- dat_frmse2 %>%
   ylab('Forecast RMSE')+
   xlab('Time Series Length')+
   scale_y_log10() +
-  scale_color_manual('Model', values = mod_cols) +
+  # scale_color_manual('Model', values = mod_cols) +
   scale_linetype_manual('N Known \nCovariates', values = c(1,2,3)) +
   theme_bw()
 
@@ -172,8 +178,9 @@ frmse2 <- dat %>%
   filter(model != 'gauss') %>%
   select(-model) %>%
   rename('Auto Arima' = rmse_forecast_arima,
-         'Horseshoe \nPrior' = rmse_forecast) %>%
-  pivot_longer(cols = c('Auto Arima', 'Horseshoe \nPrior'),
+         'Horseshoe \nPrior' = rmse_forecast,
+         'Seasonal Auto Arima' = rmse_forecast_arima_seasonal)%>%
+  pivot_longer(cols = c('Auto Arima', 'Seasonal Auto Arima', 'Horseshoe \nPrior'),
                values_to = 'rmse_forecast', names_to = 'model') %>%
   group_by(betas, n, model) %>%
   summarize(med_rmse = median(rmse_forecast, na.rm = TRUE),
@@ -182,15 +189,18 @@ frmse2 <- dat %>%
   ggplot(aes(n, med_rmse, col = model)) +
   geom_line(aes(lty = factor(betas)), size = 1) +
   geom_violin(data = filter(dat_frmse2, model == 'Auto Arima'),
-              aes(n, rmse_forecast, group = n), fill = mod_cols[1],
+              aes(n, rmse_forecast, group = n),# fill = mod_cols[1],
+              alpha = 0.3, position = 'identity', width = 30)+
+  geom_violin(data = filter(dat_frmse2, model == 'Seasonal Auto Arima'),
+              aes(n, rmse_forecast, group = n), #fill = mod_cols[1],
               alpha = 0.3, position = 'identity', width = 30)+
   geom_violin(data = filter(dat_frmse2, model == 'Horseshoe \nPrior'),
-              aes(n, rmse_forecast, group = n),fill = mod_cols[2],
+              aes(n, rmse_forecast, group = n),#fill = mod_cols[2],
               alpha = 0.3, position = 'identity', width = 70)+
   ylab('Forecast RMSE')+
   xlab('Time Series Length')+
   scale_y_log10() +
-  scale_color_manual('Model', values = mod_cols) +
+  # scale_color_manual('Model', values = mod_cols) +
   scale_linetype_manual('N Known \nCovariates', values = c(1,2,3)) +
   theme_bw()
 
@@ -199,6 +209,141 @@ png('Manuscript/Figures/ARp_err_forecast_rmses.png',
     width = 6.5, height = 3.2, units = 'in', res = 300)
     frmse2
 dev.off()
+dat %>%
+  filter(model != 'gauss') %>%
+  select(-model) %>%
+  rename('Auto Arima' = rmse_forecast_arima,
+         'Horseshoe \nPrior' = rmse_forecast,
+         'Seasonal Auto Arima' = rmse_forecast_arima_seasonal)%>%
+  pivot_longer(cols = c('Auto Arima', 'Seasonal Auto Arima', 'Horseshoe \nPrior'),
+               values_to = 'rmse_forecast', names_to = 'model') %>%
+  pivot_longer(cols = c('fr_true_pos', 'fr_false_pos', 'beta_true_pos', 'beta_false_pos', 'rmse_forecast'),
+               values_to = 'value', names_to = 'metric') %>%
+  # group_by(betas, n, model) %>%
+  # summarize(med_rmse = median(rmse_forecast, na.rm = TRUE),
+  #           lower = quantile(rmse_forecast, 0.025, na.rm = TRUE),
+  #           upper = quantile(rmse_forecast, 0.975, na.rm = TRUE))
+ggplot(aes( y = value, fill = model)) +
+  geom_violin(aes(x = model), alpha = 0.5, width = 1.4) +
+  geom_boxplot(aes(x = model), width = 0.1, position = position_nudge(0.2)) +
+  facet_wrap(metric ~ ., ncol = 1, scales = 'free') +
+  labs(x = "", y = "Prediction RMSE") +
+  coord_flip() +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+  # scale_fill_manual(values = c("Stepwise AIC" = "blue", "Horseshoe" = "red"))
+
+dat_long <- dat %>%
+  filter(model != 'gauss') %>%
+  select(-model) %>%
+  rename(#'Auto Arima' = rmse_forecast_arima,
+         'Horseshoe \nPrior' = rmse_forecast,
+         'Seasonal \nAuto Arima' = rmse_forecast_arima_seasonal)%>%
+  pivot_longer(cols = c('Seasonal \nAuto Arima', 'Horseshoe \nPrior'),
+               values_to = 'rmse_forecast', names_to = 'Model') %>%
+  mutate(Model = factor(Model, levels = c('Seasonal \nAuto Arima', 'Horseshoe \nPrior')))
+
+dat_long  %>%
+
+barcols = c("grey50", "grey25", "black")
+
+legend_data <- data.frame(
+  Model = rep("Horseshoe \nPrior", 3),
+
+  rmse_forecast = rep(0, 3),
+  n = c(365, 730, 1095),
+  betas = c(0,2,4),
+  color = barcols#rep('white', 3)
+)
+
+# legend_grob <- grobTree(
+#   rectGrob(x = 0.1, y = 0.95, width = 0.1, height = 0.05, gp = gpar(fill = "grey50", col = "grey50")),
+#   textGrob("n = 365", x = 0.25, y = 0.95, just = "left"),
+#   rectGrob(x = 0.1, y = 0.85, width = 0.1, height = 0.05, gp = gpar(fill = "grey25", col = "grey25")),
+#   textGrob("n = 730", x = 0.25, y = 0.85, just = "left"),
+#   rectGrob(x = 0.1, y = 0.75, width = 0.1, height = 0.05, gp = gpar(fill = "black", col = "black")),
+#   textGrob("n = 1095", x = 0.25, y = 0.75, just = "left")
+# )
+
+
+# plot with bars for time series length:
+ggplot(dat_long, aes(x = Model, y = rmse_forecast)) +
+  geom_violin(aes(fill = Model), alpha = 0.5, width = 1.15, show.legend = FALSE) +
+  geom_boxplot(data = dat_long[which(dat_long$n == 365),],
+               col = barcols[1], fill = barcols[1], width = 0.025,
+               position = position_nudge(0.05), outlier.shape = NA) +
+  geom_boxplot(data = dat_long[which(dat_long$n == 730),],
+               col = barcols[2], fill = barcols[2], width = 0.025, outlier.shape = NA) +
+  geom_boxplot(data = dat_long[which(dat_long$n == 1095),],
+               col = barcols[3], fill = barcols[3], width = 0.025,
+               position = position_nudge(-0.05), outlier.shape = NA) +
+  ylim(0,12)+
+  labs(x = "", y = "Prediction RMSE") +
+  coord_flip() +
+  scale_fill_manual(values = mod_cols) +
+  theme_bw() +
+  geom_boxplot(data = legend_data, aes(y = rmse_forecast,
+                                       color = color),# fill = color),
+               width = 0.1) +
+  scale_color_manual(name = "Timeseries Length",
+                     values = c("grey50" = barcols[1], "grey25" = barcols[2],
+                                "black" = barcols[3]),
+                     labels = c("1-year", "2-year", "3-year")) +
+  guides(color = guide_legend(override.aes = list(
+    fill = c(barcols[1], barcols[2], barcols[3]),
+    color = c(barcols[1], barcols[2], barcols[3]),
+    size = 0.5, width = 0.1, outlier.shape = NA)))+
+  geom_boxplot(data = legend_data, aes(y = rmse_forecast),
+               color = 'white', fill = 'white', width = 1) +
+  theme(legend.position = 'top',
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank())
+
+
+# plot with bars for time series length:
+ggplot(dat_long, aes(x = Model, y = rmse_forecast)) +
+  geom_violin(aes(fill = Model), alpha = 0.5, width = 1.15, show.legend = FALSE) +
+  geom_boxplot(data = dat_long[which(dat_long$betas == 0),],
+               col = barcols[1], fill = barcols[1], width = 0.025,
+               position = position_nudge(0.05), outlier.shape = NA) +
+  geom_boxplot(data = dat_long[which(dat_long$betas == 2),],
+               col = barcols[2], fill = barcols[2], width = 0.025, outlier.shape = NA) +
+  geom_boxplot(data = dat_long[which(dat_long$betas == 4),],
+               col = barcols[3], fill = barcols[3], width = 0.025,
+               position = position_nudge(-0.05), outlier.shape = NA) +
+  ylim(0,12)+
+  labs(x = "", y = "Prediction RMSE") +
+  coord_flip() +
+  scale_fill_manual(values = mod_cols) +
+  theme_bw() +
+  geom_boxplot(data = legend_data, aes(y = rmse_forecast,
+                                       color = color),# fill = color),
+               width = 0.1) +
+  scale_color_manual(name = "Known Covariates (out of 5)",
+                     values = c("grey50" = barcols[1], "grey25" = barcols[2],
+                                "black" = barcols[3]),
+                     labels = c("0", "2", "4")) +
+  guides(color = guide_legend(override.aes = list(
+    fill = c(barcols[1], barcols[2], barcols[3]),
+    color = c(barcols[1], barcols[2], barcols[3]),
+    size = 0.5, width = 0.1, outlier.shape = NA)))+
+  geom_boxplot(data = legend_data, aes(y = rmse_forecast),
+               color = 'white', fill = 'white', width = 1) +
+  theme(legend.position = 'top',
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank())
+
+
+
+
+
+
+
+
+
+
+
+
 
 ggplot(datr, aes(n, rmse_forecast)) +
   geom_violin(aes(group = cut_width(n, 5)), alpha = 0.5,
@@ -207,7 +352,6 @@ ggplot(datr, aes(n, rmse_forecast)) +
               fill = mod_cols[2]) +
   geom_smooth(aes(lty = siglab), col = mod_cols[1]) +
   geom_smooth(data = datnr, aes(lty = siglab), col = mod_cols[2]) +
-  scale_color_manual(values = mod_cols) +
   scale_y_log10() +
   facet_wrap(siglab~., ncol = 1)+
   ylab('Model Forecast RMSE')+
