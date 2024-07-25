@@ -252,19 +252,23 @@ print(paste0('n_beta = ', n_beta, ';  n = ', n))
 
  #fit the models
 
-  if(is.na(X)){
+  #if(is.na(X)){
     # fit_ar <- forecast::tbats(model_pars$y[1:n])
-    fit_ar <- forecast::auto.arima(model_pars$y[1:n])
-    ar_for <- forecast::forecast(fit_ar, h = model_pars$holdout)
-    ar_beta <- NA
-  }
+   # fit_ar <- forecast::auto.arima(model_pars$y[1:n])
+   # ar_for <- forecast::forecast(fit_ar, h = model_pars$holdout)
+   # ar_beta <- NA
+ # }
 
   if(sum(is.na(X))==0){
     fit_ar <- forecast::auto.arima(model_pars$y[1:n],
                                    xreg = X[1:n,])
     ar_for <- forecast::forecast(fit_ar, xreg = X[(n+1):nrow(X),])
     ar_beta <- fit_ar$coef[(length(fit_ar$coef)-n_beta+1):length(fit_ar$coef)]
-  }
+  }else{
+    fit_ar <- forecast::auto.arima(model_pars$y[1:n])
+    ar_for <- forecast::forecast(fit_ar, h = model_pars$holdout)
+    ar_beta <- NA
+}
 
   # calculate forecast RMSE
   rmse <- sqrt(mean((ar_for$mean - model_pars$y[(n+1):length(model_pars$y)])^2))
@@ -313,11 +317,11 @@ fit_seasonal_arima_model <- function(model_pars){
 
   for(K in 1:20){
 
-    X_fit <- fourier(y,K=K)
+    X_fit <- forecast::fourier(y,K=K)
 
-    if(!is.na(X)){ X_fit <- cbind(X[1:n,], X_fit)   }
+    if(sum(is.na(X))==0){ X_fit <- cbind(X[1:n,], X_fit)   }
 
-    mod <- auto.arima(y, xreg=X_fit, seasonal=FALSE)
+    mod <- forecast::auto.arima(y, xreg=X_fit, seasonal=FALSE)
     mod_aic <- data.frame(K = K,
                           AIC = mod$aic,
                           AICc = mod$aicc)
@@ -329,8 +333,8 @@ fit_seasonal_arima_model <- function(model_pars){
 
   # fit arima model:
 
-  X_fit <- fourier(y_full, K=K)
-  if(!is.na(X)){ X_fit <- cbind(X, X_fit)   }
+  X_fit <- forecast::fourier(y_full, K=K)
+  if(sum(is.na(X))==0){ X_fit <- cbind(X, X_fit)   }
 
   fit_ar <- forecast::auto.arima(y, xreg = X_fit[1:n,], seasonal = FALSE)
   ar_for <- forecast::forecast(fit_ar, xreg = X_fit[(n+1):nrow(X_fit),],
