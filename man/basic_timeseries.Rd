@@ -11,7 +11,15 @@ basic_timeseries(
   freq,
   trend_fraction = 0.5,
   prob_cycle = 0.5,
-  sigma = 0.5
+  sigma = 0.5,
+  probWeakCorr = 0.2,
+  numStrongCorr = 1,
+  strongSelf = F,
+  corrLevel = 0.7,
+  corrChange = F,
+  propChange = 1,
+  changeSize = 1,
+  changeTimeVar = 5
 )
 }
 \arguments{
@@ -29,6 +37,22 @@ basic_timeseries(
 \item{prob_cycle}{Probability that a driver experiences a seasonal cycle.}
 
 \item{sigma}{Standard deviation of the noise component.}
+
+\item{probWeakCorr}{probability of a weak driver being correlated to a strong driver}
+
+\item{numStrongCorr}{number of strong drivers correlated to a weak driver}
+
+\item{strongSelf}{whether strong drivers correlated to weak drivers are also correlated to other strong drivers}
+
+\item{corrLevel}{Correlation level desired between strong and weak drivers (and maybe strong and strong drivers), if they are correlated}
+
+\item{corrChange}{whether correlation breaks down during the}
+
+\item{propChange}{number of correlations that will change, if they do change}
+
+\item{changeSize}{how much correlations will change, if they do change}
+
+\item{changeTimeVar}{how much variance is allowed in when each correlation breaks down}
 }
 \value{
 List with the response, \code{y}, the model matrix, \code{X},

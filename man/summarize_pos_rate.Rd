@@ -6,7 +6,7 @@
 for a paired set of regularized and not regularized models run on the same
 simulated dataset.}
 \usage{
-summarize_pos_rate(fits, model_pars, threshold = 0.9)
+summarize_pos_rate(fits, model_pars, threshold = 0.9, fr = FALSE)
 }
 \arguments{
 \item{fits}{A list of stanfit objects}
