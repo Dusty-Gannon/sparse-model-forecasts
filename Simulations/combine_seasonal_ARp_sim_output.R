@@ -52,7 +52,8 @@ for(i in 1:length(filelist)){
 
     dd <- bind_cols(dd, tpr)
     dd$mod_run <- rep(filelist[i], 2)
-
+    
+    print(paste0('simulation ', filelist[i]))
     arima_fit <- fit_arima_model(out$model_pars)
     arima_seasonal <- fit_seasonal_arima_model(out$model_pars)
 
@@ -65,8 +66,7 @@ for(i in 1:length(filelist)){
 
     tpr_arima <- summarize_arima_pos_rate(arima_seasonal$fit_ar,
                                           out$mod_fits$hs_fit,
-                                          out$model_pars,
-                                          fr = TRUE)
+                                          out$model_pars)
 
     ar <- bind_cols(ar, tpr_arima)
 

@@ -310,7 +310,7 @@ fit_seasonal_arima_model <- function(model_pars, K = 12){
   y <- ts(model_pars$y[1:n], frequency = 365)
   y_full <- ts(model_pars$y, frequency = 365)
 
-  X_fit <- fourier(y_full,K=K)
+  X_fit <- forecast::fourier(y_full,K=K)
   if(n_beta > 0){
     X = model_pars$X[, 3:(3+n_beta-1)]
     X_fit <- cbind(X, X_fit)
@@ -318,7 +318,6 @@ fit_seasonal_arima_model <- function(model_pars, K = 12){
 
   step_AIC_df <- data.frame(X_fit) %>%
     mutate(y = y_full)
-
   #fit the models
   # minimize AICc to determine the number of seasonal terms to include:
 
@@ -333,10 +332,8 @@ fit_seasonal_arima_model <- function(model_pars, K = 12){
 
   mod_form <- paste0('y ~ ', paste(colnames(data.frame(X_fit)), collapse = ' + '))
   mod <- lm(mod_form, data = step_AIC_df[1:n,])
-
   stepAIC_out <- MASS::stepAIC(mod_null, direction = "forward",
                            scope = list(lower = mod_null, upper = mod))
-
   X_sub <- X_fit[, colnames(X_fit) %in% gsub('\\.', '-', names(stepAIC_out$coefficients)[-1])]
 
   # fit arima model:
