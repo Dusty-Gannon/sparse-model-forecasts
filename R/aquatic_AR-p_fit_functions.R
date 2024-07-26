@@ -252,19 +252,23 @@ print(paste0('n_beta = ', n_beta, ';  n = ', n))
 
  #fit the models
 
-  if(is.na(X)){
+  #if(is.na(X)){
     # fit_ar <- forecast::tbats(model_pars$y[1:n])
-    fit_ar <- forecast::auto.arima(model_pars$y[1:n])
-    ar_for <- forecast::forecast(fit_ar, h = model_pars$holdout)
-    ar_beta <- NA
-  }
+   # fit_ar <- forecast::auto.arima(model_pars$y[1:n])
+   # ar_for <- forecast::forecast(fit_ar, h = model_pars$holdout)
+   # ar_beta <- NA
+ # }
 
   if(sum(is.na(X))==0){
     fit_ar <- forecast::auto.arima(model_pars$y[1:n],
                                    xreg = X[1:n,])
     ar_for <- forecast::forecast(fit_ar, xreg = X[(n+1):nrow(X),])
     ar_beta <- fit_ar$coef[(length(fit_ar$coef)-n_beta+1):length(fit_ar$coef)]
-  }
+  }else{
+    fit_ar <- forecast::auto.arima(model_pars$y[1:n])
+    ar_for <- forecast::forecast(fit_ar, h = model_pars$holdout)
+    ar_beta <- NA
+}
 
   # calculate forecast RMSE
   rmse <- sqrt(mean((ar_for$mean - model_pars$y[(n+1):length(model_pars$y)])^2))
@@ -302,38 +306,43 @@ fit_seasonal_arima_model <- function(model_pars, K = 12){
   # determine how many covariates to include:
   n_beta <- length(model_pars$beta)-1
   n <- (length(model_pars$y)-model_pars$holdout)
+
   y <- ts(model_pars$y[1:n], frequency = 365)
   y_full <- ts(model_pars$y, frequency = 365)
 
-  X_fit <- fourier(y_full,K=K)
+  X_fit <- forecast::fourier(y_full,K=K)
   if(n_beta > 0){
     X = model_pars$X[, 3:(3+n_beta-1)]
+    colnames(X) <- paste0('beta', 1:ncol(X))
     X_fit <- cbind(X, X_fit)
   }
 
   step_AIC_df <- data.frame(X_fit) %>%
     mutate(y = y_full)
+  step_AIC_sub <<- step_AIC_df[1:n,]
 
   #fit the models
   # minimize AICc to determine the number of seasonal terms to include:
 
   if(n_beta == 0){
-    mod_null <- lm(y ~ 1, data = step_AIC_df[1:n,])
+    mod_null <- lm(y ~ 1, data = step_AIC_sub)
   }
 
   if(n_beta > 0){
     mod_form <- paste0('y ~ ', paste(colnames(data.frame(X)), collapse = ' + '))
-    mod_null <- lm(mod_form, data = step_AIC_df[1:n,])
+    mod_null <- lm(mod_form, data = step_AIC_sub)
   }
 
   mod_form <- paste0('y ~ ', paste(colnames(data.frame(X_fit)), collapse = ' + '))
-  mod <- lm(mod_form, data = step_AIC_df[1:n,])
+  mod <- lm(mod_form, data = step_AIC_sub)
 
   stepAIC_out <- MASS::stepAIC(mod_null, direction = "forward",
                            scope = list(lower = mod_null, upper = mod))
 
   X_sub <- X_fit[, colnames(X_fit) %in% gsub('\\.', '-', names(stepAIC_out$coefficients)[-1])]
 
+  # X_sub <- cbind(matrix(rep(1, nrow(X_sub)), ncol = 1, dimnames = list(NULL, 'beta0')),
+  #       X_sub)
   # fit arima model:
 
   fit_ar <- forecast::auto.arima(y, xreg = X_sub[1:n,], seasonal = FALSE)

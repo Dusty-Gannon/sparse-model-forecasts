@@ -8,8 +8,6 @@ args <- commandArgs(trailingOnly = TRUE)
 # outdir <- 'test_seasonal'
 outdir <- args[1]
 
-# filelist <- paste0('Data/aquatic_sim_data/test_seasonal/',
-#                    list.files('Data/aquatic_sim_data/test_seasonal/'))
 filelist <- paste0('Data/aquatic_sim_data/', outdir, '/',
                    list.files(paste0('Data/aquatic_sim_data/', outdir, '/'))
                    )
@@ -53,6 +51,7 @@ for(i in 1:length(filelist)){
     dd <- bind_cols(dd, tpr)
     dd$mod_run <- rep(filelist[i], 2)
 
+    print(paste0('simulation ', filelist[i]))
     arima_fit <- fit_arima_model(out$model_pars)
     arima_seasonal <- fit_seasonal_arima_model(out$model_pars)
 
@@ -65,15 +64,23 @@ for(i in 1:length(filelist)){
 
     tpr_arima <- summarize_arima_pos_rate(arima_seasonal$fit_ar,
                                           out$mod_fits$hs_fit,
-                                          out$model_pars,
-                                          fr = TRUE)
+                                          out$model_pars)
 
     ar <- bind_cols(ar, tpr_arima)
+    ar_fit <- arima_seasonal$fit_ar
+    if('intercept' %in% names(ar_fit$coef)){
+      b0 = ar_fit$coef['intercept']
+    } else {
+      b0 = 0}
+
+    ar$rmse_beta <- sqrt(mean((out$model_pars$beta -
+                       c(b0, ar_fit$coef[grepl('^beta*', names(ar_fit$coef))]))^2))
+    # if(model_pars$beta_select == 0){ar$rmse_beta <- NA}
 
     dd <- bind_rows(dd, ar)
     # ar_for <- arima_seasonal$ar_forecast
 
-    df <- rbind(df,dd)
+    df <- bind_rows(df,dd)
 
     # hs_for <- t(apply(out$mod_fits$hs_fit$forecast, 2, quantile,
     #                   probs = c(0.025, 0.5, 0.975)))

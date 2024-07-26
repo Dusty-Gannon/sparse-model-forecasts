@@ -551,9 +551,12 @@ summarize_arima_pos_rate <- function(fit_ar, fit_hs, model_pars, threshold = 0.9
     # phi_post <- filter(post, substr(var, 1,2) == 'ar')
     # add_phi <- length(model_pars$phi) - nrow(phi_post)
     #
-    pos_rate_beta <- calculate_true_pos_rate(beta_post, model_pars$beta,
+    pos_rate_beta <- NA
+    if(model_pars$beta_select !=0){
+    pos_rate_beta <- calculate_true_pos_rate(beta_post, model_pars$beta[-1],
                                              threshold = threshold,
-                                             par = 'beta', arima = TRUE)
+                                             par = 'beta', arima = TRUE)}
+
     # pos_rate_phi <- calculate_true_pos_rate(phi_post,
     #                                         model_pars$phi,
     #                                         threshold = threshold,
