@@ -40,7 +40,9 @@ datlist <- list(
   X = cbind(rep(1, N), decomp),
   tau0 = tau0(y, 5, ncol(decomp), N, fam = "gaussian"),
   slab_scl = 2,
-  slab_df = 6
+  slab_df = 6,
+  N_new = 0,
+  X_new = matrix(nrow = 0, ncol = ncol(decomp) + 1)
 )
 
 mfit <- rstan::sampling(
@@ -59,19 +61,15 @@ theme <- theme_classic() +
     axis.title.y = element_text(angle = 0, vjust = 0.5)
   )
 
-large <- colnames(datlist$X)[(order(abs(w[-1]), decreasing = T) + 1)[1:2]]
-small <- colnames(datlist$X)[
-  order(abs(w_raw), decreasing = T) %in% which(round(w, 2) == 0)
-][1:2]
-large_ids <- which(colnames(datlist$X) %in% large)
-small_ids <- which(colnames(datlist$X) %in% small)
+large <- colnames(datlist$X)[which(round(abs(w), 1) > 0)]
 
-clrs <- c(PNWColors::pnw_palette("Bay", 20))
+large_ids <- which(colnames(datlist$X) %in% large)
+
 
 raw <- ggplot(df, aes(x = time)) +
   geom_line(aes(y = y)) +
   theme +
-  xlab("")
+  xlab("time")
 
 # convert names
 df <- cbind(
@@ -82,39 +80,110 @@ large <- gsub("-", "_", large)
 small <- gsub("-", "_", small)
 colnames(datlist$X) <- gsub("-", "_", colnames(datlist$X))
 
-s1 <- ggplot(df, aes(x = time, S1_120)) +
-  geom_line(color = clrs[1]) +
-  theme_void() +
+#### Waves panel ####
+
+theme_trigs <- theme_classic() +
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks = element_blank(),
+    legend.position = "none",
+    strip.background = element_blank(),
+    strip.text = element_blank(),
+    panel.spacing = unit(0.5, "cm"),
+    axis.text.y = element_text(size = 12)
+  )
+
+
+df_long_waves <- df %>% select(c(time:C4_120, S10_120, C10_120, S50_120, C50_120)) %>%
+  pivot_longer(
+    cols = S1_120:C50_120,
+    names_to = "wave",
+    values_to = "y"
+  )
+
+# add colors
+colors_key <- data.frame(
+  wave = names(df)[c(3:10, 21:22, 101:102)],
+  color = rep(PNWColors::pnw_palette("Bay", 6), each = 2)
+)
+
+df_long_waves <- left_join(
+  df_long_waves,
+  colors_key,
+  by = "wave"
+)
+# make sure order is as I want
+df_long_waves <- df_long_waves %>% mutate(
+  wave = factor(wave, levels = names(df)[c(3:10, 21:22, 101:102)]),
+  color = factor(color, levels = PNWColors::pnw_palette("Bay", 6))
+)
+
+
+# make the plot
+waves_plot <- ggplot(df_long_waves, aes(x = time, y = y, color = color)) +
+  facet_wrap(~wave, ncol = 1) +
+  geom_line(linewidth = 0.75) +
+  theme_trigs +
   xlab("") +
-  ylab(expression(w[1]))
-
-c1 <- ggplot(df, aes(x = time, y = C1_120)) +
-  geom_line(color = clrs[1]) +
-  theme_void() +
-  ylab(expression(w[2])) +
-  xlab("")
+  ylab("") +
+  geom_hline(yintercept = 0, color = "grey", linetype = "dashed") +
+  theme(axis.line.x = element_blank()) +
+  scale_color_manual(values = PNWColors::pnw_palette("Bay", 6)) +
+  scale_y_continuous(breaks = c(-1, 1))
 
 
-s2 <- ggplot(df, aes(x = time, y = S2_120)) +
-  geom_line(color = clrs[2]) +
-  theme_void()
-
-c2 <- ggplot(df, aes(x = time, y = C2_120)) +
-  geom_line(color = clrs[2]) +
-  theme_void()
-
-s10 <- ggplot(df, aes(x = time, y = S10_120)) +
-  geom_line(color = clrs[16]) +
-  theme_void()
-
-c10 <- ggplot(df, aes(x = time, y = C10_120)) +
-  geom_line(color = clrs[16]) +
-  theme_void()
 
 
-# start second panel with linear combos and fitted values
+#### Wave combos ####
 
-df <- df %>% mutate(
+df_combo1_waves <- df_long_waves %>% filter(
+  wave == "S1_120" | wave == "S10_120"
+)
+
+combo1_waves_plot <- ggplot(df_combo1_waves, aes(x = time, y = y, color = color)) +
+  facet_wrap(~wave, ncol = 1, labeller = labeller(wave = c("", ""))) +
+  geom_line(linewidth = 0.75) +
+  theme_trigs +
+  xlab("") +
+  ylab("") +
+  geom_hline(yintercept = 0, color = "grey", linetype = "dashed") +
+  theme(axis.line.x = element_blank()) +
+  scale_color_manual(values = unique(df_combo1_waves$color)) +
+  scale_y_continuous(breaks = c(-1, 1))
+
+df_combo2_waves <- df_long_waves %>% filter(
+  wave == "C1_120" | wave == "S2_120"
+)
+
+combo2_waves_plot <- ggplot(df_combo2_waves, aes(x = time, y = y, color = color)) +
+  facet_wrap(~wave, ncol = 1) +
+  geom_line(linewidth = 0.75) +
+  theme_trigs +
+  xlab("") +
+  ylab("") +
+  geom_hline(yintercept = 0, color = "grey", linetype = "dashed") +
+  theme(axis.line.x = element_blank()) +
+  scale_color_manual(values = unique(df_combo2_waves$color)) +
+  scale_y_continuous(breaks = c(-1, 1))
+
+df_fit_waves <- df_long_waves %>% filter(
+  wave %in% large
+)
+
+fit_waves_plot <- ggplot(df_fit_waves, aes(x = time, y = y, color = color)) +
+  facet_wrap(~wave, ncol = 1) +
+  geom_line(linewidth = 1) +
+  theme_trigs +
+  xlab("") +
+  ylab("") +
+  geom_hline(yintercept = 0, color = "grey", linetype = "dashed") +
+  theme(axis.line.x = element_blank()) +
+  scale_color_manual(values = unique(df_fit_waves$color)) +
+  scale_y_continuous(breaks = c(-1, 1))
+
+#### Linear combinations ####
+
+df_combos <- df %>% mutate(
   combo_1 = w_raw[1] +  0.8 * S1_120 + 0.5 * S10_120,
   combo_2 = w_raw[1] + 0.5 * C1_120 + 0.2 * S2_120,
   y_hat = colMeans(
@@ -122,113 +191,98 @@ df <- df %>% mutate(
   )
 )
 
-comb1 <- ggplot(df, aes(x = time)) +
-  geom_line(data = df, aes(y = y), col = "grey") +
-  geom_line(aes(y = combo_1), linewidth = 0.8) +
-  theme_void()
+# find the color of the mixtures
+w_c1 <- c(0.8, 0.5) / (0.8 + 0.5)
+col_comb1 <- col2rgb(unique(df_combo1_waves$color)) %*% diag(w_c1) |>
+  rowMeans() |>
+  as.list() |> c(list(maxColorValue = 255)) |>
+  do.call(rgb, args = _)
 
-comb2 <- ggplot(df, aes(x = time)) +
-  geom_line(data = df, aes(y = y), col = "grey") +
-  geom_line(aes(y = combo_2), linewidth = 0.8) +
-  theme_void()
+w_c2 <- c(0.5, 0.2) / (0.5 + 0.2)
+col_comb2 <- col2rgb(unique(df_combo2_waves$color)) %*% diag(w_c2) |>
+  rowMeans() |>
+  as.list() |> c(list(maxColorValue = 255)) |>
+  do.call(rgb, args = _)
 
-fitted <- ggplot(df, aes(x = time)) +
+w_fit <- abs(w[large_ids]) / sum(abs(w[large_ids]))
+col_comb3 <- col2rgb(rep(unique(df_fit_waves$color), each = 2)) %*% diag(w_fit) |>
+  rowMeans() |>
+  as.list() |> c(list(maxColorValue = 255)) |>
+  do.call(rgb, args = _)
+
+comb1 <- ggplot(df_combos, aes(x = time)) +
   geom_line(data = df, aes(y = y), col = "grey") +
-  geom_line(aes(y = y_hat), color = "black", linewidth = 0.8) +
-  theme +
-  xlab("Time")
+  geom_line(aes(y = combo_1), linewidth = 1.2, col = col_comb1) +
+  theme
+
+comb2 <- ggplot(df_combos, aes(x = time)) +
+  geom_line(data = df, aes(y = y), col = "grey") +
+  geom_line(aes(y = combo_2), linewidth = 1.2, col = col_comb2) +
+  theme
+
+fitted <- ggplot(df_combos, aes(x = time)) +
+  geom_line(data = df, aes(y = y), col = "grey") +
+  geom_line(aes(y = y_hat), color = col_comb3, linewidth = 1.2) +
+  theme
+
+#### Save sub-panels for manual assembly ####
 
 if(!dir.exists(here::here("Figures/fourier_concept_subplots"))){
   dir.create(here::here("Figures/fourier_concept_subplots"))
 }
 
+
 ggsave(
   here::here("Figures/fourier_concept_subplots/data.png"),
   plot = raw, device = "png",
-  width = 5, height = 1.5, units = "in",
+  width = 4, height = 2, units = "in",
   dpi = 300
 )
 ggsave(
   here::here("Figures/fourier_concept_subplots/fitted.png"),
   plot = fitted, device = "png",
-  width = 5, height = 1.5, units = "in",
+  width = 4, height = 2, units = "in",
   dpi = 300
 )
 ggsave(
-  here::here("Figures/fourier_concept_subplots/s1.png"),
-  plot = s1, device = "png",
-  width = 3, height = 0.5, units = "in",
+  here::here("Figures/fourier_concept_subplots/waves.png"),
+  plot = waves_plot, device = "png",
+  width = 4, height = 6, units = "in",
   dpi = 300
 )
 ggsave(
-  here::here("Figures/fourier_concept_subplots/c1.png"),
-  plot = c1, device = "png",
-  width = 3, height = 0.5, units = "in",
+  here::here("Figures/fourier_concept_subplots/waves_comb1.png"),
+  plot = combo1_waves_plot, device = "png",
+  width = 4, height = 1, units = "in",
   dpi = 300
 )
 ggsave(
-  here::here("Figures/fourier_concept_subplots/s2.png"),
-  plot = s2, device = "png",
-  width = 3, height = 0.5, units = "in",
+  here::here("Figures/fourier_concept_subplots/waves_comb2.png"),
+  plot = combo2_waves_plot, device = "png",
+  width = 4, height = 1, units = "in",
   dpi = 300
 )
 ggsave(
-  here::here("Figures/fourier_concept_subplots/c2.png"),
-  plot = c2, device = "png",
-  width = 3, height = 0.5, units = "in",
+  here::here("Figures/fourier_concept_subplots/fitted_waves.png"),
+  plot = fit_waves_plot, device = "png",
+  width = 4, height = 2, units = "in",
   dpi = 300
 )
 ggsave(
-  here::here("Figures/fourier_concept_subplots/s10.png"),
-  plot = s10, device = "png",
-  width = 3, height = 0.5, units = "in",
-  dpi = 300
-)
-ggsave(
-  here::here("Figures/fourier_concept_subplots/c10.png"),
-  plot = c10, device = "png",
-  width = 3, height = 0.5, units = "in",
-  dpi = 300
-)
-ggsave(
-  here::here("Figures/fourier_concept_subplots/combo1.png"),
+  here::here("Figures/fourier_concept_subplots/comb1.png"),
   plot = comb1, device = "png",
-  width = 3.5, height = 1, units = "in",
+  width = 4, height = 2, units = "in",
   dpi = 300
 )
 ggsave(
-  here::here("Figures/fourier_concept_subplots/combo2.png"),
+  here::here("Figures/fourier_concept_subplots/comb2.png"),
   plot = comb2, device = "png",
-  width = 3.5, height = 1, units = "in",
+  width = 4, height = 2, units = "in",
   dpi = 300
 )
 
-  # ggsave(
-  #   here::here("Figures/concept_fig_fourier.png"),
-  #   plot = .,
-  #   device = "png",
-  #   width = 6,
-  #   height = 8,
-  #   units = "in"
-  # )
 
-# panel1_dml <- rvg::dml(ggobj = panel1)
-#
-# officer::read_pptx() %>%
-#   # add slide ----
-# officer::add_slide() %>%
-#   # specify object and location of object ----
-# officer::ph_with(
-#   panel1,
-#   officer::ph_location(),
-#   use_loc_size = F
-# ) %>%
-#   # export slide -----
-# base::print(
-#   target = here::here(
-#     "Figures/concept_fig_editable.pptx"
-#   )
-# )
+
 
 
 
