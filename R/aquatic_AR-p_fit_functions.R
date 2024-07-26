@@ -339,12 +339,12 @@ fit_seasonal_arima_model <- function(model_pars, K = 12){
   stepAIC_out <- MASS::stepAIC(mod_null, direction = "forward",
                            scope = list(lower = mod_null, upper = mod))
 
-  X_sub <- X_fit[, colnames(X_fit) %in% gsub('\\.', '-', names(stepAIC_out$coefficients)[-1])]
+  fr_covs <- gsub('\\.', '-', names(stepAIC_out$coefficients)[-1])
+  X_sub <- matrix(X_fit[, colnames(X_fit) %in% fr_covs], ncol = length(fr_covs))
 
   # X_sub <- cbind(matrix(rep(1, nrow(X_sub)), ncol = 1, dimnames = list(NULL, 'beta0')),
   #       X_sub)
   # fit arima model:
-
   fit_ar <- forecast::auto.arima(y, xreg = X_sub[1:n,], seasonal = FALSE)
   ar_for <- forecast::forecast(fit_ar, xreg = X_sub[(n+1):nrow(X_sub),],
                                h = model_pars$holdout)
