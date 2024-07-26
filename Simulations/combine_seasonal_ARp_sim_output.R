@@ -8,8 +8,6 @@ args <- commandArgs(trailingOnly = TRUE)
 # outdir <- 'test_seasonal'
 outdir <- args[1]
 
-# filelist <- paste0('Data/aquatic_sim_data/test_seasonal/',
-#                    list.files('Data/aquatic_sim_data/test_seasonal/'))
 filelist <- paste0('Data/aquatic_sim_data/', outdir, '/',
                    list.files(paste0('Data/aquatic_sim_data/', outdir, '/'))
                    )
@@ -52,7 +50,7 @@ for(i in 1:length(filelist)){
 
     dd <- bind_cols(dd, tpr)
     dd$mod_run <- rep(filelist[i], 2)
-    
+
     print(paste0('simulation ', filelist[i]))
     arima_fit <- fit_arima_model(out$model_pars)
     arima_seasonal <- fit_seasonal_arima_model(out$model_pars)
