@@ -341,8 +341,8 @@ fit_seasonal_arima_model <- function(model_pars, K = 12){
 
   X_sub <- X_fit[, colnames(X_fit) %in% gsub('\\.', '-', names(stepAIC_out$coefficients)[-1])]
 
-  X_sub <- cbind(matrix(rep(1, nrow(X_sub)), ncol = 1, dimnames = list(NULL, 'beta0')),
-        X_sub)
+  # X_sub <- cbind(matrix(rep(1, nrow(X_sub)), ncol = 1, dimnames = list(NULL, 'beta0')),
+  #       X_sub)
   # fit arima model:
 
   fit_ar <- forecast::auto.arima(y, xreg = X_sub[1:n,], seasonal = FALSE)

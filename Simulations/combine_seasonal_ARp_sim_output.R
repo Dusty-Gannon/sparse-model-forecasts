@@ -67,11 +67,20 @@ for(i in 1:length(filelist)){
                                           out$model_pars)
 
     ar <- bind_cols(ar, tpr_arima)
+    ar_fit <- arima_seasonal$fit_ar
+    if('intercept' %in% names(ar_fit$coef)){
+      b0 = ar_fit$coef['intercept']
+    } else {
+      b0 = 0}
+
+    ar$rmse_beta <- sqrt(mean((out$model_pars$beta -
+                       c(b0, ar_fit$coef[grepl('^beta*', names(ar_fit$coef))]))^2))
+    # if(model_pars$beta_select == 0){ar$rmse_beta <- NA}
 
     dd <- bind_rows(dd, ar)
     # ar_for <- arima_seasonal$ar_forecast
 
-    df <- rbind(df,dd)
+    df <- bind_rows(df,dd)
 
     # hs_for <- t(apply(out$mod_fits$hs_fit$forecast, 2, quantile,
     #                   probs = c(0.025, 0.5, 0.975)))
