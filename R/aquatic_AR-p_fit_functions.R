@@ -345,9 +345,16 @@ fit_seasonal_arima_model <- function(model_pars, K = 12){
   # X_sub <- cbind(matrix(rep(1, nrow(X_sub)), ncol = 1, dimnames = list(NULL, 'beta0')),
   #       X_sub)
   # fit arima model:
+  if(nrow(X_sub)==0){
+  fit_ar <- forecast::auto.arima(y, seasonal = FALSE)
+  ar_for <- forecast::forecast(fit_ar, h = model_pars$holdout)
+
+  }else{
   fit_ar <- forecast::auto.arima(y, xreg = X_sub[1:n,], seasonal = FALSE)
   ar_for <- forecast::forecast(fit_ar, xreg = X_sub[(n+1):nrow(X_sub),],
                                h = model_pars$holdout)
+
+  }
   ar_beta <- fit_ar$coef
 
 
