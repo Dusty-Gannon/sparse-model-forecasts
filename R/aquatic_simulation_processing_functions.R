@@ -392,10 +392,11 @@ stan_psum <- function(fit){
 #'
 
 calculate_true_pos_rate <- function(par_post, value, threshold = 0.9,
-                                    par = 'beta'){
+                                    par = 'beta', arima = FALSE){
   min_pos = 0
   if(par == 'beta') min_pos = 1.96 * 0.05
 
+  if(!arima){
   par_post <- rename(par_post,
          q0.025 = low, q0.975 = high)
 
@@ -405,6 +406,11 @@ calculate_true_pos_rate <- function(par_post, value, threshold = 0.9,
 
   ests <- par_post[,c('mean', 'median', bottom, top)]
   colnames(ests) <- c('mean', 'median', 'bottom', 'top')
+  }
+
+  if(arima){
+    ests <- par_post[,c('mean', 'median', 'bottom', 'top')]
+  }
 
   ests <- ests %>%
     mutate(value = value,
@@ -496,5 +502,98 @@ summarize_pos_rate <- function(fits, model_pars, threshold = 0.9, fr = FALSE){
   pr$TPR_threshold = threshold
 
   return( pr )
+
+}
+
+
+
+#' Summarize the true positive rates of different types of parameter estimates
+#' for a paired set of regularized and not regularized models run on the same
+#' simulated dataset.
+#'
+#' @param fit_ar an arima fit
+#'
+#' @param fit_hs a stanfit object
+#'
+#' @param model_pars a list of the parameters used to simulate
+#' them.
+#'
+#' @param threshold the fraction of the posterior mass that must fall above or
+#' below zero for a detection to count as positive. Defaults to 90%
+#'
+#' @return a data frame with the true positive rates for phi and beta parameters
+#' calculated for both the regularized and unregularized models.
+#'
+#' @export
+#'
+
+summarize_arima_pos_rate <- function(fit_ar, fit_hs, model_pars, threshold = 0.9){
+
+    post <- data.frame(
+      mean = fit_ar$coef,
+      se =  sqrt(diag(vcov(fit_ar))))
+    post <- mutate(post,
+      median = mean,
+      var = row.names(post),
+      cs = tolower(substr(var, 1,1)),
+      cs = case_when(cs %in% c('c', 's') ~ cs,
+                     TRUE ~ NA_character_),
+      arima = case_when(substr(var, 1,2) %in% c('ar', 'ma') ~ 1,
+                        TRUE ~ 0),
+      freq = case_when(is.na(cs) ~ NA_real_,
+                       TRUE ~ as.numeric(substr(var, 2,2))),
+      bottom = mean - 1.96*se,
+      top = mean + 1.96*se)
+
+    beta_post <- filter(post,
+                        arima == 0, is.na(cs))
+    fr_post <- filter(post, !is.na(freq))
+    # phi_post <- filter(post, substr(var, 1,2) == 'ar')
+    # add_phi <- length(model_pars$phi) - nrow(phi_post)
+    #
+    pos_rate_beta <- calculate_true_pos_rate(beta_post, model_pars$beta,
+                                             threshold = threshold,
+                                             par = 'beta', arima = TRUE)
+    # pos_rate_phi <- calculate_true_pos_rate(phi_post,
+    #                                         model_pars$phi,
+    #                                         threshold = threshold,
+    #                                         par = 'phi', arima = TRUE)
+
+              # this function needs to be modified
+              # currently, a wide range of thetas will translate into a single
+              # frequency, I think we either need to:
+              # 1) fix the way we are simulating to use frequencies,
+              # 2) change the fourier covariates to cover fractional freqs,
+              # or 3) change the below so that we weight the two neighboring freqs with the appropriate beta
+      fr_post_full <- fit_hs$par_ests$fr_hat %>%
+        mutate(cs = rep(c('c', 's'), length.out = nrow(.)))
+      seasonal <- model_pars$seasonality_missing %>%
+          mutate(cs = case_when(freq == 1 ~ 's',
+                                TRUE ~ 'c')) %>%
+          filter(abs(beta)>0.05) %>%
+          full_join(select(fr_post_full, freq, cs)) %>%
+          arrange(freq) %>% mutate(beta = case_when(is.na(beta) ~ 0,
+                                                    TRUE ~ beta)) %>%
+          left_join(fr_post, by = c('freq', 'cs')) %>%
+          mutate(mean = case_when(is.na(mean) ~ 0,
+                                  TRUE ~ mean),
+                 median = case_when(is.na(median)~0,
+                                    TRUE ~ median),
+                 bottom = case_when(is.na(bottom)~ 0,
+                                    TRUE ~ bottom),
+                 top = case_when(is.na(top) ~ 0,
+                                 TRUE ~ top))
+
+
+      pos_rate_fr <- calculate_true_pos_rate(select(seasonal, mean, median, bottom, top),
+                                             seasonal$beta,
+                                             threshold = threshold,
+                                             par = 'fr', arima = TRUE)
+
+      pp <- cbind(pos_rate_fr, pos_rate_beta)
+
+  pp$TPR_threshold = threshold
+
+  return( pp )
 
 }

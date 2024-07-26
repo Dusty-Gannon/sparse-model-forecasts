@@ -3,9 +3,9 @@
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=alice.carter@flbs.umt.edu
 #SBATCH --job-name=ARp_sim_compile
-#SBATCH -o slurm_compile.out
+#SBATCH -o slurm_compile3.out
 #SBATCH --mem=30G
-#SBATCH --time=2:00:00
+#SBATCH --time=72:00:00
 
 
 # Set the parameter combination to use and generate names of R scripts and log file
