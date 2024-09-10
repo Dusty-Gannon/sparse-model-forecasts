@@ -108,22 +108,22 @@ for(i in 1:nrow(total_runs)){
 # Plot model results:
 
 
-dat %>%
-  pivot_longer(cols = c('fr_true_pos', 'fr_false_pos', 'beta_true_pos', 'beta_false_pos', 'rmse_forecast'),
-               values_to = 'value', names_to = 'metric') %>%
-  # group_by(betas, n, model) %>%
-  # summarize(med_rmse = median(rmse_forecast, na.rm = TRUE),
-  #           lower = quantile(rmse_forecast, 0.025, na.rm = TRUE),
-  #           upper = quantile(rmse_forecast, 0.975, na.rm = TRUE))
-ggplot(aes( y = value, fill = model)) +
-  geom_violin(aes(x = model), alpha = 0.5, width = 1.4) +
-  geom_boxplot(aes(x = model), width = 0.1, position = position_nudge(0.2)) +
-  facet_wrap(metric ~ ., ncol = 1, scales = 'free') +
-  labs(x = "", y = "Prediction RMSE") +
-  coord_flip() +
-  theme_minimal() +
-  theme(legend.position = "bottom")
-  # scale_fill_manual(values = c("Stepwise AIC" = "blue", "Horseshoe" = "red"))
+# dat %>%
+#   pivot_longer(cols = c('fr_true_pos', 'fr_false_pos', 'beta_true_pos', 'beta_false_pos', 'rmse_forecast'),
+#                values_to = 'value', names_to = 'metric') %>%
+#   # group_by(betas, n, model) %>%
+#   # summarize(med_rmse = median(rmse_forecast, na.rm = TRUE),
+#   #           lower = quantile(rmse_forecast, 0.025, na.rm = TRUE),
+#   #           upper = quantile(rmse_forecast, 0.975, na.rm = TRUE))
+# ggplot(aes( y = value, fill = model)) +
+#   geom_violin(aes(x = model), alpha = 0.5, width = 1.4) +
+#   geom_boxplot(aes(x = model), width = 0.1, position = position_nudge(0.2)) +
+#   facet_wrap(metric ~ ., ncol = 1, scales = 'free') +
+#   labs(x = "", y = "Prediction RMSE") +
+#   coord_flip() +
+#   theme_minimal() +
+#   theme(legend.position = "bottom")
+#   # scale_fill_manual(values = c("Stepwise AIC" = "blue", "Horseshoe" = "red"))
 
 
 # Generate a grayscale palette with distinct shades
@@ -162,7 +162,7 @@ legend_data <- data.frame(
 png(file = "Manuscript/Figures/Fourier_seasonality_Arima_comparison.png",
     width = 5, height = 5, units = 'in', res = 300)
 
-  par(mar=c(4,9,1,2))
+  par(mar=c(4,5,1,2))
   par(mfrow=c(2,1))
   # Define the data for each group
   arima_data <- list(dat$rmse_forecast[which(dat$n == 365 & dat$model == 'Seasonal \nAuto Arima')],
@@ -197,7 +197,7 @@ png(file = "Manuscript/Figures/Fourier_seasonality_Arima_comparison.png",
   axis(2, at = c(2, 6), labels = c("Arima", "Horseshoe"),
        las = 3, line = 3, tick = FALSE)  # Cluster labels
 
-  title(ylab = "Density of \nPrediction RMSE",line=6,cex.lab=1)
+  # title(ylab = "Density of \nPrediction RMSE",line=6,cex.lab=1)
   title(xlab="Prediction RMSE",line=2.5,cex.lab=1)
 
   arima_data <- list(dat$rmse_beta[which(dat$n == 365 & dat$model == 'Seasonal \nAuto Arima')],
@@ -230,16 +230,186 @@ png(file = "Manuscript/Figures/Fourier_seasonality_Arima_comparison.png",
   axis(2, at = c(2, 6), labels = c("Arima", "Horseshoe"),
        las = 3, line = 3, tick = FALSE)  # Cluster labels
 
-  title(ylab="Density of \nCovariate Effect RMSE",line=6,cex.lab=1)
+  # title(ylab="Density of \nCovariate Effect RMSE",line=6,cex.lab=1)
   title(xlab="Covariate Effect RMSE",line= 2.5, cex.lab=1)
+
+dev.off()
+
+
+
+png(file = "Manuscript/Figures/Fourier_seasonality_Arima_comparison.png",
+    width = 5, height = 5, units = 'in', res = 300)
+
+  par(mar=c(4,5,1,2))
+  par(mfrow=c(2,1))
+  # Define the data for each group
+  arima_data <- list(dat$rmse_forecast[which(dat$n == 365 & dat$model == 'Seasonal \nAuto Arima')],
+                     dat$rmse_forecast[which(dat$n == 730 & dat$model == 'Seasonal \nAuto Arima')],
+                     dat$rmse_forecast[which(dat$n == 1095 & dat$model == 'Seasonal \nAuto Arima')])
+
+  horseshoe_data <- list(dat$rmse_forecast[which(dat$n == 365 & dat$model == 'Horseshoe \nPrior')],
+                         dat$rmse_forecast[which(dat$n == 730 & dat$model == 'Horseshoe \nPrior')],
+                         dat$rmse_forecast[which(dat$n == 1095 & dat$model == 'Horseshoe \nPrior')])
+
+  # Manually specify the positions for the violins
+  x_positions <- c(1, 2, 3, 5, 6, 7)
+
+  # Combine the data for vioplot
+  vioplot::vioplot(arima_data[[1]], arima_data[[2]], arima_data[[3]],
+                   horseshoe_data[[1]], horseshoe_data[[2]], horseshoe_data[[3]],
+                   at = x_positions,
+                   xlab = "", ylab = "", horizontal = TRUE, las = 1,
+                   names = rep(c('1-year', '2-year', '3-year'), 2),
+                   col = c(modify_alpha(mod_cols, 0.4)[1],
+                           modify_alpha(mod_cols, 0.8)[1],
+                           mod_cols[1],
+                           modify_alpha(mod_cols, 0.4)[2],
+                           modify_alpha(mod_cols, 0.8)[2],
+                           mod_cols[2]),
+                   pchMed = 20,
+                   border = rep(dark_cols, each = 3),
+                   rectCol = rep(dark_cols, each = 3),
+                   lineCol = rep(dark_cols, each = 3),
+                   colMed = rep(dark_cols, each = 3))
+
+  axis(2, at = c(2, 6), labels = c("Arima", "Horseshoe"),
+       las = 3, line = 3, tick = FALSE)  # Cluster labels
+
+  # title(ylab = "Density of \nPrediction RMSE",line=6,cex.lab=1)
+  title(xlab="Prediction RMSE",line=2.5,cex.lab=1)
+
+  arima_data <- list(dat$rmse_beta[which(dat$n == 365 & dat$model == 'Seasonal \nAuto Arima')],
+                     dat$rmse_beta[which(dat$n == 730 & dat$model == 'Seasonal \nAuto Arima')],
+                     dat$rmse_beta[which(dat$n == 1095 & dat$model == 'Seasonal \nAuto Arima')])
+
+  horseshoe_data <- list(dat$rmse_beta[which(dat$n == 365 & dat$model == 'Horseshoe \nPrior')],
+                         dat$rmse_beta[which(dat$n == 730 & dat$model == 'Horseshoe \nPrior')],
+                         dat$rmse_beta[which(dat$n == 1095 & dat$model == 'Horseshoe \nPrior')])
+
+  # Combine the data for vioplot
+  vioplot::vioplot(arima_data[[1]], arima_data[[2]], arima_data[[3]],
+                   horseshoe_data[[1]], horseshoe_data[[2]], horseshoe_data[[3]],
+                   at = x_positions,
+                   xlab = "", ylab = "", horizontal = TRUE, las = 1,
+                   names = rep(c('1-year', '2-year', '3-year'), 2),
+                   col = c(modify_alpha(mod_cols, 0.4)[1],
+                           modify_alpha(mod_cols, 0.8)[1],
+                           mod_cols[1],
+                           modify_alpha(mod_cols, 0.4)[2],
+                           modify_alpha(mod_cols, 0.8)[2],
+                           mod_cols[2]),
+                   pchMed = 20,
+                   border = rep(dark_cols, each = 3),
+                   rectCol = rep(dark_cols, each = 3),
+                   lineCol = rep(dark_cols, each = 3),
+                   colMed = rep(dark_cols, each = 3))
+
+
+  axis(2, at = c(2, 6), labels = c("Arima", "Horseshoe"),
+       las = 3, line = 3, tick = FALSE)  # Cluster labels
+
+  # title(ylab="Density of \nCovariate Effect RMSE",line=6,cex.lab=1)
+  title(xlab="Covariate Effect RMSE",line= 2.5, cex.lab=1)
+
+dev.off()
+
+png(file = "Manuscript/Figures/Fourier_seasonality_Arima_comparison_with_Gauss.png",
+    width = 5, height = 7.5, units = 'in', res = 300)
+
+  par(mar=c(4,5,1,2))
+  par(mfrow=c(2,1))
+  # Define the data for each group
+  arima_data <- list(gauss_dat$rmse_forecast[which(gauss_dat$n == 365 & gauss_dat$model == 'arima')],
+                     gauss_dat$rmse_forecast[which(gauss_dat$n == 730 & gauss_dat$model == 'arima')],
+                     gauss_dat$rmse_forecast[which(gauss_dat$n == 1095 & gauss_dat$model == 'arima')])
+
+  gauss_data <- list(gauss_dat$rmse_forecast[which(gauss_dat$n == 365 & gauss_dat$model == 'gauss')],
+                     gauss_dat$rmse_forecast[which(gauss_dat$n == 730 & gauss_dat$model == 'gauss')],
+                     gauss_dat$rmse_forecast[which(gauss_dat$n == 1095 & gauss_dat$model == 'gauss')])
+
+  horseshoe_data <- list(gauss_dat$rmse_forecast[which(gauss_dat$n == 365 & gauss_dat$model == 'hs')],
+                         gauss_dat$rmse_forecast[which(gauss_dat$n == 730 & gauss_dat$model == 'hs')],
+                         gauss_dat$rmse_forecast[which(gauss_dat$n == 1095 & gauss_dat$model == 'hs')])
+
+  # Manually specify the positions for the violins
+  x_positions <- c(1, 2, 3, 5, 6, 7, 9, 10, 11)
+
+  # Combine the data for vioplot
+  vioplot::vioplot(arima_data[[1]], arima_data[[2]], arima_data[[3]],
+                   gauss_data[[1]], gauss_data[[2]], gauss_data[[3]],
+                   horseshoe_data[[1]], horseshoe_data[[2]], horseshoe_data[[3]],
+                   at = x_positions,
+                   xlab = "", ylab = "", horizontal = TRUE, las = 1,
+                   names = rep(c('1-year', '2-year', '3-year'), 3),
+                   col = c(modify_alpha(mod_cols, 0.4)[1],
+                           modify_alpha(mod_cols, 0.8)[1],
+                           mod_cols[1],
+                           modify_alpha('#A9A9A9', 0.4),
+                           modify_alpha('#A9A9A9', 0.8),
+                           '#A9A9A9',
+                           modify_alpha(mod_cols, 0.4)[2],
+                           modify_alpha(mod_cols, 0.8)[2],
+                           mod_cols[2]),
+                   pchMed = 20,
+                   border = rep(c(dark_cols[1], '#000000', dark_cols[2]), each = 3),
+                   rectCol = rep(c(dark_cols[1], '#000000', dark_cols[2]), each = 3),
+                   lineCol = rep(c(dark_cols[1], '#000000', dark_cols[2]), each = 3),
+                   colMed = rep(c(dark_cols[1], '#000000', dark_cols[2]), each = 3))
+
+  axis(2, at = c(2, 6, 10), labels = c("Arima", "Gaussian", "Horseshoe"),
+       las = 3, line = 3, tick = FALSE)  # Cluster labels
+
+  title(ylab = "Time series length",line=6,cex.lab=1)
+  title(xlab="Prediction RMSE",line=2.5,cex.lab=1)
+
+  arima_data <- list(gauss_dat$rmse_forecast[which(gauss_dat$betas == 0 & gauss_dat$model == 'arima')],
+                     gauss_dat$rmse_forecast[which(gauss_dat$betas == 2 & gauss_dat$model == 'arima')],
+                     gauss_dat$rmse_forecast[which(gauss_dat$betas == 4 & gauss_dat$model == 'arima')])
+
+  gauss_data <- list(gauss_dat$rmse_forecast[which(gauss_dat$betas == 0 & gauss_dat$model == 'gauss')],
+                     gauss_dat$rmse_forecast[which(gauss_dat$betas == 2 & gauss_dat$model == 'gauss')],
+                     gauss_dat$rmse_forecast[which(gauss_dat$betas == 4 & gauss_dat$model == 'gauss')])
+
+  horseshoe_data <- list(gauss_dat$rmse_forecast[which(gauss_dat$betas == 0 & gauss_dat$model == 'hs')],
+                         gauss_dat$rmse_forecast[which(gauss_dat$betas == 2 & gauss_dat$model == 'hs')],
+                         gauss_dat$rmse_forecast[which(gauss_dat$betas == 4 & gauss_dat$model == 'hs')])
+
+  # Combine the data for vioplot
+  vioplot::vioplot(arima_data[[1]], arima_data[[2]], arima_data[[3]],
+                   gauss_data[[1]], gauss_data[[2]], gauss_data[[3]],
+                   horseshoe_data[[1]], horseshoe_data[[2]], horseshoe_data[[3]],
+                   at = x_positions,
+                   xlab = "", ylab = "", horizontal = TRUE, las = 1,
+                   names = rep(c('0 of 5', '2 of 5', '4 of 5'), 3),
+                   col = c(modify_alpha(mod_cols, 0.4)[1],
+                           modify_alpha(mod_cols, 0.8)[1],
+                           mod_cols[1],
+                           modify_alpha('#A9A9A9', 0.4),
+                           modify_alpha('#A9A9A9', 0.8),
+                           '#A9A9A9',
+                           modify_alpha(mod_cols, 0.4)[2],
+                           modify_alpha(mod_cols, 0.8)[2],
+                           mod_cols[2]),
+                   pchMed = 20,
+                   border = rep(c(dark_cols[1], '#000000', dark_cols[2]), each = 3),
+                   rectCol = rep(c(dark_cols[1], '#000000', dark_cols[2]), each = 3),
+                   lineCol = rep(c(dark_cols[1], '#000000', dark_cols[2]), each = 3),
+                   colMed = rep(c(dark_cols[1], '#000000', dark_cols[2]), each = 3))
+
+
+  axis(2, at = c(2, 6, 10), labels = c("Arima", "Gaussian", "Horseshoe"),
+       las = 3, line = 3, tick = FALSE)  # Cluster labels
+
+  title(ylab="Number of known covariates",line=6,cex.lab=1)
+  title(xlab="Prediction RMSE",line= 2.5, cex.lab=1)
 
 dev.off()
 
 png(file = "Manuscript/Figures/Fourier_seasonality_Arima_comparison.png",
     width = 10, height = 6, units = 'in', res = 300)
 
-  par(mar=c(4,5,1,2),
-      oma = c(0,4,2,0))
+  par(mar=c(4,7,1,2),
+      oma = c(0,1,2,0))
   par(mfrow=c(2,2))
   # Define the data for each group
   arima_data <- list(dat$rmse_forecast[which(dat$n == 365 & dat$model == 'Seasonal \nAuto Arima')],
@@ -274,9 +444,9 @@ png(file = "Manuscript/Figures/Fourier_seasonality_Arima_comparison.png",
   axis(2, at = c(2, 6), labels = c("Arima", "Horseshoe"),
        las = 3, line = 3, tick = FALSE)  # Cluster labels
 
-  title(ylab = "Density of Prediction RMSE",line = 1, cex.lab = 1, outer = TRUE, adj = 0.95)
+  title(ylab="Time series length",line=6,cex.lab=1)
   title(xlab = "Prediction RMSE",line=2.5,cex.lab=1)
-  title(main = "Time series length", line = 0, cex.lab = 1, outer = TRUE, adj = 0.25)
+  # title(main = "Time series length", line = 0, cex.lab = 1, outer = TRUE, adj = 0.25)
 
   arima_data <- list(dat$rmse_forecast[which(dat$betas == 0 & dat$model == 'Seasonal \nAuto Arima')],
                      dat$rmse_forecast[which(dat$betas == 2 & dat$model == 'Seasonal \nAuto Arima')],
@@ -308,6 +478,7 @@ png(file = "Manuscript/Figures/Fourier_seasonality_Arima_comparison.png",
        las = 3, line = 3, tick = FALSE)  # Cluster labels
 
   title(xlab="Prediction RMSE",line=2.5,cex.lab=1)
+  title(ylab="Number of known covariates",line=6,cex.lab=1)
 
   arima_data <- list(dat$rmse_beta[which(dat$n == 365 & dat$model == 'Seasonal \nAuto Arima')],
                      dat$rmse_beta[which(dat$n == 730 & dat$model == 'Seasonal \nAuto Arima')],
@@ -340,8 +511,8 @@ png(file = "Manuscript/Figures/Fourier_seasonality_Arima_comparison.png",
        las = 3, line = 3, tick = FALSE)  # Cluster labels
 
 
-  title(ylab = "Density of Covariate Effect RMSE",line = 1, cex.lab = 1, outer = TRUE, adj = 0.2)
-  title(main = "Number of known covariates", line = 0, cex.lab = 1, outer = TRUE, adj = 0.86)
+  # title(main = "Number of known covariates", line = 0, cex.lab = 1, outer = TRUE, adj = 0.86)
+  title(ylab="Time Series Length",line=6,cex.lab=1)
   title(xlab="Covariate Effect RMSE",line= 2.5, cex.lab=1)
 
   arima_data <- list(dat$rmse_beta[which(dat$betas == 0 & dat$model == 'Seasonal \nAuto Arima')],
@@ -374,6 +545,152 @@ png(file = "Manuscript/Figures/Fourier_seasonality_Arima_comparison.png",
        las = 3, line = 3, tick = FALSE)  # Cluster labels
 
   title(xlab="Covariate Effect RMSE",line=2.5,cex.lab=1)
+  title(ylab="Number of known covariates",line=6,cex.lab=1)
+
+
+dev.off()
+
+png(file = "Manuscript/Figures/Fourier_seasonality_Arima_comparison.png",
+    width = 10, height = 6, units = 'in', res = 300)
+
+  par(mar=c(4,7,1,2),
+      oma = c(0,1,2,0))
+  par(mfrow=c(2,2))
+  # Define the data for each group
+  arima_data <- list(dat$rmse_forecast[which(dat$n == 365 & dat$model == 'Seasonal \nAuto Arima')],
+                     dat$rmse_forecast[which(dat$n == 730 & dat$model == 'Seasonal \nAuto Arima')],
+                     dat$rmse_forecast[which(dat$n == 1095 & dat$model == 'Seasonal \nAuto Arima')])
+
+  horseshoe_data <- list(dat$rmse_forecast[which(dat$n == 365 & dat$model == 'Horseshoe \nPrior')],
+                         dat$rmse_forecast[which(dat$n == 730 & dat$model == 'Horseshoe \nPrior')],
+                         dat$rmse_forecast[which(dat$n == 1095 & dat$model == 'Horseshoe \nPrior')])
+
+  # Manually specify the positions for the violins
+  x_positions <- c(1, 2, 3, 5, 6, 7)
+
+  # Combine the data for vioplot
+  vioplot::vioplot(arima_data[[1]], arima_data[[2]], arima_data[[3]],
+                   horseshoe_data[[1]], horseshoe_data[[2]], horseshoe_data[[3]],
+                   at = x_positions,
+                   xlab = "", ylab = "", horizontal = TRUE, las = 1,
+                   names = rep(c('1-year', '2-year', '3-year'), 2),
+                   col = c(modify_alpha(mod_cols, 0.4)[1],
+                           modify_alpha(mod_cols, 0.8)[1],
+                           mod_cols[1],
+                           modify_alpha(mod_cols, 0.4)[2],
+                           modify_alpha(mod_cols, 0.8)[2],
+                           mod_cols[2]),
+                   pchMed = 20,
+                   border = rep(dark_cols, each = 3),
+                   rectCol = rep(dark_cols, each = 3),
+                   lineCol = rep(dark_cols, each = 3),
+                   colMed = rep(dark_cols, each = 3))
+
+  axis(2, at = c(2, 6), labels = c("Arima", "Horseshoe"),
+       las = 3, line = 3, tick = FALSE)  # Cluster labels
+
+  title(ylab="Time series length",line=6,cex.lab=1)
+  title(xlab = "Prediction RMSE",line=2.5,cex.lab=1)
+  # title(main = "Time series length", line = 0, cex.lab = 1, outer = TRUE, adj = 0.25)
+
+  arima_data <- list(dat$rmse_forecast[which(dat$betas == 0 & dat$model == 'Seasonal \nAuto Arima')],
+                     dat$rmse_forecast[which(dat$betas == 2 & dat$model == 'Seasonal \nAuto Arima')],
+                     dat$rmse_forecast[which(dat$betas == 4 & dat$model == 'Seasonal \nAuto Arima')])
+
+  horseshoe_data <- list(dat$rmse_forecast[which(dat$betas == 0 & dat$model == 'Horseshoe \nPrior')],
+                         dat$rmse_forecast[which(dat$betas == 2 & dat$model == 'Horseshoe \nPrior')],
+                         dat$rmse_forecast[which(dat$betas == 4 & dat$model == 'Horseshoe \nPrior')])
+
+  # Combine the data for vioplot
+  vioplot::vioplot(arima_data[[1]], arima_data[[2]], arima_data[[3]],
+                   horseshoe_data[[1]], horseshoe_data[[2]], horseshoe_data[[3]],
+                   at = x_positions,
+                   xlab = "", ylab = "", horizontal = TRUE, las = 1,
+                   names = rep(c('0 of 5', '2 of 5', '4 of 5'), 2),
+                   col = c(modify_alpha(mod_cols, 0.4)[1],
+                           modify_alpha(mod_cols, 0.8)[1],
+                           mod_cols[1],
+                           modify_alpha(mod_cols, 0.4)[2],
+                           modify_alpha(mod_cols, 0.8)[2],
+                           mod_cols[2]),
+                   pchMed = 20,
+                   border = rep(dark_cols, each = 3),
+                   rectCol = rep(dark_cols, each = 3),
+                   lineCol = rep(dark_cols, each = 3),
+                   colMed = rep(dark_cols, each = 3))
+
+  axis(2, at = c(2, 6), labels = c("Arima", "Horseshoe"),
+       las = 3, line = 3, tick = FALSE)  # Cluster labels
+
+  title(xlab="Prediction RMSE",line=2.5,cex.lab=1)
+  title(ylab="Number of known covariates",line=6,cex.lab=1)
+
+  arima_data <- list(dat$rmse_beta[which(dat$n == 365 & dat$model == 'Seasonal \nAuto Arima')],
+                     dat$rmse_beta[which(dat$n == 730 & dat$model == 'Seasonal \nAuto Arima')],
+                     dat$rmse_beta[which(dat$n == 1095 & dat$model == 'Seasonal \nAuto Arima')])
+
+  horseshoe_data <- list(dat$rmse_beta[which(dat$n == 365 & dat$model == 'Horseshoe \nPrior')],
+                         dat$rmse_beta[which(dat$n == 730 & dat$model == 'Horseshoe \nPrior')],
+                         dat$rmse_beta[which(dat$n == 1095 & dat$model == 'Horseshoe \nPrior')])
+
+  # Combine the data for vioplot
+  vioplot::vioplot(arima_data[[1]], arima_data[[2]], arima_data[[3]],
+                   horseshoe_data[[1]], horseshoe_data[[2]], horseshoe_data[[3]],
+                   at = x_positions,
+                   xlab = "", ylab = "", horizontal = TRUE, las = 1,
+                   names = rep(c('1-year', '2-year', '3-year'), 2),
+                   col = c(modify_alpha(mod_cols, 0.4)[1],
+                           modify_alpha(mod_cols, 0.8)[1],
+                           mod_cols[1],
+                           modify_alpha(mod_cols, 0.4)[2],
+                           modify_alpha(mod_cols, 0.8)[2],
+                           mod_cols[2]),
+                   pchMed = 20,
+                   border = rep(dark_cols, each = 3),
+                   rectCol = rep(dark_cols, each = 3),
+                   lineCol = rep(dark_cols, each = 3),
+                   colMed = rep(dark_cols, each = 3))
+
+
+  axis(2, at = c(2, 6), labels = c("Arima", "Horseshoe"),
+       las = 3, line = 3, tick = FALSE)  # Cluster labels
+
+
+  # title(main = "Number of known covariates", line = 0, cex.lab = 1, outer = TRUE, adj = 0.86)
+  title(ylab="Time Series Length",line=6,cex.lab=1)
+  title(xlab="Covariate Effect RMSE",line= 2.5, cex.lab=1)
+
+  arima_data <- list(dat$rmse_beta[which(dat$betas == 0 & dat$model == 'Seasonal \nAuto Arima')],
+                     dat$rmse_beta[which(dat$betas == 2 & dat$model == 'Seasonal \nAuto Arima')],
+                     dat$rmse_beta[which(dat$betas == 4 & dat$model == 'Seasonal \nAuto Arima')])
+
+  horseshoe_data <- list(dat$rmse_beta[which(dat$betas == 0 & dat$model == 'Horseshoe \nPrior')],
+                         dat$rmse_beta[which(dat$betas == 2 & dat$model == 'Horseshoe \nPrior')],
+                         dat$rmse_beta[which(dat$betas == 4 & dat$model == 'Horseshoe \nPrior')])
+
+  # Combine the data for vioplot
+  vioplot::vioplot(arima_data[[1]], arima_data[[2]], arima_data[[3]],
+                   horseshoe_data[[1]], horseshoe_data[[2]], horseshoe_data[[3]],
+                   at = x_positions,
+                   xlab = "", ylab = "", horizontal = TRUE, las = 1,
+                   names = rep(c('0 of 5', '2 of 5', '4 of 5'), 2),
+                   col = c(modify_alpha(mod_cols, 0.4)[1],
+                           modify_alpha(mod_cols, 0.8)[1],
+                           mod_cols[1],
+                           modify_alpha(mod_cols, 0.4)[2],
+                           modify_alpha(mod_cols, 0.8)[2],
+                           mod_cols[2]),
+                   pchMed = 20,
+                   border = rep(dark_cols, each = 3),
+                   rectCol = rep(dark_cols, each = 3),
+                   lineCol = rep(dark_cols, each = 3),
+                   colMed = rep(dark_cols, each = 3))
+
+  axis(2, at = c(2, 6), labels = c("Arima", "Horseshoe"),
+       las = 3, line = 3, tick = FALSE)  # Cluster labels
+
+  title(xlab="Covariate Effect RMSE",line=2.5,cex.lab=1)
+  title(ylab="Number of known covariates",line=6,cex.lab=1)
 
 
 dev.off()
