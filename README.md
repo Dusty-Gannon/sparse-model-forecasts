@@ -1,5 +1,5 @@
 
-# SParse mOdeling of Non-Gaussian timE Series #
+# Sparse modeling for timeseries and forecasting #
 
 ## Repo organization ##
 
