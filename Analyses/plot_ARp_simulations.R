@@ -37,10 +37,11 @@ png('Manuscript/Figures/ARp_err_model_convergence.png',
     width = 8, height = 5, units = 'in', res = 300)
   left_join(con_runs, total_runs) %>%
     mutate(converged_runs = runs/total_runs*100,
-           N_betas = factor(betas)) %>%
-    ggplot(aes(n, converged_runs, col = model, lty = N_betas)) +
+           `Known \nCovariates` = factor(betas)) %>%
+    ggplot(aes(n, converged_runs, col = model, lty = `Known \nCovariates`)) +
     geom_line(size = 0.9) +
-    scale_color_manual('Prior', values = mod_cols) +
+    scale_color_manual('Prior', values = mod_cols,
+                       labels = c('Gaussian', 'Horseshoe')) +
     theme_classic() +
     # theme(legend.position = c(0.75, 0.25),
     #       legend.box = 'horizontal')+
@@ -160,9 +161,10 @@ legend_data <- data.frame(
 
 
 png(file = "Manuscript/Figures/Fourier_seasonality_Arima_comparison.png",
-    width = 5, height = 5, units = 'in', res = 300)
+    width = 3.5, height = 5, units = 'in', res = 300)
 
-  par(mar=c(4,5,1,2))
+  par(mar=c(2,7,1,2),
+      oma = c(2,0,0,0))
   par(mfrow=c(2,1))
   # Define the data for each group
   arima_data <- list(dat$rmse_forecast[which(dat$n == 365 & dat$model == 'Seasonal \nAuto Arima')],
@@ -182,55 +184,56 @@ png(file = "Manuscript/Figures/Fourier_seasonality_Arima_comparison.png",
                    at = x_positions,
                    xlab = "", ylab = "", horizontal = TRUE, las = 1,
                    names = rep(c('1-year', '2-year', '3-year'), 2),
-                   col = c(modify_alpha(mod_cols, 0.4)[1],
-                           modify_alpha(mod_cols, 0.8)[1],
-                           mod_cols[1],
+                   col = c(modify_alpha('#A9A9A9', 0.4),
+                           modify_alpha('#A9A9A9', 0.8),
+                           '#A9A9A9',
                            modify_alpha(mod_cols, 0.4)[2],
                            modify_alpha(mod_cols, 0.8)[2],
                            mod_cols[2]),
                    pchMed = 20,
-                   border = rep(dark_cols, each = 3),
-                   rectCol = rep(dark_cols, each = 3),
-                   lineCol = rep(dark_cols, each = 3),
-                   colMed = rep(dark_cols, each = 3))
+                   border = rep(c( '#000000', dark_cols[2]), each = 3),
+                   rectCol = rep(c('#000000', dark_cols[2]), each = 3),
+                   lineCol = rep(c('#000000', dark_cols[2]), each = 3),
+                   colMed = rep(c( '#000000', dark_cols[2]), each = 3))
+
 
   axis(2, at = c(2, 6), labels = c("Arima", "Horseshoe"),
        las = 3, line = 3, tick = FALSE)  # Cluster labels
 
-  # title(ylab = "Density of \nPrediction RMSE",line=6,cex.lab=1)
-  title(xlab="Prediction RMSE",line=2.5,cex.lab=1)
+  title(ylab = "Time Series Length",line=5.5,cex.lab=1)
+  # title(xlab="Prediction RMSE",line=2.5,cex.lab=1)
 
-  arima_data <- list(dat$rmse_beta[which(dat$n == 365 & dat$model == 'Seasonal \nAuto Arima')],
-                     dat$rmse_beta[which(dat$n == 730 & dat$model == 'Seasonal \nAuto Arima')],
-                     dat$rmse_beta[which(dat$n == 1095 & dat$model == 'Seasonal \nAuto Arima')])
+  arima_data <- list(dat$rmse_forecast[which(dat$betas == 0 & dat$model == 'Seasonal \nAuto Arima')],
+                     dat$rmse_forecast[which(dat$betas == 2 & dat$model == 'Seasonal \nAuto Arima')],
+                     dat$rmse_forecast[which(dat$betas == 4 & dat$model == 'Seasonal \nAuto Arima')])
 
-  horseshoe_data <- list(dat$rmse_beta[which(dat$n == 365 & dat$model == 'Horseshoe \nPrior')],
-                         dat$rmse_beta[which(dat$n == 730 & dat$model == 'Horseshoe \nPrior')],
-                         dat$rmse_beta[which(dat$n == 1095 & dat$model == 'Horseshoe \nPrior')])
+  horseshoe_data <- list(dat$rmse_forecast[which(dat$betas == 0 & dat$model == 'Horseshoe \nPrior')],
+                         dat$rmse_forecast[which(dat$betas == 2 & dat$model == 'Horseshoe \nPrior')],
+                         dat$rmse_forecast[which(dat$betas == 4 & dat$model == 'Horseshoe \nPrior')])
 
   # Combine the data for vioplot
   vioplot::vioplot(arima_data[[1]], arima_data[[2]], arima_data[[3]],
                    horseshoe_data[[1]], horseshoe_data[[2]], horseshoe_data[[3]],
                    at = x_positions,
                    xlab = "", ylab = "", horizontal = TRUE, las = 1,
-                   names = rep(c('1-year', '2-year', '3-year'), 2),
-                   col = c(modify_alpha(mod_cols, 0.4)[1],
-                           modify_alpha(mod_cols, 0.8)[1],
-                           mod_cols[1],
+                   names = rep(c('0 of 5', '2 of 5', '4 of 5'), 2),
+                   col = c(modify_alpha('#A9A9A9', 0.4),
+                           modify_alpha('#A9A9A9', 0.8),
+                           '#A9A9A9',
                            modify_alpha(mod_cols, 0.4)[2],
                            modify_alpha(mod_cols, 0.8)[2],
                            mod_cols[2]),
                    pchMed = 20,
-                   border = rep(dark_cols, each = 3),
-                   rectCol = rep(dark_cols, each = 3),
-                   lineCol = rep(dark_cols, each = 3),
-                   colMed = rep(dark_cols, each = 3))
+                   border = rep(c( '#000000', dark_cols[2]), each = 3),
+                   rectCol = rep(c('#000000', dark_cols[2]), each = 3),
+                   lineCol = rep(c('#000000', dark_cols[2]), each = 3),
+                   colMed = rep(c( '#000000', dark_cols[2]), each = 3))
 
 
   axis(2, at = c(2, 6), labels = c("Arima", "Horseshoe"),
        las = 3, line = 3, tick = FALSE)  # Cluster labels
 
-  # title(ylab="Density of \nCovariate Effect RMSE",line=6,cex.lab=1)
+  title(ylab="Number of Known Covariates",line=5.5,cex.lab=1)
   title(xlab="Covariate Effect RMSE",line= 2.5, cex.lab=1)
 
 dev.off()
@@ -341,20 +344,20 @@ png(file = "Manuscript/Figures/Fourier_seasonality_Arima_comparison_with_Gauss.p
                    at = x_positions,
                    xlab = "", ylab = "", horizontal = TRUE, las = 1,
                    names = rep(c('1-year', '2-year', '3-year'), 3),
-                   col = c(modify_alpha(mod_cols, 0.4)[1],
-                           modify_alpha(mod_cols, 0.8)[1],
-                           mod_cols[1],
-                           modify_alpha('#A9A9A9', 0.4),
+                   col = c(modify_alpha('#A9A9A9', 0.4),
                            modify_alpha('#A9A9A9', 0.8),
                            '#A9A9A9',
+                           modify_alpha(mod_cols, 0.4)[1],
+                           modify_alpha(mod_cols, 0.8)[1],
+                           mod_cols[1],
                            modify_alpha(mod_cols, 0.4)[2],
                            modify_alpha(mod_cols, 0.8)[2],
                            mod_cols[2]),
                    pchMed = 20,
-                   border = rep(c(dark_cols[1], '#000000', dark_cols[2]), each = 3),
-                   rectCol = rep(c(dark_cols[1], '#000000', dark_cols[2]), each = 3),
-                   lineCol = rep(c(dark_cols[1], '#000000', dark_cols[2]), each = 3),
-                   colMed = rep(c(dark_cols[1], '#000000', dark_cols[2]), each = 3))
+                   border = rep(c('#000000', dark_cols[1], dark_cols[2]), each = 3),
+                   rectCol = rep(c('#000000', dark_cols[1],  dark_cols[2]), each = 3),
+                   lineCol = rep(c('#000000', dark_cols[1], dark_cols[2]), each = 3),
+                   colMed = rep(c('#000000', dark_cols[1],  dark_cols[2]), each = 3))
 
   axis(2, at = c(2, 6, 10), labels = c("Arima", "Gaussian", "Horseshoe"),
        las = 3, line = 3, tick = FALSE)  # Cluster labels
@@ -381,20 +384,21 @@ png(file = "Manuscript/Figures/Fourier_seasonality_Arima_comparison_with_Gauss.p
                    at = x_positions,
                    xlab = "", ylab = "", horizontal = TRUE, las = 1,
                    names = rep(c('0 of 5', '2 of 5', '4 of 5'), 3),
-                   col = c(modify_alpha(mod_cols, 0.4)[1],
-                           modify_alpha(mod_cols, 0.8)[1],
-                           mod_cols[1],
-                           modify_alpha('#A9A9A9', 0.4),
+                   col = c(modify_alpha('#A9A9A9', 0.4),
                            modify_alpha('#A9A9A9', 0.8),
                            '#A9A9A9',
+                           modify_alpha(mod_cols, 0.4)[1],
+                           modify_alpha(mod_cols, 0.8)[1],
+                           mod_cols[1],
                            modify_alpha(mod_cols, 0.4)[2],
                            modify_alpha(mod_cols, 0.8)[2],
-                           mod_cols[2]),
+                           mod_cols[2]
+                   ),
                    pchMed = 20,
-                   border = rep(c(dark_cols[1], '#000000', dark_cols[2]), each = 3),
-                   rectCol = rep(c(dark_cols[1], '#000000', dark_cols[2]), each = 3),
-                   lineCol = rep(c(dark_cols[1], '#000000', dark_cols[2]), each = 3),
-                   colMed = rep(c(dark_cols[1], '#000000', dark_cols[2]), each = 3))
+                   border = rep(c('#000000', dark_cols[1],  dark_cols[2]), each = 3),
+                   rectCol = rep(c('#000000', dark_cols[1],  dark_cols[2]), each = 3),
+                   lineCol = rep(c('#000000', dark_cols[1],  dark_cols[2]), each = 3),
+                   colMed = rep(c('#000000', dark_cols[1],  dark_cols[2]), each = 3))
 
 
   axis(2, at = c(2, 6, 10), labels = c("Arima", "Gaussian", "Horseshoe"),
