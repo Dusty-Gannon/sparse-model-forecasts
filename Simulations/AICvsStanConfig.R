@@ -18,7 +18,7 @@ sigma=rep(0.5,36)
 probWeakCorr=c(rep(0.2,12),rep(0.5,12),rep(0.8,12))
 numStrongCorr=rep(c(rep(1,6),rep(3,6)),3)
 strongSelf=rep(c(rep(T,3),rep(F,3)),6)
-corrLevel=rep(c(0.5,0.7,0.9),12)
+corrLevel=rep(c(0.1,0.5,0.9),12)
 
 # no de-correlation
 corrChange=rep(F,36)
