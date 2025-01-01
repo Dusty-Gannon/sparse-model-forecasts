@@ -14,8 +14,8 @@
 #SBATCH --array=1-120
 
 # Set the locale
-export LC_ALL=en_US.utf8
-export LANG=en_US.utf8
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
 
 module load arcc/1.0 gcc/14.2.0 r/4.4.0
 
