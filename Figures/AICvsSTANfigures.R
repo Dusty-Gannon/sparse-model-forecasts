@@ -125,13 +125,28 @@ dev.off()
 decorData=read.csv(file="Simulations/AICvsSTANdecorrelation.csv")
 
 
-pdf(file=here("Figures/decorrelation_comparison.pdf"), width = 7, height = 4)
+pdf(file=here("Figures/decorrelation_comparison.pdf"), width = 7, height = 8)
 
 
 par(mar=c(5,9,2,2))
 par(mfrow=c(1,1))
-vioplot::vioplot(cbind(AICdecorr=decorData$RMSEaic[1:1800],STANdecorr=decorData$RMSEstan[1:1800],AICnorm=decorData$RMSEaic[1801:3600],STANnorm=decorData$RMSEstan[1801:3600]),las=1,cex.axis=0.9,names=c("Stepwise AIC\n decorrelated","Horseshoe\n decorrelated","Stepwise AIC\n normal","Horseshoe\n normal"),
-                 xlab="",horizontal=T,col=c("steelblue1","tan","steelblue4","tan3"),pchMed=20,border=c("royalblue4","tan4","royalblue4","tan4"),rectCol=c("royalblue4","tan4","royalblue4","tan4"),
-                 lineCol=c("royalblue4","tan4","royalblue4","tan4"),colMed=c("royalblue4","tan4","royalblue4","tan4"),ylab="")
+
+corr0.9_change=which(decorData$corrLevel==0.9&decorData$corrChange)
+corr0.9_nochange=which(decorData$corrLevel==0.9&!decorData$corrChange)
+corr0.5_change=which(decorData$corrLevel==0.5&decorData$corrChange)
+corr0.5_nochange=which(decorData$corrLevel==0.5&!decorData$corrChange)
+corr0.1_change=which(decorData$corrLevel==0.1&decorData$corrChange)
+corr0.1_nochange=which(decorData$corrLevel==0.1&!decorData$corrChange)
+vioplot::vioplot(cbind(AICdecorr9=decorData$RMSEaic[corr0.9_change],STANdecorr9=decorData$RMSEstan[corr0.9_change],AICnorm9=decorData$RMSEaic[corr0.9_nochange],STANnorm9=decorData$RMSEstan[corr0.9_nochange],
+                       AICdecorr5=decorData$RMSEaic[corr0.5_change],STANdecorr5=decorData$RMSEstan[corr0.5_change],AICnorm5=decorData$RMSEaic[corr0.5_nochange],STANnorm5=decorData$RMSEstan[corr0.5_nochange],
+                       AICdecorr1=decorData$RMSEaic[corr0.1_change],STANdecorr1=decorData$RMSEstan[corr0.1_change],AICnorm1=decorData$RMSEaic[corr0.1_nochange],STANnorm1=decorData$RMSEstan[corr0.1_nochange]),las=1,cex.axis=0.9,
+                 names=c("Stepwise AIC\n decorrelated 0.9","Horseshoe\n decorrelated 0.9","Stepwise AIC\n normal 0.9","Horseshoe\n normal 0.9",
+                         "Stepwise AIC\n decorrelated 0.5","Horseshoe\n decorrelated 0.5","Stepwise AIC\n normal 0.5","Horseshoe\n normal 0.5",
+                         "Stepwise AIC\n decorrelated 0.1","Horseshoe\n decorrelated 0.1","Stepwise AIC\n normal 0.1","Horseshoe\n normal 0.1"),
+                 xlab="Root Mean Square Error (RMSE)",horizontal=T,col=c("steelblue1","tan","steelblue4","tan3","steelblue1","tan","steelblue4","tan3","steelblue1","tan","steelblue4","tan3"),
+                 pchMed=20,border=c("royalblue4","tan4","royalblue4","tan4","royalblue4","tan4","royalblue4","tan4","royalblue4","tan4","royalblue4","tan4"),
+                 rectCol=c("royalblue4","tan4","royalblue4","tan4","royalblue4","tan4","royalblue4","tan4","royalblue4","tan4","royalblue4","tan4"),
+                 lineCol=c("royalblue4","tan4","royalblue4","tan4","royalblue4","tan4","royalblue4","tan4","royalblue4","tan4","royalblue4","tan4"),
+                 colMed=c("royalblue4","tan4","royalblue4","tan4","royalblue4","tan4","royalblue4","tan4","royalblue4","tan4","royalblue4","tan4"),ylab="")
 
 dev.off()
