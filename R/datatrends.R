@@ -1,9 +1,10 @@
+# This script contains investigation of trends, breakpoints, and correlations in data.
+
 library(dplyr)
 library(ggplot2)
 library(tidyverse)
 library(ggcorrplot)
 
-setwd("~/Documents/Global Synchrony/SparseTS")
 treering_dat <- readRDS("ca719_BM_Seq_1800_2012.rds")
 BMG_tmin <- read_csv("Prism_BMG/BMG_tmin.csv")
 BMG_tmax <- read_csv("Prism_BMG/BMG_tmax.csv")
