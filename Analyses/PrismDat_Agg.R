@@ -45,7 +45,7 @@ summer_td_mean <- BMG_td_mean %>%
 summer_ppt <- BMG_ppt %>%
   filter(month %in% summer_months) %>%
   group_by(year) %>%
-  summarise(summer_ppt = mean(ppt))
+  summarise(summer_ppt = sum(ppt))
 
 # vpdmin
 summer_vpdmin <- BMG_vpdmin %>%
@@ -72,7 +72,7 @@ BMG_ppt <- BMG_ppt %>%
 winter_ppt <- BMG_ppt %>%
   filter(month %in% winter_months) %>%
   group_by(wateryear) %>%
-  summarise(winter_ppt = mean(ppt))
+  summarise(winter_ppt = sum(ppt))
 
 # tmin
 BMG_tmin <- BMG_tmin %>%
@@ -155,7 +155,7 @@ winter_vpdmax <- BMG_vpdmax %>%
 # ppt
 wateryear_ppt <- BMG_ppt %>%
   group_by(wateryear) %>%
-  summarise(wy_ppt = mean(ppt))
+  summarise(wy_ppt = sum(ppt))
 
 # tmin
 wateryear_tmin <- BMG_tmin %>%
@@ -214,4 +214,22 @@ prism_wateryear <- left_join(wateryear_ppt, wateryear_tmin) %>%
 ## save all data ##
 saveRDS(prism_summer, "SparseTS_prismdata/prism_summer.rds" )
 saveRDS(prism_winter, "SparseTS_prismdata/prism_winter.rds" )
-saveRDS(prism_wateryear, "SparseTS_prismdata/prism_wateryear.rds" )
+saveRDS(prism_wateryear, "SparseTS_prismdata/prism_wateryear.rds")
+
+
+
+## correlations ##
+prism_winter_cor <- prism_winter %>%
+  select(-year)
+covariate.cor<- cor(prism_winter_cor, use = "complete.obs")
+ggcorrplot(covariate.cor, method = "square", type = "lower")
+
+prism_summer_cor <- prism_summer %>%
+  select(-year)
+covariate.cor<- cor(prism_summer_cor, use = "complete.obs")
+ggcorrplot(covariate.cor, method = "square", type = "lower")
+
+prism_wateryear_cor <- prism_wateryear %>%
+  select(-wateryear)
+covariate.cor<- cor(prism_wateryear_cor, use = "complete.obs")
+
