@@ -188,7 +188,7 @@ wateryear_vpdmax <- BMG_vpdmax %>%
   summarise(wy_vpdmax = mean(vpdmax))
 
 
-## save all variables ##
+## combine into seasonal dataframes ##
 prism_summer <- left_join(summer_ppt, summer_tmin) %>%
   left_join(summer_tmax) %>%
   left_join(summer_tmean) %>%
@@ -210,3 +210,8 @@ prism_wateryear <- left_join(wateryear_ppt, wateryear_tmin) %>%
   left_join(wateryear_td_mean) %>%
   left_join(wateryear_vpdmin) %>%
   left_join(wateryear_vpdmax)
+
+## save all data ##
+saveRDS(prism_summer, "SparseTS_prismdata/prism_summer.rds" )
+saveRDS(prism_winter, "SparseTS_prismdata/prism_winter.rds" )
+saveRDS(prism_wateryear, "SparseTS_prismdata/prism_wateryear.rds" )
