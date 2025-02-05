@@ -5,14 +5,14 @@ library(ggplot2)
 library(tidyverse)
 library(ggcorrplot)
 
-treering_dat <- readRDS("ca719_BM_Seq_1800_2012.rds")
-BMG_tmin <- read_csv("Prism_BMG/BMG_tmin.csv")
-BMG_tmax <- read_csv("Prism_BMG/BMG_tmax.csv")
-BMG_td_mean <- read_csv("Prism_BMG/BMG_td_mean.csv")
-BMG_ppt <- read_csv("Prism_BMG/BMG_ppt.csv")
-BMG_tmean <- read_csv("Prism_BMG/BMG_tmean.csv")
-BMG_vpdmin <- read_csv("Prism_BMG/BMG_vpdmin.csv")
-BMG_vpdmax <- read_csv("Prism_BMG/BMG_vpdmax.csv")
+treering_dat <- readRDS("SparseTS_prismdata/ca719_BM_Seq_1800_2012.rds")
+BMG_tmin <- read_csv("SparseTS_prismdata/BMG_tmin.csv")
+BMG_tmax <- read_csv("SparseTS_prismdata/BMG_tmax.csv")
+BMG_td_mean <- read_csv("SparseTS_prismdata/BMG_td_mean.csv")
+BMG_ppt <- read_csv("SparseTS_prismdata/BMG_ppt.csv")
+BMG_tmean <- read_csv("SparseTS_prismdata/BMG_tmean.csv")
+BMG_vpdmin <- read_csv("SparseTS_prismdata/BMG_vpdmin.csv")
+BMG_vpdmax <- read_csv("SparseTS_prismdata/BMG_vpdmax.csv")
 
 
 #### plotting trend lines ####
