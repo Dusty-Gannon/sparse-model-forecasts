@@ -221,15 +221,17 @@ saveRDS(prism_wateryear, "SparseTS_prismdata/prism_wateryear.rds")
 ## correlations ##
 prism_winter_cor <- prism_winter %>%
   select(-year)
-covariate.cor<- cor(prism_winter_cor, use = "complete.obs")
-ggcorrplot(covariate.cor, method = "square", type = "lower")
+covariate.cor.winter<- cor(prism_winter_cor, use = "complete.obs")
+ggcorrplot(covariate.cor.winter, method = "square", type = "lower")
 
 prism_summer_cor <- prism_summer %>%
   select(-year)
-covariate.cor<- cor(prism_summer_cor, use = "complete.obs")
-ggcorrplot(covariate.cor, method = "square", type = "lower")
+covariate.cor.summer<- cor(prism_summer_cor, use = "complete.obs")
+ggcorrplot(covariate.cor.summer, method = "square", type = "lower")
 
 prism_wateryear_cor <- prism_wateryear %>%
   select(-wateryear)
-covariate.cor<- cor(prism_wateryear_cor, use = "complete.obs")
+covariate.cor.wateryear<- cor(prism_wateryear_cor, use = "complete.obs")
+ggcorrplot(covariate.cor.wateryear, method = "square", type = "lower")
+
 
