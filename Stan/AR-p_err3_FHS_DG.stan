@@ -1,6 +1,8 @@
 /////////////////////////////////////////////////////////////
 // This Stan program fits an AR(p) Gaussian time-series model
-// with the potential for covariates
+// with the potential for covariates. Both of the parameter
+// vectors, phi and beta, get sparsity-inducing horseshoe
+// priors.
 /////////////////////////////////////////////////////////////
 data{
 
