@@ -3,10 +3,10 @@
 data {
 
   int<lower = 0> N;            // Length of time series
-  int<lower = 0> P;            // number of covariates
+  int<lower = 0> K;            // number of covariates
   int<lower = 0> p;            // AR order
-  int<lower = 0> q;            // MA order
   vector[N] y;                 // time series
+  matrix[N, K] X;              // model matrix
 
   // prior inputs for regularization
   real<lower = 0> tau0_phi;        // global shrinkage for phi
@@ -18,13 +18,11 @@ data {
 
   // Data for forecasting
   int<lower = 0> N_new;
+  matrix[N_new, K] X_new;
 }
 
 
 transformed data {
-
-  int r = max(p, q);
-  int q_plus = q + 1;
 
   // transformations for horseshoe priors
   real slab_scl2_phi = square(slab_scl_phi);
@@ -37,12 +35,11 @@ transformed data {
 
 parameters {
 
-  vector[P] beta;
+  vector[K] beta;
   vector<lower = -1, upper = 1>[p] r_phi;      // partial correlations based on phi
-  vector<lower = -1, upper = 1>[q] r_theta;    // partial correlations based on theta
   real<lower = 0> sigma;                       // standard deviation of random innovations
 
-  vector<lower = 0>[p + q] local_scale_phi;       // non-regularized local scale for phi
+  vector<lower = 0>[p] local_scale_phi;       // non-regularized local scale for phi
   real<lower = 0> c2_std_phi;                     // unscaled version of c2
   real<lower = 0> tau_std_phi;                    // unscaled version of tau
 
@@ -56,8 +53,6 @@ transformed parameters{
 
   vector[p] phi_std;
   vector[p] phi;
-  vector[q] theta_std;
-  vector[q] theta;
 
   // tracking the linear predictor
   vector[N] mu;
@@ -66,7 +61,6 @@ transformed parameters{
 
 
   matrix[p, p] P = diag_matrix(r_phi);        // matrix to track recursions
-  matrix[q, q] Q = diag_matrix(r_theta);      // matrix to track recursions
 
   // scale c2: c2 ~ inv_gamma(half_slab_df, half_slab_df * slab_scl2)
   real c2_phi = slab_scl2_phi * c2_std_phi;
@@ -77,7 +71,7 @@ transformed parameters{
   // real tau_beta = tau0_beta * tau_std_beta;
 
   // This calculation follows equation 2.8 in Piironen and Vehtari 2017
-  vector[p + q] local_scale_tilde_p =
+  vector[p] local_scale_tilde_p =
     sqrt(c2_phi * square(local_scale_phi) ./ (c2_phi + square(tau_phi) * square(local_scale_phi)));
   // vector[P - P_0] local_scale_tilde_b =
   //   sqrt(c2_beta * square(local_scale_beta) ./ (c2_beta + square(tau_beta) * square(local_scale_beta)));
@@ -90,26 +84,16 @@ transformed parameters{
   }
   phi_std = P[, p];
 
-  for(k in 2:q){
-    for(i in 1:(k - 1)){
-      Q[i, k] = Q[i, (k - 1)] - r_theta[k] * Q[(k - i), (k - 1)];
-    }
-  }
-  theta_std = Q[, q];
-
-  // scaling phi and theta
-  phi = tau_phi * local_scale_tilde_p[1:p] .* phi_std;
-
-  theta = tau_phi * local_scale_tilde_p[(p + 1):(p + q)] .* theta_std;
+  // scaling phi
+  phi = tau_phi * local_scale_tilde_p .* phi_std;
 
   // linear predictor
   mu = X * beta;
-  eta[1:r] = rep_vector(0, r);
-  err[1:r] = (y[1:r] - mu[1:r]) - eta[1:r];
+  eta[1:p] = y[1:p] - mu[1:p];
+  err[1:p] = rep_vector(0, p);
   vector[p] phi_rev = reverse(phi);       // reverse order phi
-  vector[q] theta_rev = reverse(theta);   // reverse order theta
-  for(t in (r + 1):N){
-    eta[t] = (eta[(t-p):(t-1)]' * phi_rev + err[(t - q):(t - 1)]' * theta_rev);
+  for(t in (p + 1):N){
+    eta[t] = err[(t - p):(t - 1)]' * phi_rev;
     err[t] = y[t] - mu[t] - eta[t];
   }
 }
@@ -139,14 +123,11 @@ model {
   for(k in 2:p){
     J_phi += 0.5 * k * log(1 - r_phi[k]) + 0.5 * (k - 1) * log(1 + r_phi[k]);
   }
-  for(k in 2:q){
-    J_theta += 0.5 * k * log(1 - r_theta[k]) + 0.5 * (k - 1) * log(1 + r_theta[k]);
-  }
 
-  target += J_phi + J_theta;
+  target += J_phi;
 
   // likelihood
-  err[(r + 1):N] ~ normal(0, sigma);
+  err[(p + 1):N] ~ normal(0, sigma);
 
 }
 
@@ -163,13 +144,14 @@ generated quantities{
   eta_rep[1:N] = eta;
   err_rep[1:N] = err;
   err_rep[(N + 1):(N + N_new)] = rep_vector(0, N_new);
+  mu_rep[1:N] = mu;
+  mu_rep[(N + 1):(N + N_new)] = X_new * beta;
 
   // forecast
   if(N_new > 0){
     for(t in (N + 1):(N + N_new)){
-      eta_rep[t] = eta_rep[(t-p):(t-1)]' * phi_rev;
-      y_rep[t] = mu_rep[t] + eta_rep[t] + err_rep[(t-q):(t-1)]' * theta_rev +
-        normal_rng(0, sigma);
+      eta_rep[t] = err_rep[(t-p):(t-1)]' * phi_rev;
+      y_rep[t] = mu_rep[t] + eta_rep[t] + normal_rng(0, sigma);
     }
   }
 
