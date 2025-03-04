@@ -4,7 +4,13 @@
 \alias{calculate_true_pos_rate}
 \title{Calculate true positives rates for models}
 \usage{
-calculate_true_pos_rate(par_post, value, threshold = 0.9, par = "beta")
+calculate_true_pos_rate(
+  par_post,
+  value,
+  threshold = 0.9,
+  par = "beta",
+  arima = FALSE
+)
 }
 \arguments{
 \item{par_post}{posterior estimates of the parameter values}

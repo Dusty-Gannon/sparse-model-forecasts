@@ -301,14 +301,14 @@ print(paste0('n_beta = ', n_beta, ';  n = ', n))
 #'
 
 
-fit_seasonal_arima_model <- function(model_pars, K = 12){
+fit_seasonal_arima_model <- function(model_pars, K = 12, freq = 365){
 
   # determine how many covariates to include:
-  n_beta <- length(model_pars$beta)-1
+  n_beta <- ncol(model_pars$X)-1
   n <- (length(model_pars$y)-model_pars$holdout)
 
-  y <- ts(model_pars$y[1:n], frequency = 365)
-  y_full <- ts(model_pars$y, frequency = 365)
+  y <- ts(model_pars$y[1:n], frequency = freq)
+  y_full <- ts(model_pars$y, frequency = freq)
 
   X_fit <- forecast::fourier(y_full,K=K)
   if(n_beta > 0){
@@ -340,7 +340,7 @@ fit_seasonal_arima_model <- function(model_pars, K = 12){
                            scope = list(lower = mod_null, upper = mod))
 
   fr_covs <- gsub('\\.', '-', names(stepAIC_out$coefficients)[-1])
-  X_sub <- matrix(X_fit[, colnames(X_fit) %in% fr_covs], ncol = length(fr_covs))
+  X_sub <- X_fit[, colnames(X_fit) %in% fr_covs]
 
   # X_sub <- cbind(matrix(rep(1, nrow(X_sub)), ncol = 1, dimnames = list(NULL, 'beta0')),
   #       X_sub)
@@ -366,6 +366,7 @@ fit_seasonal_arima_model <- function(model_pars, K = 12){
 
   return(list(fit_ar = fit_ar,
               rmse = rmse,
+              terms = colnames(X_sub),
               ar_forecast = ar_for))
 
 }
