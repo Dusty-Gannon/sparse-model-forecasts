@@ -135,8 +135,14 @@ generated quantities{
   err_rep[1:N] = err;
 
   // fitted values
-  for(t in 1:N){
-    y_rep[t] = mu[t] + err[t] + normal_rng(0, sigma);
+  for(t in 1:p){
+    y_rep[t] = mu[t];
+  }
+  for(t in (p + 1):N){
+    for(i in 1:p){
+      err_rep_rev[i] = err_rep[t - i];
+    }
+    y_rep[t] = mu[t] + err_rep_rev' * phi;
   }
 
   // forecast
