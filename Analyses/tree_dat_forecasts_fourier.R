@@ -282,5 +282,7 @@ dat2_plot_aarima <- forecast_plot(plot_df_arima2, horizon = 1900, p = 10, col = 
 
 # Create testing and training explanatory variables
 yrs3 <- which(tree_dat$year %in% 1926:2012)
-train_yrs3 <- which(tree_dat$year %in% 1926:1970))
+train_yrs3 <- which(tree_dat$year %in% 1926:1995)
+test_yrs3 <- which(tree_dat$year %in% 1996:2012)
+
 
