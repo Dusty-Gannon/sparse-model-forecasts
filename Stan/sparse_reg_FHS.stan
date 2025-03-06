@@ -87,8 +87,7 @@ model{
 
 generated quantities{
 
-  vector[N] y_rep;
-  vector[N_new] y_pred;
+  vector[N + N_new] y_rep;
 
   // posterior predictions with same linear predictor as observed
   for(i in 1:N){
@@ -97,8 +96,8 @@ generated quantities{
 
   // optional predictions to unobserved
   if(N_new > 0){
-    for(i in 1:N_new){
-      y_pred[i] = normal_rng(X_new[i, ] * beta, sigma);
+    for(i in (N + 1):(N + N_new)){
+      y_rep[i] = normal_rng(X_new[i - N, ] * beta, sigma);
     }
   }
 
