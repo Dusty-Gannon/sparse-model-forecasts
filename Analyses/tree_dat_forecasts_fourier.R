@@ -15,12 +15,15 @@ tree_dat <- tree_dat %>%
   )
 
 # Create testing and training explanatory variables
-train_yrs <- 1:which(tree_dat$year == 1970)
-test_yrs <- (which(tree_dat$year == 1970) + 1):nrow(tree_dat)
+train_yrs <- 1800:1970
+test_yrs <- 1971:tree_dat$year[nrow(tree_dat)]
 
 # now create fourier terms
 X_train <- forecast::fourier(
-  ts(tree_dat$mean_rwi[train_yrs], frequency = length(train_yrs)),
+  ts(
+    tree_dat$mean_rwi[tree_da$year %in% train_yrs],
+    frequency = length(train_yrs)
+  ),
   K = length(train_yrs) / 2
 )
 
@@ -44,7 +47,7 @@ sparse_mod <- rstan::stan_model(
 # create list of objects that are shared across all models
 # get estimate of tau0
 tau_0_phi <- tau0(
-  y = tree_dat$mean_rwi[train_yrs],
+  y = tree_dat$mean_rwi[tree_dat$year %in% train_yrs],
   m0 = 1,
   M = 15,
   N = nrow(X_train),
@@ -52,7 +55,7 @@ tau_0_phi <- tau0(
 )
 
 tau_0_beta <- tau0(
-  y = tree_dat$mean_rwi[train_yrs],
+  y = tree_dat$mean_rwi[tree_dat$year %in% train_yrs],
   m0 = 5,
   M = ncol(X_train),
   N = nrow(X_train),
@@ -71,7 +74,7 @@ dat_stan <- list(
   tau0_beta = tau_0_beta,
   slab_scl_beta = 0.1,
   slab_df_beta = 6,
-  y = tree_dat$mean_rwi[train_yrs],
+  y = tree_dat$mean_rwi[tree_dat$year %in% train_yrs],
   N_new = nrow(X_test),
   X_new = cbind(1, X_test)
 )
@@ -105,17 +108,38 @@ plot_df_allyrs <- data.frame(
 )
 
 plot_df_allyrs$y[plot_df_allyrs$source == "RHS" & plot_df_allyrs$year <= 1970] <- NA
-plot_df_allyrs$low[1:length(train_yrs)] <- NA
-plot_df_allyrs$high[1:length(train_yrs)] <- NA
+plot_df_allyrs$low[plot_df_allyrs$source == "RHS" & plot_df_allyrs$year <= 1970] <- NA
+plot_df_allyrs$high[plot_df_allyrs$source == "RHS" & plot_df_allyrs$year <= 1970] <- NA
 
 # Create forecasting plot function
 forecast_plot <- function(df, horizon, col){
-  ggplot(df, aes(x = year, y = y, colour = source, linewidth = source, fill = source)) +
+  ggplot(
+    df,
+    aes(x = year, y = y, colour = source, linewidth = source, fill = source)
+  ) +
     geom_line() +
-    geom_ribbon(aes(ymin = low, ymax = high), alpha = 0.2)
+    geom_ribbon(
+      aes(ymin = low, ymax = high, alpha = source),
+      linewidth = NA
+    ) +
+    geom_vline(xintercept = horizon, linetype = "dashed", color = "brown") +
+    geom_vline(xintercept = 1926, linetype = "dashed", color = "grey") +
+    scale_color_manual(
+      values = c("Observed" = "black", "RHS" = col[1], "Auto-ARIMA" = col[2])
+    ) +
+    scale_fill_manual(
+      values = c("Observed" = "black", "RHS" = col[1], "Auto-ARIMA" = col[2])
+    ) +
+    scale_linewidth_manual(
+      values = c("Observed" = 0.5, "RHS" = 0.8, "Auto-ARIMA" = 0.8)
+    ) +
+    scale_alpha_manual(
+      values = c("Observed" = 1, "RHS" = 0.2, "Auto-ARIMA" = 0.6)
+    ) +
+    theme_classic() +
+    theme(legend.title = element_blank()) +
+    ylab("RWI")
 }
-
-all_dat_RHS <- forecast_plot(plot_df_allyrs, horizon = 1970, col = "#33406fff")
 
 # now fit auto.arima model
 
@@ -137,31 +161,85 @@ fc_aarima <- forecast(
   xreg = X_test[, colnames(X_test) %in% auto_arima_fit$terms]
 ) |> as.data.frame() |> janitor::clean_names()
 
-plot_df_arima <- data.frame(
-  y = tree_dat$mean_rwi,
-  y_hat = c(
+# combine with data for plotting
+
+plot_df_allyrs <- data.frame(
+  y = c(
     rep(NA, nrow(X_train)),
     fc_aarima$point_forecast
   ),
   low = c(rep(NA, nrow(X_train)), fc_aarima$lo_95),
   high = c(rep(NA, nrow(X_train)), fc_aarima$hi_95),
-  year = tree_dat$year
+  year = tree_dat$year,
+  source = rep("Auto-ARIMA", nrow(tree_dat))
+) %>% rbind(plot_df_allyrs, .)
+
+### ---- First ts plot ----
+all_dat_plot <- forecast_plot(
+  plot_df_allyrs,
+  horizon = 1970,
+  col = PNWColors::pnw_palette("Sunset", 7)[c(2,6)]
+) +
+  xlab("") +
+  ylim(c(0.5, 3)) +
+  theme(
+    legend.position = "top"
+  ) +
+  ggtitle("a)")
+
+
+## ---- Get RMSE of the forecast ----
+
+rmse_all_aa <- sqrt(
+  mean(
+    (tree_dat$mean_rwi[tree_dat$year %in% test_yrs] -
+       fc_aarima$point_forecast)^2,
+    na.rm = TRUE
+  )
 )
 
-all_dat_aarima <- forecast_plot(plot_df_arima, horizon = 1970, p = 10, col = "#818181")
+rmse_all_RHS <- data.frame(
+  rmse = RMSE_bayes(
+    obs = tree_dat$mean_rwi[tree_dat$year %in% test_yrs],
+    ppreds = y_hat[, which(tree_dat$year %in% test_yrs)]
+  )
+)
+### ---- make figure for RMSE ----
 
+postprob <- mean(rmse_all_RHS$rmse < rmse_all_aa)
 
+rmse_all_plot <- ggplot(rmse_all_RHS, aes(x = rmse)) +
+  geom_density(fill = PNWColors::pnw_palette("Sunset", 7)[2]) +
+  geom_vline(
+    xintercept = rmse_all_aa,
+    color = PNWColors::pnw_palette("Sunset", 7)[6]) +
+  theme_classic() +
+  xlim(c(0, 2)) +
+  annotate(
+    "text",
+    x = 2,
+    y = 3,
+    label = paste0("P(R[Bayes] <= r[aa]) == ", round(postprob, 2)),
+    hjust = 1,
+    parse = TRUE,
+    size = 2.5
+  ) +
+  ylab("Density") +
+  xlab("")
 
 
 # ---- Analysis for 1800 - 1925 ----
 
 # Create testing and training explanatory variables
-yrs2 <- which(tree_dat$year %in% 1800:1925)
-train_yrs2 <- which(tree_dat$year %in% 1800:1900)
-test_yrs2 <- which(tree_dat$year %in% 1901:1925)
+yrs2 <- 1800:1925
+train_yrs2 <-1800:1900
+test_yrs2 <- 1901:1925
 
 X_train2 <- forecast::fourier(
-  ts(tree_dat$mean_rwi[train_yrs2], frequency = length(train_yrs2)),
+  ts(
+    tree_dat$mean_rwi[tree_dat$year %in% train_yrs2],
+    frequency = length(train_yrs2)
+  ),
   K = length(train_yrs2) / 2
 )
 
@@ -178,18 +256,18 @@ dat_stan2 <- modifyList(
     N = nrow(X_train2),
     P = ncol(X_train2) + 1,
     X = cbind(1, X_train2),
-    y = tree_dat$mean_rwi[train_yrs2],
+    y = tree_dat$mean_rwi[tree_dat$year %in% train_yrs2],
     N_new = nrow(X_test2),
     X_new = cbind(1, X_test2),
     tau0_phi = tau0(
-      y = tree_dat$mean_rwi[train_yrs2],
+      y = tree_dat$mean_rwi[tree_dat$year %in% train_yrs2],
       m0 = 1,
       M = 100,
       N = nrow(X_train2),
       fam = "gaussian"
     ),
     tau0_beta = tau0(
-      y = tree_dat$mean_rwi[train_yrs2],
+      y = tree_dat$mean_rwi[tree_dat$year %in% train_yrs2],
       m0 = 5,
       M = ncol(X_train2),
       N = nrow(X_train2),
@@ -204,7 +282,7 @@ sparse_fit2 <- rstan::sampling(
   data = dat_stan2,
   chains = 4,
   iter = 4000,
-  warmup = 3000,
+  warmup = 2000,
   cores = 4,
   control = list(adapt_delta = 0.99, max_treedepth = 15)
 )
@@ -212,29 +290,31 @@ sparse_fit2 <- rstan::sampling(
 # extract posterior predictive draws
 y_hat2 <- rstan::extract(sparse_fit2, pars = "y_rep")$y_rep
 
-plot_df_RHS2 <- data.frame(
-  y = tree_dat$mean_rwi,
-  y_hat = c(
+# combine into plotting dataframe
+plot_df2 <- data.frame(
+  y = c(
+    tree_dat$mean_rwi,
     colMeans(y_hat2),
     rep(NA, nrow(tree_dat) - length(yrs2))
   ),
   low = c(
+    rep(NA, nrow(tree_dat)),
     apply(y_hat2, 2, quantile, probs = 0.025),
     rep(NA, nrow(tree_dat) - length(yrs2))
   ),
   high = c(
+    rep(NA, nrow(tree_dat)),
     apply(y_hat2, 2, quantile, probs = 0.975),
     rep(NA, nrow(tree_dat) - length(yrs2))
   ),
-  year = tree_dat$year
+  year = rep(tree_dat$year, 2),
+  source = rep(c("Observed", "RHS"), each = nrow(tree_dat))
 )
 
-plot_df_RHS2$y_hat[train_yrs2] <- NA
-plot_df_RHS2$low[train_yrs2] <- NA
-plot_df_RHS2$high[train_yrs2] <- NA
-plot_df_RHS2$y[(yrs2[length(yrs2)] + 1):nrow(tree_dat)] <- NA
-
-dat2_plot_RHS <- forecast_plot(plot_df_RHS2, horizon = 1900, p = 10, col = "#33406fff")
+plot_df2$y[plot_df2$source == "RHS" & plot_df2$year %in% train_yrs2] <- NA
+plot_df2$low[plot_df2$source == "RHS" & plot_df2$year %in% train_yrs2] <- NA
+plot_df2$high[plot_df2$source == "RHS" & plot_df2$year %in% train_yrs2] <- NA
+plot_df2$y[!(plot_df2$year %in% yrs2)] <- NA
 
 # repeat the process with auto.arima
 
@@ -243,7 +323,7 @@ auto_arima_fit2 <- fit_seasonal_arima_model(
     n = nrow(X_train2),
     p = 10,
     X = matrix(1, nrow = nrow(X_train2), ncol = 1),
-    y = tree_dat$mean_rwi[train_yrs2],
+    y = tree_dat$mean_rwi[tree_dat$year %in% train_yrs2],
     holdout = length(test_yrs2)
   ),
   freq = length(train_yrs2)
@@ -256,41 +336,96 @@ fc_aarima2 <- forecast(
   xreg = X_test2[, colnames(X_test2) %in% auto_arima_fit2$terms]
 ) |> as.data.frame() |> janitor::clean_names()
 
-plot_df_arima2 <- data.frame(
-  y = tree_dat$mean_rwi,
-  y_hat = c(
-    rep(NA, nrow(X_train2)),
+plot_df2 <- data.frame(
+  y = c(
+    rep(NA, length(train_yrs2)),
     fc_aarima2$point_forecast,
     rep(NA, nrow(tree_dat) - length(yrs2))
   ),
   low = c(
-    rep(NA, nrow(X_train2)),
+    rep(NA, length(train_yrs2)),
     fc_aarima2$lo_95,
     rep(NA, nrow(tree_dat) - length(yrs2))
   ),
   high = c(
-    rep(NA, nrow(X_train2)),
+    rep(NA, length(train_yrs2)),
     fc_aarima2$hi_95,
     rep(NA, nrow(tree_dat) - length(yrs2))
   ),
-  year = tree_dat$year
-)
+  year = tree_dat$year,
+  source = rep("Auto-ARIMA", nrow(tree_dat))
+) %>% rbind(plot_df2, .)
 
 # omit the later time points
-plot_df_arima2$y[(yrs2[length(yrs2)] + 1):nrow(tree_dat)] <- NA
+plot_df2$y[!(plot_df2$year %in% yrs2)] <- NA
 
-dat2_plot_aarima <- forecast_plot(plot_df_arima2, horizon = 1900, p = 10, col = "#818181")
+
+### ---- Second plot ----
+dat2_plot <- forecast_plot(
+  plot_df2,
+  horizon = 1900,
+  col = PNWColors::pnw_palette("Sunset", 7)[c(2,6)]
+) +
+  theme(
+    legend.position = "none",
+    axis.text.x = element_blank()
+  ) +
+  xlab("") +
+  ylim(c(0.5, 3)) +
+  ggtitle("b)")
+
+## ---- Get RMSE of the forecast ----
+
+rmse2_aa <- sqrt(
+  mean(
+    (tree_dat$mean_rwi[tree_dat$year %in% test_yrs2] -
+       fc_aarima2$point_forecast)^2,
+    na.rm = TRUE
+  )
+)
+
+rmse2_RHS <- data.frame(
+  rmse = RMSE_bayes(
+    obs = tree_dat$mean_rwi[tree_dat$year %in% test_yrs2],
+    ppreds = y_hat2[, -(1:length(train_yrs2))]
+  )
+)
+
+postprob2 <- mean(rmse2_RHS$rmse < rmse2_aa)
+
+### ---- Second RMSE plot ----
+rmse2_plot <- ggplot(rmse2_RHS, aes(x = rmse)) +
+  geom_density(fill = PNWColors::pnw_palette("Sunset", 7)[2]) +
+  geom_vline(
+    xintercept = rmse2_aa,
+    color = PNWColors::pnw_palette("Sunset", 7)[6]) +
+  theme_classic() +
+  ylab("Density") +
+  xlab("") +
+  xlim(c(0, 2)) +
+  annotate(
+    "text",
+    x = 2,
+    y = 10,
+    label = paste0("P(R[Bayes] <= r[aa]) == ", round(postprob2, 2)),
+    hjust = 1,
+    parse = TRUE,
+    size = 2.5
+  )
 
 
 # ---- Analysis for 1926 - 2012 ----
 
 # Create testing and training explanatory variables
-yrs3 <- which(tree_dat$year %in% 1926:2012)
-train_yrs3 <- which(tree_dat$year %in% 1926:1995)
-test_yrs3 <- which(tree_dat$year %in% 1996:2012)
+yrs3 <- 1926:2012
+train_yrs3 <- 1926:1995
+test_yrs3 <- 1996:2012
 
 X_train3 <- forecast::fourier(
-  ts(tree_dat$mean_rwi[train_yrs3], frequency = length(train_yrs3)),
+  ts(
+    tree_dat$mean_rwi[tree_dat$year %in% train_yrs3],
+    frequency = length(train_yrs3)
+  ),
   K = length(train_yrs3) / 2
 )
 
@@ -308,18 +443,18 @@ dat_stan3 <- modifyList(
     N = nrow(X_train3),
     P = ncol(X_train3) + 1,
     X = cbind(1, X_train3),
-    y = tree_dat$mean_rwi[train_yrs3],
+    y = tree_dat$mean_rwi[tree_dat$year %in% train_yrs3],
     N_new = nrow(X_test3),
     X_new = cbind(1, X_test3),
     tau0_phi = tau0(
-      y = tree_dat$mean_rwi[train_yrs3],
+      y = tree_dat$mean_rwi[tree_dat$year %in% train_yrs3],
       m0 = 1,
       M = 100,
       N = nrow(X_train3),
       fam = "gaussian"
     ),
     tau0_beta = tau0(
-      y = tree_dat$mean_rwi[train_yrs3],
+      y = tree_dat$mean_rwi[tree_dat$year %in% train_yrs3],
       m0 = 5,
       M = ncol(X_train3),
       N = nrow(X_train3),
@@ -341,29 +476,30 @@ sparse_fit3 <- rstan::sampling(
 # extract posterior predictive draws
 y_hat3 <- rstan::extract(sparse_fit3, pars = "y_rep")$y_rep
 
-plot_df_RHS3 <- data.frame(
-  y = tree_dat$mean_rwi,
-  y_hat = c(
+plot_df3 <- data.frame(
+  y = c(
+    tree_dat$mean_rwi,
     rep(NA, nrow(tree_dat) - length(yrs3)),
     colMeans(y_hat3)
   ),
   low = c(
+    rep(NA, nrow(tree_dat)),
     rep(NA, nrow(tree_dat) - length(yrs3)),
     apply(y_hat3, 2, quantile, probs = 0.025)
   ),
   high = c(
+    rep(NA, nrow(tree_dat)),
     rep(NA, nrow(tree_dat) - length(yrs3)),
     apply(y_hat3, 2, quantile, probs = 0.975)
   ),
-  year = tree_dat$year
+  year = rep(tree_dat$year, 2),
+  source = rep(c("Observed", "RHS"), each = nrow(tree_dat))
 )
 
-plot_df_RHS3$y[1:(yrs3[1] - 1)] <- NA
-plot_df_RHS3$y_hat[train_yrs3] <- NA
-plot_df_RHS3$low[train_yrs3] <- NA
-plot_df_RHS3$high[train_yrs3] <- NA
-
-dat3_plot_RHS <- forecast_plot(plot_df_RHS3, horizon = 1996, p = 10, col = "#33406fff")
+# replace training years with NA
+plot_df3$y[plot_df3$source == "RHS" & plot_df3$year %in% train_yrs3] <- NA
+plot_df3$low[plot_df3$source == "RHS" & plot_df3$year %in% train_yrs3] <- NA
+plot_df3$high[plot_df3$source == "RHS" & plot_df3$year %in% train_yrs3] <- NA
 
 
 # repeat the process with auto.arima
@@ -373,7 +509,7 @@ auto_arima_fit3 <- fit_seasonal_arima_model(
     n = nrow(X_train3),
     p = 10,
     X = matrix(1, nrow = nrow(X_train3), ncol = 1),
-    y = tree_dat$mean_rwi[train_yrs3],
+    y = tree_dat$mean_rwi[tree_dat$year %in% train_yrs3],
     holdout = length(test_yrs3)
   ),
   freq = length(train_yrs3)
@@ -386,9 +522,8 @@ fc_aarima3 <- forecast(
 ) |> as.data.frame() |> janitor::clean_names()
 
 
-plot_df_arima3 <- data.frame(
-  y = tree_dat$mean_rwi,
-  y_hat = c(
+plot_df3 <- data.frame(
+  y = c(
     rep(NA, nrow(tree_dat) - length(test_yrs3)),
     fc_aarima3$point_forecast
   ),
@@ -400,69 +535,82 @@ plot_df_arima3 <- data.frame(
     rep(NA, nrow(tree_dat) - length(test_yrs3)),
     fc_aarima3$hi_95
   ),
-  year = tree_dat$year
+  year = tree_dat$year,
+  source = rep("Auto-ARIMA", nrow(tree_dat))
+) %>% rbind(plot_df3, .)
+
+plot_df3$y[!(plot_df3$year %in% yrs3)] <- NA
+
+### ---- Third plot ----
+
+dat3_plot <- forecast_plot(
+  plot_df3,
+  horizon = 1996,
+  col = PNWColors::pnw_palette("Sunset", 7)[c(2,6)]
+) +
+  theme(
+    legend.position = "none",
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  ) +
+  xlab("Year") +
+  ylim(c(0.5, 3)) +
+  ggtitle("c)")
+
+## ---- Get RMSE of the forecast ----
+
+rmse3_aa <- sqrt(
+  mean(
+    (tree_dat$mean_rwi[tree_dat$year %in% test_yrs3] -
+       fc_aarima3$point_forecast)^2,
+    na.rm = TRUE
+  )
 )
 
-plot_df_arima3$y[1:(yrs3[1] - 1)] <- NA
+rmse3_RHS <- data.frame(
+  rmse = RMSE_bayes(
+    obs = tree_dat$mean_rwi[tree_dat$year %in% test_yrs3],
+    ppreds = y_hat3[, -(1:length(train_yrs3))]
+  )
+)
 
-dat3_plot_aarima <- forecast_plot(plot_df_arima3, horizon = 1996, p = 10, col = "#818181")
+postprob3 <- mean(rmse3_RHS$rmse < rmse3_aa)
+
+### ---- Third RMSE plot ----
+rmse3_plot <- ggplot(rmse3_RHS, aes(x = rmse)) +
+  geom_density(fill = PNWColors::pnw_palette("Sunset", 7)[2]) +
+  geom_vline(
+    xintercept = rmse3_aa,
+    color = PNWColors::pnw_palette("Sunset", 7)[6]) +
+  theme_classic() +
+  ylab("Density") +
+  xlab("RMSE") +
+  xlim(c(0, 2)) +
+  annotate(
+    "text",
+    x = 2,
+    y = 3,
+    label = paste0("P(R[Bayes] <= r[aa]) == ", round(postprob3, 2)),
+    hjust = 1,
+    parse = TRUE,
+    size = 2.5
+  )
 
 
 # ---- Combine all plots ----
+lo <- "
+  111144
+  222255
+  333366
+"
 
-# first, remove y axis labels from arima plots
-all_dat_aarima <- all_dat_aarima +
-  ylab("")
-
-dat2_plot_aarima <- dat2_plot_aarima +
-  ylab("")
-
-dat3_plot_aarima <- dat3_plot_aarima +
-  ylab("")
-
-# remove x axis labels from all but dat 3 plots
-all_dat_RHS <- all_dat_RHS +
-  theme(axis.text.x = element_blank()) +
-  xlab("")
-all_dat_aarima <- all_dat_aarima +
-  theme(axis.text.x = element_blank()) +
-  xlab("")
-dat2_plot_RHS <- dat2_plot_RHS +
-  theme(axis.text.x = element_blank()) +
-  xlab("")
-dat2_plot_aarima <- dat2_plot_aarima +
-  theme(axis.text.x = element_blank()) +
-  xlab("")
-
-# angle x axis text for dat 3 plots
-dat3_plot_RHS <- dat3_plot_RHS +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  xlab("Year")
-dat3_plot_aarima <- dat3_plot_aarima +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  xlab("Year")
-
-# fix y axis labels
-all_dat_RHS <- all_dat_RHS +
-  ylab("RWI")
-dat2_plot_RHS <- dat2_plot_RHS +
-  ylab("RWI")
-dat3_plot_RHS <- dat3_plot_RHS +
-  ylab("RWI")
-
-# add titles to top plots
-all_dat_RHS <- all_dat_RHS +
-  ggtitle("RHS model")
-
-all_dat_aarima <- all_dat_aarima +
-  ggtitle("Auto-ARIMA model")
-
-(all_dat_RHS + all_dat_aarima) /
-  (dat2_plot_RHS + dat2_plot_aarima) /
-  (dat3_plot_RHS + dat3_plot_aarima)
+all_dat_plot + dat2_plot + dat3_plot +
+  rmse_all_plot + rmse2_plot + rmse3_plot +
+  plot_layout(
+    design = lo
+  )
 
 ggsave(
   here::here("Figures/tree_forecasts_fourier.png"),
-  width = 6,
+  width = 5.75,
   height = 5
 )
