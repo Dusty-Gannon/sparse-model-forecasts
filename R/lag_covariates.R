@@ -23,14 +23,20 @@ lag_covariates <- function(data, names, lags, time_col = NULL){
   # get column indexes to leave alone
   nolag_cols <- which(!(names(data) %in% names))
 
+  if(length(lags) == 1 & length(names) > 1){
+    lags <- rep(lags, length(names))
+  }
+
+  # if data is a tibble, convert to regular dataframe
+  data <- as.data.frame(data)
+
   # get dimensions for new dataset
   maxlag <- max(lags)
   n <- nrow(data) - maxlag    # num rows
   K <- ncol(data) + sum(lags) # num columns
   if(!is.null(time_col)){
-    newdat <- data.frame(data[, time_col])
+    newdat <- data.frame(data[(maxlag + 1):nrow(data), time_col])
     names(newdat) <- time_col
-    newdat <- newdat[(maxlag + 1):nrow(data), ]
     nolag_cols <- nolag_cols[-which(nolag_cols == which(names(data) == time_col))]
   } else{
     newdat <- data.frame(row.names = (maxlag + 1):nrow(data))
