@@ -1,6 +1,6 @@
 # Author: Dusty Gannon
-# Created: 2019-08-19
-# Last edited:
+# Created: 2 March 2025
+# Last edited: 14 March 2025 (Happy pi day!)
 # Description: This script documents the tree growth model fits and forecasts
 #              using predictors constructed from PRISM data.
 
@@ -186,16 +186,16 @@ forecast_plot <- function(df, horizon, col){
     geom_vline(xintercept = horizon, linetype = "dashed", color = "brown") +
     geom_vline(xintercept = 1926, linetype = "dashed", color = "grey") +
     scale_color_manual(
-      values = c("Observed" = "black", "RHS" = col[1], "Auto-ARIMA" = col[2])
+      values = c("Observed" = "black", "RHS" = col[1], "stepAIC" = col[2])
     ) +
     scale_fill_manual(
-      values = c("Observed" = "black", "RHS" = col[1], "Auto-ARIMA" = col[2])
+      values = c("Observed" = "black", "RHS" = col[1], "stepAIC" = col[2])
     ) +
     scale_linewidth_manual(
-      values = c("Observed" = 0.5, "RHS" = 0.8, "Auto-ARIMA" = 0.8)
+      values = c("Observed" = 0.5, "RHS" = 0.8, "stepAIC" = 0.8)
     ) +
     scale_alpha_manual(
-      values = c("Observed" = 1, "RHS" = 0.2, "Auto-ARIMA" = 0.6)
+      values = c("Observed" = 1, "RHS" = 0.2, "stepAIC" = 0.6)
     ) +
     theme_classic() +
     theme(legend.title = element_blank()) +
@@ -266,7 +266,7 @@ coefs_plot_all <- df_estims_plot_all %>% filter(var != "Intercept") %>%
 
 
 
-# ---- Analysis for 1926 - 2012 ----
+# ---- Model 2: Analysis for 1926-2012 ----
 
 yrs2 <- 1926:2012
 train_yrs2 <- 1926:1995
@@ -330,6 +330,7 @@ aic_fit_dat2 <- MASS::stepAIC(
 # # compute residual variance
 # aic_sigma2 <- summary(aic_fit_dat_all)$sigma^2
 
+## ---- Combine all results into df for plotting ----
 y_pred2 <- rstan::extract(rhs_fit2, pars = "y_rep")$y_rep
 preds_aic2 <- predict(aic_fit_dat2, newdat = aicdat_all[rows2, ], se = T)
 
@@ -346,11 +347,25 @@ df_fcplot2 <- data.frame(
     apply(y_pred2, 2, quantile, probs = 0.975),
     rep(NA, length(yrs2))
   ),
-  source = rep(c("Observed", "RHS", "Auto-ARIMA"), each = length(yrs2))
+  source = rep(c("Observed", "RHS", "stepAIC"), each = length(yrs2))
 )
 
-## ---- Forecast plot for set 2 ----
+# replace the training periods with NAs
+df_fcplot2$y[
+  df_fcplot2$source != "Observed" &
+    df_fcplot2$year %in% train_yrs2
+] <- NA
+
+df_fcplot2$low[df_fcplot2$year %in% train_yrs2] <- NA
+df_fcplot2$high[df_fcplot2$year %in% train_yrs2] <- NA
+
+
+
+### ---- Forecast plot for set 2 ----
 
 fc_plot2 <- forecast_plot(df_fcplot2, horizon = 1995, col = my_colors)
+
+
+## ---- Coefficients plot ----
 
 
