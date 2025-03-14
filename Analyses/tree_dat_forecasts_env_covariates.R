@@ -253,12 +253,104 @@ df_estims_plot_all <- rbind(
   df_estims_aic_dat_all
 )
 
-df_estims_plot_all %>% filter(var != "Intercept") %>%
-ggplot(., aes(x = var, y = estim, color = method, fill = method)) +
-  geom_col(position = "dodge") +
-  coord_polar() +
-  theme_classic() +
-  theme(
-    axis.text.x = element_blank()
+coefs_plot_all <- df_estims_plot_all %>% filter(var != "Intercept") %>%
+  ggplot(., aes(x = var, y = estim, color = method, fill = method)) +
+    geom_col(position = "dodge") +
+    coord_polar() +
+    theme_void() +
+    theme(
+      axis.text.x = element_blank()
+    ) +
+  scale_color_manual(values = rev(my_colors)) +
+  scale_fill_manual(values = rev(my_colors))
+
+
+
+# ---- Analysis for 1926 - 2012 ----
+
+yrs2 <- 1926:2012
+train_yrs2 <- 1926:1995
+test_yrs2 <- 1996:2012
+rows2 <- which(tree_dat$year %in% yrs2)
+train_rows2 <- which(tree_dat$year %in% train_yrs2)
+test_rows2 <- which(tree_dat$year %in% test_yrs2)
+
+# compile data for stan
+dat_stan2 <- list(
+  N = length(train_yrs2),
+  P0 = 1,
+  P = ncol(prism_lagged),
+  y = tree_dat$mean_rwi[train_rows2],
+  X = cbind(
+    1,
+    as.matrix(
+      prism_lagged[train_rows2, -which(names(prism_lagged) == "year")]
+    )
+  ),
+  tau0 = tau0(
+    y = tree_dat$mean_rwi[train_rows2],
+    m0 = 5,
+    M = ncol(prism_lagged) - 1,
+    N = length(train_yrs2),
+    fam = "gaussian"
+  ),
+  slab_scl = 0.5,
+  slab_df = 6,
+  N_new = length(test_yrs2),
+  X_new = cbind(
+    1,
+    as.matrix(
+      prism_lagged[test_rows2, -which(names(prism_lagged) == "year")]
+    )
   )
+)
+
+# fit the model
+rhs_fit2 <- rstan::sampling(
+  rhs_reg,
+  data = dat_stan2,
+  cores = 4,
+  iter = 5000,
+  warmup = 4000,
+  control = list(adapt_delta = 0.99, max_treedepth = 12)
+)
+
+# now fit the same model using stepAIC
+
+# fit the initial model
+init2 <- lm(mean_rwi ~ 1, data = aicdat_all[train_rows2, ])
+
+# stepwise model selection
+aic_fit_dat2 <- MASS::stepAIC(
+  init2,
+  scope = form_full,
+  direction = "forward"
+)
+
+# # compute residual variance
+# aic_sigma2 <- summary(aic_fit_dat_all)$sigma^2
+
+y_pred2 <- rstan::extract(rhs_fit2, pars = "y_rep")$y_rep
+preds_aic2 <- predict(aic_fit_dat2, newdat = aicdat_all[rows2, ], se = T)
+
+df_fcplot2 <- data.frame(
+  year = rep(tree_dat$year[rows2], 3),
+  y = c(tree_dat$mean_rwi[rows2], colMeans(y_pred2), preds_aic2$fit),
+  low = c(
+    rep(NA, length(yrs2)),
+    apply(y_pred2, 2, quantile, probs = 0.025),
+    rep(NA, length(yrs2))
+  ),
+  high = c(
+    rep(NA, length(yrs2)),
+    apply(y_pred2, 2, quantile, probs = 0.975),
+    rep(NA, length(yrs2))
+  ),
+  source = rep(c("Observed", "RHS", "Auto-ARIMA"), each = length(yrs2))
+)
+
+## ---- Forecast plot for set 2 ----
+
+fc_plot2 <- forecast_plot(df_fcplot2, horizon = 1995, col = my_colors)
+
 
