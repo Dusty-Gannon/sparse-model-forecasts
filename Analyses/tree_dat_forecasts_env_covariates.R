@@ -134,8 +134,8 @@ preds_aic_dat_all <- predict(aic_fit_dat_all, newdata = aicdat_all, se = T)
 
 ## ---- Combine observed and predicted into one dataframe ----
 # extract draws
-y_pred <- rstan::extract(fit_dat_all, pars = "y_rep")$y_rep
-beta_post <- rstan::extract(fit_dat_all, pars = "beta")$beta
+y_pred <- rstan::extract(rhs_fit_dat_all, pars = "y_rep")$y_rep
+beta_post <- rstan::extract(rhs_fit_dat_all, pars = "beta")$beta
 
 # compute residual variance
 aic_sigma2 <- summary(aic_fit_dat_all)$sigma^2
@@ -153,7 +153,7 @@ df_fcplot_all <- data.frame(
     apply(y_pred, 2, quantile, probs = 0.975),
     preds_aic_dat_all$fit + 2 * sqrt(preds_aic_dat_all$se.fit^2 + aic_sigma2)
   ),
-  source = rep(c("Observed", "RHS", "Auto-ARIMA"), each = nrow(tree_dat))
+  source = rep(c("Observed", "RHS", "stepAIC"), each = nrow(tree_dat))
 )
 
 # now set the training region to NA
@@ -212,7 +212,7 @@ fc_plot_all <- forecast_plot(df_fcplot_all, horizon = 1990, col = my_colors)
 ### ---- Coefficients plot, all data ----
 
 # extract coefficient estimates from each method
-beta_post_all <- rstan::extract(fit_dat_all, pars = "beta")$beta
+beta_post_all <- rstan::extract(rhs_fit_dat_all, pars = "beta")$beta
 
 # create dataframe from aic approach
 beta_aic <- coef(aic_fit_dat_all)
@@ -366,6 +366,113 @@ df_fcplot2$high[df_fcplot2$year %in% train_yrs2] <- NA
 fc_plot2 <- forecast_plot(df_fcplot2, horizon = 1995, col = my_colors)
 
 
-## ---- Coefficients plot ----
+### ---- Coefficients plot for set 2----
+
+# extract coefficient estimates from each method
+beta_post2 <- rstan::extract(rhs_fit2, pars = "beta")$beta
+
+# create dataframe from aic approach
+beta_aic2 <- coef(aic_fit_dat2)
+ses_aic2 <- vcov(aic_fit_dat2) |> diag() |> sqrt()
+
+df_estims_aic2 <- data.frame(
+  var = names(beta_aic2),
+  estim = beta_aic2,
+  low = beta_aic2 - 2 * ses_aic2,
+  high = beta_aic2 + 2 * ses_aic2,
+  method = "AIC"
+)
+df_estims_aic2$var <- str_remove_all(
+  df_estims_aic2$var,
+  pattern = "[()]"
+)
+
+# now create plotting dataframe
+df_estims_rhs2 <- data.frame(
+  var = c("Intercept", names(aicdat_all)[-1]),
+  estim = colMeans(beta_post2),
+  low = apply(beta_post2, 2, quantile, probs = 0.025),
+  high = apply(beta_post2, 2, quantile, probs = 0.975),
+  method = "RHS"
+)
+
+# expand aic df
+df_estims_aic2 <- df_estims_rhs2 %>%
+  select(var) %>%
+  left_join(., df_estims_aic2)
+
+df_estims_aic2$method <- "AIC"
+df_estims_aic2[is.na(df_estims_aic2)] <- 0
+
+# now stack the two dataframes
+df_estims_plot2 <- rbind(
+  df_estims_rhs2,
+  df_estims_aic2
+)
+
+coefs_plot2 <- df_estims_plot2 %>% filter(var != "Intercept") %>%
+  ggplot(., aes(x = var, y = estim, color = method, fill = method)) +
+  geom_col(position = "dodge") +
+  coord_polar() +
+  theme_void() +
+  theme(
+    axis.text.x = element_blank()
+  ) +
+  scale_color_manual(values = rev(my_colors)) +
+  scale_fill_manual(values = rev(my_colors))
+
+
+
+
+# ---- Combine plots ----
+
+library(patchwork)
+
+fc_plot_all_final <- fc_plot_all +
+  theme(
+    axis.text.x = element_blank(),
+    legend.position = "top"
+  ) +
+  xlab("") +
+  ylim(c(0, 4))
+
+fc_plot2_final <- fc_plot2 +
+  xlim(c(min(tree_dat$year), max(tree_dat$year))) +
+  theme(
+    legend.position = "none",
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  ) +
+  ylim(c(0, 4)) +
+  xlab("")
+
+coefs_plot2_final <- coefs_plot2 +
+  theme(
+    legend.position = "none",
+    plot.margin = unit(c(0,0,0,0), "cm")
+  )
+
+coefs_plot_all_final <- coefs_plot_all +
+  theme(
+    legend.position = "none",
+    plot.margin = unit(c(0,0,0,0), "cm")
+  )
+
+lo <- '
+AAAAB
+CCCCD
+'
+
+fc_plot_all_final + coefs_plot_all_final + fc_plot2_final + coefs_plot2_final +
+  patchwork::plot_layout(design = lo)
+
+ggsave(
+  filename = here::here("Figures/tree_growth_forecasts_env_covs.png"),
+  width = 7,
+  height = 6,
+  device = "png",
+  units = "in",
+  dpi = 300
+)
+
 
 
