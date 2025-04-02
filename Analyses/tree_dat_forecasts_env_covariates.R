@@ -156,12 +156,12 @@ df_fcplot_all <- data.frame(
   source = rep(c("Observed", "RHS", "stepAIC"), each = nrow(tree_dat))
 )
 
-# now set the training region to NA
-df_fcplot_all$y[
-  df_fcplot_all$source != "Observed" &
-    df_fcplot_all$year %in% train_yrs
-] <- NA
-
+# # now set the training region to NA
+# df_fcplot_all$y[
+#   df_fcplot_all$source != "Observed" &
+#     df_fcplot_all$year %in% train_yrs
+# ] <- NA
+#
 df_fcplot_all$low[
   df_fcplot_all$source != "Observed" &
     df_fcplot_all$year %in% train_yrs
@@ -176,12 +176,12 @@ df_fcplot_all$high[
 forecast_plot <- function(df, horizon, col){
   ggplot(
     df,
-    aes(x = year, y = y, colour = source, linewidth = source, fill = source)
+    aes(x = year, y = y, colour = source)
   ) +
-    geom_line() +
+    geom_line(aes(linewidth = source)) +
     geom_ribbon(
-      aes(ymin = low, ymax = high, alpha = source),
-      linewidth = NA
+      aes(ymin = low, ymax = high, fill = source, alpha = source),
+      linetype = 0,
     ) +
     geom_vline(xintercept = horizon, linetype = "dashed", color = "brown") +
     geom_vline(xintercept = 1926, linetype = "dashed", color = "grey") +
@@ -191,11 +191,11 @@ forecast_plot <- function(df, horizon, col){
     scale_fill_manual(
       values = c("Observed" = "black", "RHS" = col[1], "stepAIC" = col[2])
     ) +
-    scale_linewidth_manual(
-      values = c("Observed" = 0.5, "RHS" = 0.8, "stepAIC" = 0.8)
-    ) +
     scale_alpha_manual(
-      values = c("Observed" = 1, "RHS" = 0.2, "stepAIC" = 0.6)
+      values = c("Observed" = 0, "RHS" = 0.3, "stepAIC" = 0.4),
+    ) +
+    scale_linewidth_manual(
+      values = c("Observed" = 1, "RHS" = 0.5, "stepAIC" = 0.5)
     ) +
     theme_classic() +
     theme(legend.title = element_blank()) +
@@ -351,10 +351,10 @@ df_fcplot2 <- data.frame(
 )
 
 # replace the training periods with NAs
-df_fcplot2$y[
-  df_fcplot2$source != "Observed" &
-    df_fcplot2$year %in% train_yrs2
-] <- NA
+# df_fcplot2$y[
+#   df_fcplot2$source != "Observed" &
+#     df_fcplot2$year %in% train_yrs2
+# ] <- NA
 
 df_fcplot2$low[df_fcplot2$year %in% train_yrs2] <- NA
 df_fcplot2$high[df_fcplot2$year %in% train_yrs2] <- NA
@@ -410,23 +410,136 @@ df_estims_plot2 <- rbind(
   df_estims_aic2
 )
 
-coefs_plot2 <- df_estims_plot2 %>% filter(var != "Intercept") %>%
-  ggplot(., aes(x = var, y = estim, color = method, fill = method)) +
-  geom_col(position = "dodge") +
-  coord_polar() +
-  theme_void() +
-  theme(
-    axis.text.x = element_blank()
-  ) +
-  scale_color_manual(values = rev(my_colors)) +
-  scale_fill_manual(values = rev(my_colors))
+# now create some labels
+df_estims_plot2 <- df_estims_plot2 %>%
+  mutate(
+    agg_period = case_when(
+      str_detect(var, "wy_") ~ "Water-year",
+      str_detect(var, "winter_") ~ "Winter",
+      str_detect(var, "summer_") ~ "Summer"
+    ),
+    var_lab = case_when(
+      str_detect(var, "ppt") ~ "Precip",
+      str_detect(var, "tmin") ~ "min Temp",
+      str_detect(var, "tmax") ~ "max Temp",
+      str_detect(var, "tmean") ~ "mean Temp",
+      str_detect(var, "td_mean") ~ "mean Dew Point",
+      str_detect(var, "vpdmax") ~ "max VPD",
+      str_detect(var, "vpdmin") ~ "min VPD",
+    )
+  )
 
+# remove the intercept rows
+df_estims_plot2 <- df_estims_plot2 %>%
+  filter(var != "Intercept")
 
+# count number of unique labels
+n_labs <- length(unique(df_estims_plot2$var_lab)) *
+  length(unique(df_estims_plot2$agg_period))
 
+lab_df <- tibble(
+  var_lab = unique(df_estims_plot2$var_lab) %>%
+    rep(length(unique(df_estims_plot2$agg_period))),
+  y = seq(0, n_labs - 1) * 6 + 1
+)
+
+lab2_df <- tibble(
+  var_lab = unique(df_estims_plot2$agg_period),
+  y = seq(1, 3) * 42 - 21
+)
+
+fill_colors <- PNWColors::pnw_palette("Shuksan2", 5)[c(1:2,5)]
+
+strip_df <- tibble(
+  xmin = -0.5,
+  xmax = 0.5,
+  ymin = seq(
+    from = 0,
+    to = (n_labs - 1) * 6,
+    by = 6
+  ),
+  ymax = seq(
+    from = 6,
+    to = n_labs * 6,
+    by = 6
+  ),
+  alpha = rep(c(1, 0.7), length.out = n_labs),
+  color = rep(fill_colors, each = n_labs / 3)
+)
+
+df_estims_RHS2 <- df_estims_plot2 %>%
+  filter(var != "Intercept") %>%
+  filter(method == "RHS")
+
+#---- Coefficients plot function ----
+
+coef_plot <- function(dat, ylabs = TRUE, xlims = c(-0.5, 0.5), xpos_labs = c(-0.05, -0.3)) {
+
+  strips <- strip_df
+  strips$xmin <- xlims[1]
+  strips$xmax <- xlims[2]
+
+  p <- ggplot(dat) +
+    geom_rect(
+      data = strips,
+      aes(
+        xmin = xmin,
+        xmax = xmax,
+        ymin = ymin,
+        ymax = ymax,
+        alpha = I(alpha),
+        fill = I(color)
+      ),
+      linetype = 0
+    ) +
+    geom_point(aes(x = estim, y = var), size = 1) +
+    geom_errorbarh(aes(
+      y = var,
+      xmin = low,
+      xmax = high
+    ), height = 0, color = "gray2", alpha = 0.8) +
+    theme_classic() +
+    theme(
+      axis.text.y = element_blank()
+    ) +
+    ylab("") +
+    xlab(expression(hat(beta)))
+
+  if(ylabs){
+    p <- p + theme(
+      plot.margin = unit(c(1, 1, 1, 6), "lines")
+    ) +
+      coord_cartesian(xlim = xlims, clip = "off") +
+      geom_text(
+        data = lab_df,
+        aes(
+          x = I(xpos_labs[1]),
+          y = y,
+          label = var_lab
+        ),
+        hjust = 1,
+        size = 2.5) +
+      geom_text(
+        data = lab2_df,
+        aes(
+          x = I(xpos_labs[2]),
+          y = y,
+          label = var_lab
+        ),
+        hjust = 0.5,
+        size = 4,
+        angle = 90
+      )
+  }
+
+  return(p)
+
+}
 
 # ---- Combine plots ----
 
 library(patchwork)
+# add a and b panel labels
 
 fc_plot_all_final <- fc_plot_all +
   theme(
@@ -434,7 +547,8 @@ fc_plot_all_final <- fc_plot_all +
     legend.position = "top"
   ) +
   xlab("") +
-  ylim(c(0, 4))
+  ylim(c(0, 4)) +
+  ggtitle("a)")
 
 fc_plot2_final <- fc_plot2 +
   xlim(c(min(tree_dat$year), max(tree_dat$year))) +
@@ -443,36 +557,68 @@ fc_plot2_final <- fc_plot2 +
     axis.text.x = element_text(angle = 45, hjust = 1)
   ) +
   ylim(c(0, 4)) +
-  xlab("")
+  xlab("") +
+  ggtitle("b)")
 
-coefs_plot2_final <- coefs_plot2 +
-  theme(
-    legend.position = "none",
-    plot.margin = unit(c(0,0,0,0), "cm")
-  )
-
-coefs_plot_all_final <- coefs_plot_all +
-  theme(
-    legend.position = "none",
-    plot.margin = unit(c(0,0,0,0), "cm")
-  )
-
-lo <- '
-AAAAB
-CCCCD
-'
-
-fc_plot_all_final + coefs_plot_all_final + fc_plot2_final + coefs_plot2_final +
-  patchwork::plot_layout(design = lo)
+fc_plot_all_final / fc_plot2_final
 
 ggsave(
   filename = here::here("Figures/tree_growth_forecasts_env_covs.png"),
-  width = 7,
+  width = 6,
+  height = 5,
+  device = "png",
+  units = "in",
+  dpi = 300
+)
+
+## ---- Final coefficients plot ----
+
+coef_plot_rhs2 <- coef_plot(
+  df_estims_RHS2,
+  xpos_labs = c(-0.05, -0.5)
+) +
+  ggtitle("a) RHS sparse model")
+
+coef_plot_aic2 <- coef_plot(
+  df_estims_aic2 %>%
+    filter(var != "Intercept"),
+  ylabs = F,
+  xlims = c(
+    min(df_estims_aic2$estim),
+    max(df_estims_aic2$estim)
+  )
+) +
+  ggtitle("b) Stepwise AIC")
+
+coef_plot_rhs2 + coef_plot_aic2
+
+ggsave(
+  filename = here::here("Figures/tree_growth_coefs_1926-2012.png"),
+  width = 6.5,
   height = 6,
   device = "png",
   units = "in",
   dpi = 300
 )
 
+# finally, make the coefficients plot for the full dataset
+coef_plot_all_rhs <- df_estims_plot_all %>%
+  filter(var != "Intercept" & method == "RHS") %>%
+  coef_plot() +
+  ggtitle("a) RHS sparse model")
 
+coef_plot_all_aic <- df_estims_plot_all %>%
+  filter(var != "Intercept" & method == "AIC") %>%
+  coef_plot(., ylabs = F, xlims = c(-1, 1)) +
+  ggtitle("b) Stepwise AIC")
 
+coef_plot_all_rhs + coef_plot_all_aic
+
+ggsave(
+  filename = here::here("Figures/tree_growth_coefs_1900-2012.png"),
+  width = 6.5,
+  height = 6,
+  device = "png",
+  units = "in",
+  dpi = 300
+)
