@@ -1,6 +1,6 @@
 # Author: Dusty Gannon
 # Created: 2 March 2025
-# Last edited: 14 March 2025 (Happy pi day!)
+# Last edited: 04 April 2025
 # Description: This script documents the tree growth model fits and forecasts
 #              using predictors constructed from PRISM data.
 
@@ -16,10 +16,116 @@ prism_wy <- readRDS(here::here("SparseTS_prismdata/prism_wateryear.rds"))
 prism_winter <- readRDS(here::here("SparseTS_prismdata/prism_winter.rds"))
 prism_summer <- readRDS(here::here("SparseTS_prismdata/prism_summer.rds"))
 
+## ---- Global variables ----
+
 # compile stan models
 rhs_reg <- rstan::stan_model(here::here("Stan/sparse_reg_FHS.stan"))
 
+# set colors
+my_colors <- PNWColors::pnw_palette("Sunset", 7)[c(2,6)]
 
+# ---- User-defined functions ----
+
+## ---- Forecast plot function ----
+forecast_plot <- function(df, horizon, col){
+  ggplot(
+    df,
+    aes(x = year, y = y, colour = source)
+  ) +
+    geom_line(aes(linewidth = source)) +
+    geom_ribbon(
+      aes(ymin = low, ymax = high, fill = source, alpha = source),
+      linetype = 0,
+    ) +
+    geom_vline(xintercept = horizon, linetype = "dashed", color = "brown") +
+    geom_vline(xintercept = 1926, linetype = "dashed", color = "grey") +
+    scale_color_manual(
+      values = c("Observed" = "black", "RHS" = col[1], "stepAIC" = col[2])
+    ) +
+    scale_fill_manual(
+      values = c("Observed" = "black", "RHS" = col[1], "stepAIC" = col[2])
+    ) +
+    scale_alpha_manual(
+      values = c("Observed" = 0, "RHS" = 0.3, "stepAIC" = 0.4),
+    ) +
+    scale_linewidth_manual(
+      values = c("Observed" = 1, "RHS" = 0.5, "stepAIC" = 0.5)
+    ) +
+    theme_classic() +
+    theme(legend.title = element_blank()) +
+    ylab("RWI")
+}
+
+
+# Coefficients plot function
+
+coef_plot <- function(
+    dat,
+    ylabs = TRUE,
+    xlims = c(-0.5, 0.5),
+    xpos_labs = c(-0.05, -0.3)
+  ) {
+
+  strips <- strip_df
+  strips$xmin <- xlims[1]
+  strips$xmax <- xlims[2]
+
+  p <- ggplot(dat) +
+    geom_rect(
+      data = strips,
+      aes(
+        xmin = xmin,
+        xmax = xmax,
+        ymin = ymin,
+        ymax = ymax,
+        alpha = I(alpha),
+        fill = I(color)
+      ),
+      linetype = 0
+    ) +
+    geom_point(aes(x = estim, y = var), size = 1) +
+    geom_errorbarh(aes(
+      y = var,
+      xmin = low,
+      xmax = high
+    ), height = 0, color = "gray2", alpha = 0.8) +
+    theme_classic() +
+    theme(
+      axis.text.y = element_blank()
+    ) +
+    ylab("") +
+    xlab(expression(hat(beta)))
+
+  if(ylabs){
+    p <- p + theme(
+      plot.margin = unit(c(1, 1, 1, 6), "lines")
+    ) +
+      coord_cartesian(xlim = xlims, clip = "off") +
+      geom_text(
+        data = lab_df,
+        aes(
+          x = I(xpos_labs[1]),
+          y = y,
+          label = var_lab
+        ),
+        hjust = 1,
+        size = 2.5) +
+      geom_text(
+        data = lab2_df,
+        aes(
+          x = I(xpos_labs[2]),
+          y = y,
+          label = var_lab
+        ),
+        hjust = 0.5,
+        size = 4,
+        angle = 90
+      )
+  }
+
+  return(p)
+
+}
 
 # ---- Data wrangling ----
 
@@ -172,44 +278,8 @@ df_fcplot_all$high[
     df_fcplot_all$year %in% train_yrs
 ] <- NA
 
-### ---- Forecast plot function ----
-forecast_plot <- function(df, horizon, col){
-  ggplot(
-    df,
-    aes(x = year, y = y, colour = source)
-  ) +
-    geom_line(aes(linewidth = source)) +
-    geom_ribbon(
-      aes(ymin = low, ymax = high, fill = source, alpha = source),
-      linetype = 0,
-    ) +
-    geom_vline(xintercept = horizon, linetype = "dashed", color = "brown") +
-    geom_vline(xintercept = 1926, linetype = "dashed", color = "grey") +
-    scale_color_manual(
-      values = c("Observed" = "black", "RHS" = col[1], "stepAIC" = col[2])
-    ) +
-    scale_fill_manual(
-      values = c("Observed" = "black", "RHS" = col[1], "stepAIC" = col[2])
-    ) +
-    scale_alpha_manual(
-      values = c("Observed" = 0, "RHS" = 0.3, "stepAIC" = 0.4),
-    ) +
-    scale_linewidth_manual(
-      values = c("Observed" = 1, "RHS" = 0.5, "stepAIC" = 0.5)
-    ) +
-    theme_classic() +
-    theme(legend.title = element_blank()) +
-    ylab("RWI")
-}
 
-# set colors
-my_colors <- PNWColors::pnw_palette("Sunset", 7)[c(2,6)]
-
-### ---- Forecast plot, all data ----
-fc_plot_all <- forecast_plot(df_fcplot_all, horizon = 1990, col = my_colors)
-
-
-### ---- Coefficients plot, all data ----
+## ---- Coefficients plot dataframe ----
 
 # extract coefficient estimates from each method
 beta_post_all <- rstan::extract(rhs_fit_dat_all, pars = "beta")$beta
@@ -252,18 +322,6 @@ df_estims_plot_all <- rbind(
   df_estims_plot_all,
   df_estims_aic_dat_all
 )
-
-coefs_plot_all <- df_estims_plot_all %>% filter(var != "Intercept") %>%
-  ggplot(., aes(x = var, y = estim, color = method, fill = method)) +
-    geom_col(position = "dodge") +
-    coord_polar() +
-    theme_void() +
-    theme(
-      axis.text.x = element_blank()
-    ) +
-  scale_color_manual(values = rev(my_colors)) +
-  scale_fill_manual(values = rev(my_colors))
-
 
 
 # ---- Model 2: Analysis for 1926-2012 ----
@@ -361,12 +419,7 @@ df_fcplot2$high[df_fcplot2$year %in% train_yrs2] <- NA
 
 
 
-### ---- Forecast plot for set 2 ----
-
-fc_plot2 <- forecast_plot(df_fcplot2, horizon = 1995, col = my_colors)
-
-
-### ---- Coefficients plot for set 2----
+## ---- Coefficients plot dataframe for set 2----
 
 # extract coefficient estimates from each method
 beta_post2 <- rstan::extract(rhs_fit2, pars = "beta")$beta
@@ -471,75 +524,16 @@ df_estims_RHS2 <- df_estims_plot2 %>%
   filter(var != "Intercept") %>%
   filter(method == "RHS")
 
-#---- Coefficients plot function ----
+# ---- Create figures ----
 
-coef_plot <- function(dat, ylabs = TRUE, xlims = c(-0.5, 0.5), xpos_labs = c(-0.05, -0.3)) {
+fc_plot_all <- forecast_plot(df_fcplot_all, horizon = 1990, col = my_colors)
 
-  strips <- strip_df
-  strips$xmin <- xlims[1]
-  strips$xmax <- xlims[2]
-
-  p <- ggplot(dat) +
-    geom_rect(
-      data = strips,
-      aes(
-        xmin = xmin,
-        xmax = xmax,
-        ymin = ymin,
-        ymax = ymax,
-        alpha = I(alpha),
-        fill = I(color)
-      ),
-      linetype = 0
-    ) +
-    geom_point(aes(x = estim, y = var), size = 1) +
-    geom_errorbarh(aes(
-      y = var,
-      xmin = low,
-      xmax = high
-    ), height = 0, color = "gray2", alpha = 0.8) +
-    theme_classic() +
-    theme(
-      axis.text.y = element_blank()
-    ) +
-    ylab("") +
-    xlab(expression(hat(beta)))
-
-  if(ylabs){
-    p <- p + theme(
-      plot.margin = unit(c(1, 1, 1, 6), "lines")
-    ) +
-      coord_cartesian(xlim = xlims, clip = "off") +
-      geom_text(
-        data = lab_df,
-        aes(
-          x = I(xpos_labs[1]),
-          y = y,
-          label = var_lab
-        ),
-        hjust = 1,
-        size = 2.5) +
-      geom_text(
-        data = lab2_df,
-        aes(
-          x = I(xpos_labs[2]),
-          y = y,
-          label = var_lab
-        ),
-        hjust = 0.5,
-        size = 4,
-        angle = 90
-      )
-  }
-
-  return(p)
-
-}
-
-# ---- Combine plots ----
+fc_plot2 <- forecast_plot(df_fcplot2, horizon = 1995, col = my_colors)
 
 library(patchwork)
 # add a and b panel labels
+
+## ---- Final forecast figures ----
 
 fc_plot_all_final <- fc_plot_all +
   theme(
@@ -573,6 +567,7 @@ ggsave(
 
 ## ---- Final coefficients plot ----
 
+### ---- Coefficients plot for 1926-2012 ----
 coef_plot_rhs2 <- coef_plot(
   df_estims_RHS2,
   xpos_labs = c(-0.05, -0.5)
@@ -590,6 +585,7 @@ coef_plot_aic2 <- coef_plot(
 ) +
   ggtitle("b) Stepwise AIC")
 
+# combine the two side-by-side
 coef_plot_rhs2 + coef_plot_aic2
 
 ggsave(
@@ -601,10 +597,10 @@ ggsave(
   dpi = 300
 )
 
-# finally, make the coefficients plot for the full dataset
+### ---- Coefficients plot for 1900-2012 ----
 coef_plot_all_rhs <- df_estims_plot_all %>%
   filter(var != "Intercept" & method == "RHS") %>%
-  coef_plot() +
+  coef_plot(xpos_labs = c(-0.05, -0.5)) +
   ggtitle("a) RHS sparse model")
 
 coef_plot_all_aic <- df_estims_plot_all %>%
@@ -612,6 +608,7 @@ coef_plot_all_aic <- df_estims_plot_all %>%
   coef_plot(., ylabs = F, xlims = c(-1, 1)) +
   ggtitle("b) Stepwise AIC")
 
+# combine the two side-by-side
 coef_plot_all_rhs + coef_plot_all_aic
 
 ggsave(
