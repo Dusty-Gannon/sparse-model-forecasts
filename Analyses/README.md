@@ -2,46 +2,146 @@
 
 This directory contains R scripts and slurm scripts used to fit models to simulated and empirical data.
 
-* `fit_lnorm_ricker_mods_parallel.R`: Wrapper script meant to be run from the command line on Beartooth. This script does the bulk of the analyses we run for the simulated competitive communities. The command line arguments are ordered and include:
-  
-    - `<input_data.rds>`: An R data file that is a list with at least the named matrix `N`, which has species in rows and their abundances through time in columns. This is used to generate the response vector (abundances of the first species through time, arbitrarily) and the covariate matrix `t(N[-1, ])`. The data should be stored in `Data/terrestrial_sim_data/lnorm_ricker/`.
-  
-    - `<start>`: Numeric time step at which to start using the simulated data. This allows for a 'burnin' period for the community to find a dynamic equilibrium.
+-   `AICvsSTANfigures.R`: This R script generates figures comparing the performance of AIC (Akaike Information Criterion) and a Bayesian sparse regression in model selection and prediction accuracy.
+
+    -   **Author**: Amy Patterson?
+
+    -   **Upstream scripts**
+
+        -   `/Simulations/AICvsStanRMSE.R` (used to create panel 1)
+
+    -   **Data files**
+
+        -   `/Simulations/AICvsSTANcorrResults.csv` (on MedBow)
+
+        -   `/Simulations/AICvsSTANdecorrelation.csv` (on MedBow)
+
+-   `data_ex.R`: Data exploration and detrending of empirical tree growth data.
+
+    -   **Author**: Kaitlyn McKnight
     
-    - `<stop>`: Numeric time step at which to stop using data. This allows the user to control the length of the time series. All simulated datasets go from `t=1,...,500`.
+    - **Data files**
     
-    - `<index1>`
+        - ca726-rwl-noaa.txt (unknown origin)
+        
+        - ca719-rwl-noaa.txt (unknown origin)
+
+    -   **To do**:
+
+        - [] Let's fix the filepaths in this script so they use relative paths and the `here` package.
+        
+        - [] Decide if/how to make data available for reproducibility.
+
+-   `datatrends.R`: This script contains investigation of trends, breakpoints, and correlations in the PRISM climate data.
+
+    -   **Author**: Kaitlyn McKnight
     
-    - `<index2>`: Together, `<index1>` and `<index2>` allow the user to partition all simulated datasets in `<input_data.rds>` into smaller chunks to reduce memory usage. For example, providing `1` and `10` as arguments will fit the models to the first 10 datasets in `<input_data.rds>` in parallel. An example of splitting all 40,200 simulated communities for the disturbance experiments into smaller chunks and fitting the model using a SLURM array job can be found in the SLURM script `fun_fit_lnorm_ricker_dist_freq_x_nsp_x_int.sh`.
+    - **Data files**
     
-    - `<outfile>`: Path and filename for the outfile, a list wih confusion matrices and posterior draws from the shrunk model coefficients. The path should start below `/Data/terrestrial_sim_data/lnorm_ricker/`. For example, providing `results/out.rds` would look for a directory called `results` in `/Data/terrestrial_sim_data/lnorm_ricker/` in which to put `out.rds`.
+        - `/SparseTS_prismdata/ca719_BM_Seq_1800_2012.rds` 
+        
+        - `/SparseTS_prismdata/BMG_tmin.csv`
+        
+        - `/SparseTS_prismdata/BMG_tmax.csv`
+        
+        - `/SparseTS_prismdata/BMG_td_mean.csv`
+        
+        - `/SparseTS_prismdata/BMG_ppt.csv`
+        
+        - `/SparseTS_prismdata/BMG_tmean.csv`
+        
+        - `/SparseTS_prismdata/BMG_vpdmin.csv`
+        
+        - `/SparseTS_prismdata/BMG_vpdmax.csv`
+
+    -   **To do**:
+
+        - [] Let's fix the filepaths in this script so they use the `here` package.
+
+-   `plot_ARp_simulations.R`: This script plots summary data from AR-p beta-p simulation runs. These simulations iterate through different time series lengths and different standard deviations for the random innovations where there are sparse covariates, lags in one covariate, and sparse AR terms comparing the fits of regularized and not regularized models.
+
+    - **Author**: Alice Carter
     
-    - OPTIONAL `dist`: For the disturbance simulations, we need to add an indicator covariate for when the focal species was disturbed to attribute reductions in growth due to disturbance. For those simulations, provide `dist` as the seventh and final argument.
-  
-* `fit_lnorm_ricker_mods_tandem.R`: Wrapper script meant to be run from the command line on Beartooth. This script will fit ricker models to datasets stored in a list. The command line arguments are ordered and include:
-  
-    - `<input_data.rds>`: An R data file that is a list with at least the named matrix `N`, which has species in rows and their abundances through time in columns. This is used to generate the response vector (abundances of the first species through time, arbitrarily) and the covariate matrix `t(N[-1, ])`. The data should be stored in `Data/terrestrial_sim_data/lnorm_ricker/`.
-  
-    - `<start>`: Numeric time step at which to start using the simulated data. This allows for a 'burnin' period for the community to find a dynamic equilibrium.
-  
-    - `<stop>`: Numeric time step at which to stop using data. This allows the user to control the length of the time series. All simulated datasets go from `t=1,...,500`.
-  
-    - `<outfile>`: Path and filename for the outfile, a list wih confusion matrices and posterior draws from the shrunk model coefficients. The path should start below `/Data/terrestrial_sim_data/lnorm_ricker/`. For example, providing `results/out.rds` would look for a directory called `results` in `/Data/terrestrial_sim_data/lnorm_ricker/` in which to put `out.rds`.
+    - **Data files**:
+    
+        - `/Data/aquatic_sim_data/ARp_err_sims_02_12_condensed.csv` (MedBow?)
+        
+        - `/Data/aquatic_sim_data/ARp_err_sims_01_03_condensed.csv` (MedBow?)
+        
+        - `/Data/aquatic_sim_data/ARp_err_sims_10_31_condensed.csv` (MedBow?)
+        
+        - `/Data/aquatic_sim_data/ARp_err_sims_04_22_condensed.csv` (MedBow?)
+        
+    - **To Do**
+    
+        - [ ] Which version (if either) is current? `plot_ARp_simulations.R` or `plot_ARp_simulations2.R`. Archive one or both?
+        
+- `plot_individual_ARp_simulation.R`: This code plots parameter estimates comparing models fit with different priors from a single simulation.
 
-* `fit_lnorm_ricker_vrtests_tandem.R`: R script to fit population growth models to data assuming lognormally-distributed demographic errors. This script will fit models to a list of datasets in tandem.
+    - **Author**: Alice Carter?
+    
+    - **Data files**
+    
+        - `/Data/aquatic_sim_data/test/simdat_run12.rds` (MedBow?)
+        
+    - **To Do**
+    
+        - [] Is this one current? Archive?
+        
+- `PrismDat_Agg.R`: This script contains different aggregations of prism data to split each variable into summer (June-Sept), winter(Oct-May), and wateryear (Oct-Sept), then take mean daily mins, maxes, or means.
 
-* `plot_summarize_Ricker_freq_x_nsp_thintests.R`: This script takes `.rds` files from the SLURM array job implemented by `run_fit_lnorm_ricker_thintests_freq_x_nsp.sh` and creates a heatmap of the confusion metrics across the 10 thinning frequency and 10 proportions of the community combinations.
+    - **Author**: Kaitlyn McKnight
+    
+    - **Date files**: 
+    
+        - `/SparseTS_prismdata/ca719_BM_Seq_1800_2012.rds` 
+        
+        - `/SparseTS_prismdata/BMG_tmin.csv`
+        
+        - `/SparseTS_prismdata/BMG_tmax.csv`
+        
+        - `/SparseTS_prismdata/BMG_td_mean.csv`
+        
+        - `/SparseTS_prismdata/BMG_ppt.csv`
+        
+        - `/SparseTS_prismdata/BMG_tmean.csv`
+        
+        - `/SparseTS_prismdata/BMG_vpdmin.csv`
+        
+        - `/SparseTS_prismdata/BMG_vpdmax.csv`
+        
+- `tree_dat_forecasts_env_covariates.R`: This script compares forecasts from sparse model fits to those using stepwise AIC. The tree growth data are split into two groups (all years, and just those years after the year identified in the breakpoint analysis in `/Analyses/datatrends.R`). Each covariate created in `/Analyses/PrismDat_Agg.R` is used, along with 5 lags from each covariate. 
 
-* `plot_summarize_Ricker_thintests.R`: This script takes results from fitting models to simulations in which we only varied the interval between thinning treatments and plots the confusion metrics over those thinning intervals. The fitting is implemented using `run_fit_lnorm_ricker_thintests.sh`, which calls the `fit_lnorm_ricker_mods_tandem.R` script.
+    -**Author**: Dusty Gannon
+    
+    - **Data files**
+    
+        - `/SparseTS_prismdata/ca719_BM_Seq_1800_2012.rds`
+        
+        - `/SparseTS_prismdata/prism_wateryear.rds`
+        
+        - `/SparseTS_prismdata/prism_winter.rds`
+        
+        - `/SparseTS_prismdata/prism_summer.rds`
+        
+    - **Upstream scripts**
+    
+        - `/Stan/sparse_reg_FHS.stan`
+        
+- `tree_dat_forecasts_fourier.R`: This script compares forecasts using Bayesian smoothing of Fourier Basis terms and sparse selection of autoregressive terms to forecasts using the [Hyndman-Khandakar algorithm](https://www.jstatsoft.org/article/view/v027i03). For these forecasts, it is assumed that no environmental features are available.
 
-* `run_fit_lnorm_ricker_dist_freq_x_nsp_x_int.sh`: This SLURM script takes the 40,200 datasets generated for the disturbance experiments (200 reps x 201 treatments), splits them into 4020 jobs and fits the lnorm ricker model to the 10 datasets in each job in parallel. The results are stored as `.rds` files with suffixes indicating the indexes of the datasets used based on the original input file with all datasets.
-
-* `run_fit_lnorm_ricker_thintests_freq_x_nsp.sh`: This SLURM script takes the 20,100 datasets generated for the disturbance experiments (200 reps x 101 treatments), splits them into 2010 jobs and fits the lnorm ricker model to the 10 datasets in each job in parallel. The results are stored as `.rds` files with suffixes indicating the indexes of the datasets used based on the original input file with all datasets.
-
-* `run_fit_lnorm_ricker_thintests.sh`: Running initial thinning tests in which only the interval between thinning treatments was varied.
-
-* `run_fit_lnorm_ricker_vrtests.sh`: SLURM script to fit the Ricker models to communities for which the ratio of the variance of the focal species demographic stochasticity to variation in heterospecific abundances was manipulated.
-
-* `run_plot_freq_x_nsp_thintests.sh`: SLURM script to create the heatmaps from the thinning interval x proportion of community thinned experiments.
-
-
+    - **Author**: Dusty Gannon
+    
+    - **Data files** 
+    
+        - `/SparseTS_prismdata/ca719_BM_Seq_1800_2012.rds`
+        
+        - `/SparseTS_prismdata/prism_wateryear.rds`
+        
+        - `/SparseTS_prismdata/prism_winter.rds`
+        
+        - `/SparseTS_prismdata/prism_summer.rds`
+        
+    - **Upstream scripts**
+    
+        - `/Stan/AR-p_err3_FHS_DG.stan`
