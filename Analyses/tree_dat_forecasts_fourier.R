@@ -21,7 +21,7 @@ test_yrs <- 1971:tree_dat$year[nrow(tree_dat)]
 # now create fourier terms
 X_train <- forecast::fourier(
   ts(
-    tree_dat$mean_rwi[tree_da$year %in% train_yrs],
+    tree_dat$mean_rwi[tree_dat$year %in% train_yrs],
     frequency = length(train_yrs)
   ),
   K = length(train_yrs) / 2
@@ -178,12 +178,13 @@ plot_df_allyrs <- data.frame(
 all_dat_plot <- forecast_plot(
   plot_df_allyrs,
   horizon = 1970,
-  col = PNWColors::pnw_palette("Sunset", 7)[c(2,6)]
+  col = PNWColors::pnw_palette("Sunset", 7)[c(2,5)]
 ) +
   xlab("") +
   ylim(c(0.5, 3)) +
   theme(
-    legend.position = "top"
+    legend.position = "top",
+    axis.text.x = element_blank()
   ) +
   ggtitle("a)")
 
@@ -212,7 +213,7 @@ rmse_all_plot <- ggplot(rmse_all_RHS, aes(x = rmse)) +
   geom_density(fill = PNWColors::pnw_palette("Sunset", 7)[2]) +
   geom_vline(
     xintercept = rmse_all_aa,
-    color = PNWColors::pnw_palette("Sunset", 7)[6]) +
+    color = PNWColors::pnw_palette("Sunset", 7)[5]) +
   theme_classic() +
   xlim(c(0, 2)) +
   annotate(
@@ -364,7 +365,7 @@ plot_df2$y[!(plot_df2$year %in% yrs2)] <- NA
 dat2_plot <- forecast_plot(
   plot_df2,
   horizon = 1900,
-  col = PNWColors::pnw_palette("Sunset", 7)[c(2,6)]
+  col = PNWColors::pnw_palette("Sunset", 7)[c(2,5)]
 ) +
   theme(
     legend.position = "none",
@@ -398,7 +399,7 @@ rmse2_plot <- ggplot(rmse2_RHS, aes(x = rmse)) +
   geom_density(fill = PNWColors::pnw_palette("Sunset", 7)[2]) +
   geom_vline(
     xintercept = rmse2_aa,
-    color = PNWColors::pnw_palette("Sunset", 7)[6]) +
+    color = PNWColors::pnw_palette("Sunset", 7)[5]) +
   theme_classic() +
   ylab("Density") +
   xlab("") +
@@ -546,7 +547,7 @@ plot_df3$y[!(plot_df3$year %in% yrs3)] <- NA
 dat3_plot <- forecast_plot(
   plot_df3,
   horizon = 1996,
-  col = PNWColors::pnw_palette("Sunset", 7)[c(2,6)]
+  col = PNWColors::pnw_palette("Sunset", 7)[c(2,5)]
 ) +
   theme(
     legend.position = "none",
@@ -580,7 +581,7 @@ rmse3_plot <- ggplot(rmse3_RHS, aes(x = rmse)) +
   geom_density(fill = PNWColors::pnw_palette("Sunset", 7)[2]) +
   geom_vline(
     xintercept = rmse3_aa,
-    color = PNWColors::pnw_palette("Sunset", 7)[6]) +
+    color = PNWColors::pnw_palette("Sunset", 7)[5]) +
   theme_classic() +
   ylab("Density") +
   xlab("RMSE") +
