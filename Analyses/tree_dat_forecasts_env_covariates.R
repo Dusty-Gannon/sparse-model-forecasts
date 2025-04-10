@@ -1,6 +1,6 @@
 # Author: Dusty Gannon
 # Created: 2 March 2025
-# Last edited: 04 April 2025
+# Last edited: 10 April 2025
 # Description: This script documents the tree growth model fits and forecasts
 #              using predictors constructed from PRISM data.
 
@@ -22,7 +22,7 @@ prism_summer <- readRDS(here::here("SparseTS_prismdata/prism_summer.rds"))
 rhs_reg <- rstan::stan_model(here::here("Stan/sparse_reg_FHS.stan"))
 
 # set colors
-my_colors <- PNWColors::pnw_palette("Sunset", 7)[c(2,6)]
+my_colors <- PNWColors::pnw_palette("Sunset", 7)[c(2,5)]
 
 # ---- User-defined functions ----
 
@@ -61,14 +61,14 @@ forecast_plot <- function(df, horizon, col){
 
 coef_plot <- function(
     dat,
-    ylabs = TRUE,
-    xlims = c(-0.5, 0.5),
-    xpos_labs = c(-0.05, -0.3)
+    xlabs = TRUE,
+    ylims = c(-0.5, 0.5),
+    ypos_labs = c(-0.05, -0.3)
   ) {
 
   strips <- strip_df
-  strips$xmin <- xlims[1]
-  strips$xmax <- xlims[2]
+  strips$ymin <- ylims[1]
+  strips$ymax <- ylims[2]
 
   p <- ggplot(dat) +
     geom_rect(
@@ -83,43 +83,43 @@ coef_plot <- function(
       ),
       linetype = 0
     ) +
-    geom_point(aes(x = estim, y = var), size = 1) +
-    geom_errorbarh(aes(
-      y = var,
-      xmin = low,
-      xmax = high
-    ), height = 0, color = "gray2", alpha = 0.8) +
+    geom_point(aes(x = var, y = estim), size = 1) +
+    geom_errorbar(aes(
+      x = var,
+      ymin = low,
+      ymax = high
+    ), width = 0, color = "gray2", alpha = 0.8) +
     theme_classic() +
     theme(
-      axis.text.y = element_blank()
+      axis.text.x = element_blank(),
+      axis.title.y = element_text(angle = 0, vjust = 0.5)
     ) +
-    ylab("") +
-    xlab(expression(hat(beta)))
+    xlab("")
 
-  if(ylabs){
+  if(xlabs){
     p <- p + theme(
-      plot.margin = unit(c(1, 1, 1, 6), "lines")
+      plot.margin = unit(c(1, 1, 6, 1), "lines")
     ) +
-      coord_cartesian(xlim = xlims, clip = "off") +
+      coord_cartesian(ylim = ylims, clip = "off") +
       geom_text(
         data = lab_df,
         aes(
-          x = I(xpos_labs[1]),
-          y = y,
+          x = x,
+          y = I(ypos_labs[1]),
           label = var_lab
         ),
         hjust = 1,
-        size = 2.5) +
+        size = 2.5,
+        angle = 45) +
       geom_text(
         data = lab2_df,
         aes(
-          x = I(xpos_labs[2]),
-          y = y,
+          x = x,
+          y = I(ypos_labs[2]),
           label = var_lab
         ),
         hjust = 0.5,
-        size = 4,
-        angle = 90
+        size = 4
       )
   }
 
@@ -493,25 +493,25 @@ n_labs <- length(unique(df_estims_plot2$var_lab)) *
 lab_df <- tibble(
   var_lab = unique(df_estims_plot2$var_lab) %>%
     rep(length(unique(df_estims_plot2$agg_period))),
-  y = seq(0, n_labs - 1) * 6 + 1
+  x = seq(0, n_labs - 1) * 6 + 1
 )
 
 lab2_df <- tibble(
   var_lab = unique(df_estims_plot2$agg_period),
-  y = seq(1, 3) * 42 - 21
+  x = seq(1, 3) * 42 - 21
 )
 
 fill_colors <- PNWColors::pnw_palette("Shuksan2", 5)[c(1:2,5)]
 
 strip_df <- tibble(
-  xmin = -0.5,
-  xmax = 0.5,
-  ymin = seq(
+  ymin = -0.5,
+  ymax = 0.5,
+  xmin = seq(
     from = 0,
     to = (n_labs - 1) * 6,
     by = 6
   ),
-  ymax = seq(
+  xmax = seq(
     from = 6,
     to = n_labs * 6,
     by = 6
@@ -567,54 +567,58 @@ ggsave(
 
 ## ---- Final coefficients plot ----
 
+sigfigs <- function(breaks){
+  sprintf("%.2f", breaks)
+}
+
+### ---- Coefficients plot for 1900-2012 ----
+
+coef_plot_all_rhs <- df_estims_plot_all %>%
+  filter(var != "Intercept" & method == "RHS") %>%
+  coef_plot(xlabs = F) +
+  ggtitle("1900 - 1990", subtitle = "a) RHS sparse model") +
+  ylab(expression(hat(beta))) +
+  scale_y_continuous(labels = sigfigs)
+
+coef_plot_all_aic <- df_estims_plot_all %>%
+  filter(var != "Intercept" & method == "AIC") %>%
+  coef_plot(., xlabs = F, ylims = c(-1, 1)) +
+  ggtitle("", subtitle = "b) Stepwise AIC") +
+  ylab(expression(hat(beta))) +
+  scale_y_continuous(labels = sigfigs)
+
 ### ---- Coefficients plot for 1926-2012 ----
+
 coef_plot_rhs2 <- coef_plot(
   df_estims_RHS2,
-  xpos_labs = c(-0.05, -0.5)
+  xlabs = F
 ) +
-  ggtitle("a) RHS sparse model")
+  ggtitle("1926 - 1995", subtitle = "c) RHS sparse model") +
+  ylab(expression(hat(beta)))
 
 coef_plot_aic2 <- coef_plot(
   df_estims_aic2 %>%
     filter(var != "Intercept"),
-  ylabs = F,
-  xlims = c(
+  ypos_labs = c(-0.05, -0.65),
+  ylims = c(
     min(df_estims_aic2$estim),
     max(df_estims_aic2$estim)
   )
 ) +
-  ggtitle("b) Stepwise AIC")
+  ggtitle("", "d) Stepwise AIC") +
+  ylab(expression(hat(beta)))
 
-# combine the two side-by-side
-coef_plot_rhs2 + coef_plot_aic2
 
-ggsave(
-  filename = here::here("Figures/tree_growth_coefs_1926-2012.png"),
-  width = 6.5,
-  height = 6,
-  device = "png",
-  units = "in",
-  dpi = 300
-)
+# combine all top-to-bottom
 
-### ---- Coefficients plot for 1900-2012 ----
-coef_plot_all_rhs <- df_estims_plot_all %>%
-  filter(var != "Intercept" & method == "RHS") %>%
-  coef_plot(xpos_labs = c(-0.05, -0.5)) +
-  ggtitle("a) RHS sparse model")
+coef_plot_all_rhs / coef_plot_all_aic /
+  coef_plot_rhs2 / coef_plot_aic2
 
-coef_plot_all_aic <- df_estims_plot_all %>%
-  filter(var != "Intercept" & method == "AIC") %>%
-  coef_plot(., ylabs = F, xlims = c(-1, 1)) +
-  ggtitle("b) Stepwise AIC")
-
-# combine the two side-by-side
-coef_plot_all_rhs + coef_plot_all_aic
 
 ggsave(
-  filename = here::here("Figures/tree_growth_coefs_1900-2012.png"),
+  filename = here::here("Figures/tree_growth_coefs.png"),
   width = 6.5,
-  height = 6,
+  height = 9,
   device = "png",
   units = "in",
   dpi = 300
