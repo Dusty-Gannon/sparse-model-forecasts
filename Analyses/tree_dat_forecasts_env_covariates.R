@@ -583,7 +583,8 @@ coef_plot_all_rhs <- df_estims_plot_all %>%
 coef_plot_all_aic <- df_estims_plot_all %>%
   filter(var != "Intercept" & method == "AIC") %>%
   coef_plot(., xlabs = F, ylims = c(-1, 1)) +
-  ggtitle("", subtitle = "b) Stepwise AIC") +
+  ggtitle("b) Stepwise AIC") +
+  theme(plot.title = element_text(size = 11)) +
   ylab(expression(hat(beta))) +
   scale_y_continuous(labels = sigfigs)
 
@@ -599,13 +600,14 @@ coef_plot_rhs2 <- coef_plot(
 coef_plot_aic2 <- coef_plot(
   df_estims_aic2 %>%
     filter(var != "Intercept"),
-  ypos_labs = c(-0.05, -0.65),
+  ypos_labs = c(-0.05, -0.68),
   ylims = c(
     min(df_estims_aic2$estim),
     max(df_estims_aic2$estim)
   )
 ) +
-  ggtitle("", "d) Stepwise AIC") +
+  ggtitle("d) Stepwise AIC") +
+  theme(plot.title = element_text(size = 11)) +
   ylab(expression(hat(beta)))
 
 
