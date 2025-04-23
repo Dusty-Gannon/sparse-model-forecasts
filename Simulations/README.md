@@ -1,6 +1,5 @@
 # Directory contents
 
--   `AIC_modelSelection.R`: Basic code to make a set of time series and do stepwise AIC based model selection on them *** maybe not needed any more
 
 -   `AICvsStanBatch.R`: Run a bunch of time series through AIC vs Horseshoe prior methods and recover the RMSE values, set up to run on an HPC
 
@@ -12,7 +11,7 @@
 
 -   `AICvsSTANdecorrelation.csv`: The result table for the case of covariate shift / decorrelation, based on runs listed in DecorrConfig.txt and definted in DecorrConfig.R
 
--   `AICvsStanRMSE.R`: File of R functions we used to run the AIC vs Horsehoe analyses found in AICvsStanBatch.R *** maybe should be put in the R folder?
+-   `AICvsStanRMSE.R`: File of R functions we used to run the AIC vs Horsehoe analyses found in AICvsStanBatch.R
 
 -   `AR-p_beta_p_model_sims.R`: Amy is unsure what this is
 
@@ -43,42 +42,48 @@
 
 # Archived - still needs to be listed
 
--   `fit_AR-p_seasonal_model_sims2.R`: 
+-   `AIC_modelSelection.R`: Basic code to make a set of time series and do stepwise AIC based model selection on them, replaced by AICvsStanBatch.R for parallel processing
 
--   `lnorm_Ricker_model_sims_freq_x_int_dist_s4t.R`: 
+-   `AR-p_beta_p_model_sims_v2.R`: Code to create AR time series 
 
--   `lnorm_Ricker_model_sims_freq_x_int_dist.R`: 
+-   `combine_ARp_sim_output.R`: File to combine and save aquatic output from runs on HPC
 
--   `lnorm_Ricker_model_sims_freq_x_nsp_thin_s4t.R`: 
+-   `fit_AR-p_seasonal_model_sims2.R`: Simulate AR time series and fit regularized and non-regularized models
 
--   `lnorm_Ricker_model_sims_freq_x_nsp_thin.R`:
+-   `lnorm_Ricker_model_sims_freq_x_int_dist_s4t.R`: Simulation code for competing species in a communited using Ricker model- do we still need copies in this repo?
 
--   `lnorm_Ricker_model_sims_thin.R`:
+-   `lnorm_Ricker_model_sims_freq_x_int_dist.R`: Amy is unsure what these different versions of Ricker code were for- can delete?
 
--   `lnorm_Ricker_model_sims_vrtests_1param.R`:
+-   `lnorm_Ricker_model_sims_freq_x_nsp_thin_s4t.R`: Amy is unsure what these different versions of Ricker code were for- can delete?
 
--   `lnorm_Ricker_model_sims_vrtests.R`:
+-   `lnorm_Ricker_model_sims_freq_x_nsp_thin.R`: Amy is unsure what these different versions of Ricker code were for- can delete?
 
--   `lottery_model_sims.R`:
+-   `lnorm_Ricker_model_sims_thin.R`: Amy is unsure what these different versions of Ricker code were for- can delete?
 
--   `Ricker_model_sims.R`:
+-   `lnorm_Ricker_model_sims_vrtests_1param.R`: Amy is unsure what these different versions of Ricker code were for- can delete?
 
--   `run_ARp_beta_model_wrapper.sh`:
+-   `lnorm_Ricker_model_sims_vrtests.R`: Amy is unsure what these different versions of Ricker code were for- can delete?
 
--   `run_ARp_beta_model.sh`:
+-   `lottery_model_sims.R`: More code versions from the community dynamics project
 
--   `run_lottery_model_1.sh`:
+-   `Ricker_model_sims.R`: More code versions from the community dynamics project
 
--   `run_lottery_model_2.sh`:
+-   `run_ARp_beta_model_wrapper.sh`: Shell file to run an instance of ARp_beta_model on HPC
 
--   `run_seasonal_ARp_model2.sh`:
+-   `run_ARp_beta_model.sh`: Shell file to run aquatic simulations in an array with SLURM
 
--   `run_sims_freq_x_int_dist_s4t.sh`:
+-   `run_lottery_model_1.sh`: Shell file to run lottery model on HPC
 
--   `run_sims_freq_x_int_dist.sh`:
+-   `run_lottery_model_2.sh`: Shell file to run lottery model on HPC
 
--   `run_sims_freq_x_nsp_thin_s4t.sh`:
+-   `run_seasonal_ARp_model2.sh`: Shell file to run AR models with seasons on HPC
 
--   `split_sim_files.R`:
+-   `run_sims_freq_x_int_dist_s4t.sh`: Shell file to run Ricker model on HPC in an array
 
--   `teton_lottery_model_sims.R`:
+-   `run_sims_freq_x_int_dist.sh`: Shell file to run Ricker model on HPC in an array
+
+-   `run_sims_freq_x_nsp_thin_s4t.sh`: Shell file to run Ricker model on HPC in an array
+
+-   `split_sim_files.R`: Way to split community dynamics simulations to use with SLURM arrays on HPC
+
+-   `teton_lottery_model_sims.R`: Version of community dynamics code with parallelization in R, for running on HPC
