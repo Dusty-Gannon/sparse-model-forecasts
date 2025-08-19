@@ -20,6 +20,8 @@
     
     - Used in `Analyses/tree_dat_forecasts_env_covariates.R`
 
+# Archived
+
 -   `AR-p_FHS-p-beta.stan`: Stan model to fit a Gaussian AR(p) process with arbitrary p. 'Finnish Horseshoe Priors' are placed on the AR coefficients and the regression coefficients to perform Bayesian model selection/regularization on both the phi and beta vectors.
 
 -   `AR-p_FHS.stan`: Stan model to fit a Gaussian AR(p) process with arbitrary p. 'Finnish Horseshoe Priors' are placed on the regression coefficients to perform Bayesian model selection/regularization on the beta vector.
@@ -27,8 +29,6 @@
 -   `AR-p.stan`: Stan model to fit a Gaussian AR(p) process with arbitrary p. Commonly used weakly-informative priors are placed on the AR coefficients and the regression coefficients.
 
 -   `ARMA-p-q_FHS.stan`: Stan model to fit a Gaussian ARMA(p, q) process with arbitrary p and q. 'Finnish Horseshoe Priors' are placed on the regression coefficients to perform Bayesian model selection/regularization on the beta vector.
-
-# Archived
 
 -   `Gamma_LatAR1_FHS_EBtest.stan`: Gamma-distributed response with 'Finnish Horseshoe Priors' on the regression coefficients to perform model selection. The autocorrelation is introduced through a latent AR process on the link scale. Because of identifiability problems with the dispersion parameter and error of the latent process, an `empirical Bayes` approach is implemented, supplying the MLE for the dispersion parameter in terms of the other parameters in the model. **Note that these Latent variable models are computationally costly with long time series.**
 
