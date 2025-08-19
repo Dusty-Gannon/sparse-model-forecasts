@@ -1,11 +1,14 @@
-# This script contains investigation of trends, breakpoints, and correlations in data.
+# This script contains investigation of trends, breakpoints, and correlations in empirical data.
 
+# load necessary packages
 library(dplyr)
 library(ggplot2)
 library(tidyverse)
 library(ggcorrplot)
+library(segmented)
 
-treering_dat <- readRDS("SparseTS_prismdata/ca719_BM_Seq_1800_2012.rds")
+# load data
+treering_dat <- read_csv("SparseTS_prismdata/BMG_rwi.csv")
 BMG_tmin <- read_csv("SparseTS_prismdata/BMG_tmin.csv")
 BMG_tmax <- read_csv("SparseTS_prismdata/BMG_tmax.csv")
 BMG_td_mean <- read_csv("SparseTS_prismdata/BMG_td_mean.csv")
@@ -15,8 +18,8 @@ BMG_vpdmin <- read_csv("SparseTS_prismdata/BMG_vpdmin.csv")
 BMG_vpdmax <- read_csv("SparseTS_prismdata/BMG_vpdmax.csv")
 
 
-#### plotting trend lines ####
-# tree ring
+#### data trends  ####
+# tree-ring trends
 treering_trend <- treering_dat%>%
   group_by(year)%>%
   summarize(rwi = mean(rwi))
@@ -43,7 +46,7 @@ raw_rwi <- ggplot()+
   xlab("Year")+
   ylab("Ring Width Index")
 
-# ppt
+# precipitaiton trends
 BMG_ppt_trend <- BMG_ppt%>%
   group_by(year)%>%
   summarize(avg_ppt = mean(ppt))
@@ -53,7 +56,7 @@ raw_ppt <- ggplot(data = BMG_ppt_trend, aes(x=year, y=avg_ppt))+
   xlab("Year")+
   ylab("Average Annual Precip")
 
-# tmin
+# minimum temperature trends
 BMG_tmin_trend <- BMG_tmin%>%
   group_by(year)%>%
   summarize(avg_tmin = mean(tmin))
@@ -63,7 +66,7 @@ raw_tmin <- ggplot(data = BMG_tmin_trend, aes(x=year, y=avg_tmin))+
   xlab("Year")+
   ylab("Average Annual Tmin")
 
-# tmax
+# maximum temperature trends
 BMG_tmax_trend <- BMG_tmax%>%
   group_by(year)%>%
   summarize(avg_tmax = mean(tmax))
@@ -73,17 +76,7 @@ raw_tmax <- ggplot(data = BMG_tmax_trend, aes(x=year, y=avg_tmax))+
   xlab("Year")+
   ylab("Average Annual Tmax")
 
-# td_mean
-BMG_td_mean_trend <- BMG_td_mean%>%
-  group_by(year)%>%
-  summarize(avg_td_mean = mean(td_mean))
-raw_td_mean <- ggplot(data = BMG_td_mean_trend, aes(x=year, y=avg_td_mean))+
-  geom_line()+
-  theme_bw()+
-  xlab("Year")+
-  ylab("Average Annual Dew Point Temp")
-
-# tmean
+# mean temperature trends
 BMG_tmean_trend <- BMG_tmean%>%
   group_by(year)%>%
   summarize(avg_tmean = mean(tmean))
@@ -93,7 +86,17 @@ raw_tmean <- ggplot(data = BMG_tmean_trend, aes(x=year, y=avg_tmean))+
   xlab("Year")+
   ylab("Average Annual Tmean")
 
-# vpdmin
+# dewpoint temperature trends
+BMG_td_mean_trend <- BMG_td_mean%>%
+  group_by(year)%>%
+  summarize(avg_td_mean = mean(td_mean))
+raw_td_mean <- ggplot(data = BMG_td_mean_trend, aes(x=year, y=avg_td_mean))+
+  geom_line()+
+  theme_bw()+
+  xlab("Year")+
+  ylab("Average Annual Dew Point Temp")
+
+# minimum vapor pressure deficit trends
 BMG_vpdmin_trend <- BMG_vpdmin%>%
   group_by(year)%>%
   summarize(avg_vpdmin = mean(vpdmin))
@@ -103,7 +106,7 @@ raw_vpdmin <- ggplot(data = BMG_vpdmin_trend, aes(x=year, y=avg_vpdmin))+
   xlab("Year")+
   ylab("Average Annual VPDmin")
 
-# vpdmax
+# maximum vapor pressure deficit trends
 BMG_vpdmax_trend <- BMG_vpdmax%>%
   group_by(year)%>%
   summarize(avg_vpdmax = mean(vpdmax))
@@ -114,8 +117,52 @@ raw_vpdmax <- ggplot(data = BMG_vpdmax_trend, aes(x=year, y=avg_vpdmax))+
   ylab("Average Annual VPDmax")
 
 #### breakpoint analyses ####
-library(segmented)
-# tmin
+# tree ring break point
+treering_trend$year <- as.numeric(treering_trend$year)
+treering.p <- ggplot(data = treering_trend, aes(x=year, y = rwi)) + geom_line()
+treering.lm <- lm(rwi~year, data = treering_trend)
+summary(treering.lm)
+treering.coeff <- coef(treering.lm)
+treering.p.line <- treering.p + geom_abline(intercept = treering.coeff[1],
+                                            slope = treering.coeff[2])
+treering.seg <- segmented(treering.lm,
+                          seg.Z = ~ year,
+                          psi = list(year = c(1970)))
+summary(treering.seg)
+treering.seg$psi
+slope(treering.seg)
+
+treering.fitted <- fitted(treering.seg)
+treering.model <- data.frame(year = treering_trend$year, trend = treering.fitted)
+treering.p <- treering.p + geom_line(data = treering.model, aes(x=year, y = trend), color = "tomato")
+treering.lines <- treering.seg$psi[,2]
+treering.p <- treering.p + geom_vline(xintercept = treering.lines, linetype = "dashed", color = "darkgrey") +
+  labs(y = "avg treering")+
+  theme_bw()
+
+# precipitation break point
+ppt.p <- ggplot(data = BMG_ppt_trend, aes(x=year, y = avg_ppt)) + geom_line()
+ppt.lm <- lm(avg_ppt~year, data = BMG_ppt_trend)
+summary(ppt.lm)
+ppt.coeff <- coef(ppt.lm)
+ppt.p.line <- ppt.p + geom_abline(intercept = ppt.coeff[1],
+                                  slope = ppt.coeff[2])
+ppt.seg <- segmented(ppt.lm,
+                     seg.Z = ~ year,
+                     psi = list(year = c(1970)))
+summary(ppt.seg)
+ppt.seg$psi
+slope(ppt.seg)
+
+ppt.fitted <- fitted(ppt.seg)
+ppt.model <- data.frame(year = BMG_ppt_trend$year, trend = ppt.fitted)
+ppt.p <- ppt.p + geom_line(data = ppt.model, aes(x=year, y = trend), color = "tomato")
+ppt.lines <- ppt.seg$psi[,2]
+ppt.p <- ppt.p + geom_vline(xintercept = ppt.lines, linetype = "dashed", color = "darkgrey") +
+  labs(y = "avg ppt")+
+  theme_bw()
+
+# minimum temperature break point
 tmin.p <- ggplot(data = BMG_tmin_trend, aes(x=year, y = avg_tmin)) + geom_line()
 tmin.lm <- lm(avg_tmin~year, data = BMG_tmin_trend)
 summary(tmin.lm)
@@ -137,30 +184,7 @@ tmin.p <- tmin.p + geom_vline(xintercept = tmin.lines, linetype = "dashed", colo
   labs(y = "avg min temp")+
   theme_bw()
 
-
-# ppt
-ppt.p <- ggplot(data = BMG_ppt_trend, aes(x=year, y = avg_ppt)) + geom_line()
-ppt.lm <- lm(avg_ppt~year, data = BMG_ppt_trend)
-summary(ppt.lm)
-ppt.coeff <- coef(ppt.lm)
-ppt.p.line <- ppt.p + geom_abline(intercept = ppt.coeff[1],
-                                    slope = ppt.coeff[2])
-ppt.seg <- segmented(ppt.lm,
-                      seg.Z = ~ year,
-                      psi = list(year = c(1970)))
-summary(ppt.seg)
-ppt.seg$psi
-slope(ppt.seg)
-
-ppt.fitted <- fitted(ppt.seg)
-ppt.model <- data.frame(year = BMG_ppt_trend$year, trend = ppt.fitted)
-ppt.p <- ppt.p + geom_line(data = ppt.model, aes(x=year, y = trend), color = "tomato")
-ppt.lines <- ppt.seg$psi[,2]
-ppt.p <- ppt.p + geom_vline(xintercept = ppt.lines, linetype = "dashed", color = "darkgrey") +
-  labs(y = "avg ppt")+
-  theme_bw()
-
-# tmax
+# maximum temperature break point
 tmax.p <- ggplot(data = BMG_tmax_trend, aes(x=year, y = avg_tmax)) + geom_line()
 tmax.lm <- lm(avg_tmax~year, data = BMG_tmax_trend)
 summary(tmax.lm)
@@ -183,7 +207,7 @@ tmax.p <- tmax.p + geom_vline(xintercept = tmax.lines, linetype = "dashed", colo
   theme_bw()
 
 
-# tmean
+# mean temperature break point
 tmean.p <- ggplot(data = BMG_tmean_trend, aes(x=year, y = avg_tmean)) + geom_line()
 tmean.lm <- lm(avg_tmean~year, data = BMG_tmean_trend)
 summary(tmean.lm)
@@ -205,7 +229,7 @@ tmean.p <- tmean.p + geom_vline(xintercept = tmean.lines, linetype = "dashed", c
   labs(y = "avg tmean")+
   theme_bw()
 
-# td_mean
+# dew point temperature break point
 td_mean.p <- ggplot(data = BMG_td_mean_trend, aes(x=year, y = avg_td_mean)) + geom_line()
 td_mean.lm <- lm(avg_td_mean~year, data = BMG_td_mean_trend)
 summary(td_mean.lm)
@@ -227,7 +251,7 @@ td_mean.p <- td_mean.p + geom_vline(xintercept = td_mean.lines, linetype = "dash
   labs(y = "avg td_mean")+
   theme_bw()
 
-# vpdmin
+# minimum vapor pressure deficit break point
 vpdmin.p <- ggplot(data = BMG_vpdmin_trend, aes(x=year, y = avg_vpdmin)) + geom_line()
 vpdmin.lm <- lm(avg_vpdmin~year, data = BMG_vpdmin_trend)
 summary(vpdmin.lm)
@@ -249,7 +273,7 @@ vpdmin.p <- vpdmin.p + geom_vline(xintercept = vpdmin.lines, linetype = "dashed"
   labs(y = "avg vpdmin")+
   theme_bw()
 
-# vpdmax
+# maximum vapor pressure deficit breakpoint
 vpdmax.p <- ggplot(data = BMG_vpdmax_trend, aes(x=year, y = avg_vpdmax)) + geom_line()
 vpdmax.lm <- lm(avg_vpdmax~year, data = BMG_vpdmax_trend)
 summary(vpdmax.lm)
@@ -271,30 +295,7 @@ vpdmax.p <- vpdmax.p + geom_vline(xintercept = vpdmax.lines, linetype = "dashed"
   labs(y = "avg vpdmax")+
   theme_bw()
 
-# tree ring
-treering_trend$year <- as.numeric(treering_trend$year)
-treering.p <- ggplot(data = treering_trend, aes(x=year, y = rwi)) + geom_line()
-treering.lm <- lm(rwi~year, data = treering_trend)
-summary(treering.lm)
-treering.coeff <- coef(treering.lm)
-treering.p.line <- treering.p + geom_abline(intercept = treering.coeff[1],
-                                        slope = treering.coeff[2])
-treering.seg <- segmented(treering.lm,
-                        seg.Z = ~ year,
-                        psi = list(year = c(1970)))
-summary(treering.seg)
-treering.seg$psi
-slope(treering.seg)
-
-treering.fitted <- fitted(treering.seg)
-treering.model <- data.frame(year = treering_trend$year, trend = treering.fitted)
-treering.p <- treering.p + geom_line(data = treering.model, aes(x=year, y = trend), color = "tomato")
-treering.lines <- treering.seg$psi[,2]
-treering.p <- treering.p + geom_vline(xintercept = treering.lines, linetype = "dashed", color = "darkgrey") +
-  labs(y = "avg treering")+
-  theme_bw()
-
-#### correlation matrix ####
+#### correlations ####
 covariate.dat <- left_join(BMG_ppt, BMG_tmin) %>%
   left_join(BMG_tmax) %>%
   left_join(BMG_tmean) %>%
