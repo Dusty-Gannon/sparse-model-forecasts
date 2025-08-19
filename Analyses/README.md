@@ -1,47 +1,26 @@
 # Analysis code
 
-This directory contains R scripts and slurm scripts used to fit models to simulated and empirical data.
+* `AICvsSTANfigures.R`: This R script generates figures comparing the performance of stepwise AIC model selection and Bayesian variable selection using the horseshoe prior (via STAN) in time series regression settings. It includes:
+    - Figure 1: A simulated example illustrating prediction intervals and coefficient recovery for both AIC and STAN-based models.
 
-* `fit_lnorm_ricker_mods_parallel.R`: Wrapper script meant to be run from the command line on Beartooth. This script does the bulk of the analyses we run for the simulated competitive communities. The command line arguments are ordered and include:
-  
-    - `<input_data.rds>`: An R data file that is a list with at least the named matrix `N`, which has species in rows and their abundances through time in columns. This is used to generate the response vector (abundances of the first species through time, arbitrarily) and the covariate matrix `t(N[-1, ])`. The data should be stored in `Data/terrestrial_sim_data/lnorm_ricker/`.
-  
-    - `<start>`: Numeric time step at which to start using the simulated data. This allows for a 'burnin' period for the community to find a dynamic equilibrium.
-    
-    - `<stop>`: Numeric time step at which to stop using data. This allows the user to control the length of the time series. All simulated datasets go from `t=1,...,500`.
-    
-    - `<index1>`
-    
-    - `<index2>`: Together, `<index1>` and `<index2>` allow the user to partition all simulated datasets in `<input_data.rds>` into smaller chunks to reduce memory usage. For example, providing `1` and `10` as arguments will fit the models to the first 10 datasets in `<input_data.rds>` in parallel. An example of splitting all 40,200 simulated communities for the disturbance experiments into smaller chunks and fitting the model using a SLURM array job can be found in the SLURM script `fun_fit_lnorm_ricker_dist_freq_x_nsp_x_int.sh`.
-    
-    - `<outfile>`: Path and filename for the outfile, a list wih confusion matrices and posterior draws from the shrunk model coefficients. The path should start below `/Data/terrestrial_sim_data/lnorm_ricker/`. For example, providing `results/out.rds` would look for a directory called `results` in `/Data/terrestrial_sim_data/lnorm_ricker/` in which to put `out.rds`.
-    
-    - OPTIONAL `dist`: For the disturbance simulations, we need to add an indicator covariate for when the focal species was disturbed to attribute reductions in growth due to disturbance. For those simulations, provide `dist` as the seventh and final argument.
-  
-* `fit_lnorm_ricker_mods_tandem.R`: Wrapper script meant to be run from the command line on Beartooth. This script will fit ricker models to datasets stored in a list. The command line arguments are ordered and include:
-  
-    - `<input_data.rds>`: An R data file that is a list with at least the named matrix `N`, which has species in rows and their abundances through time in columns. This is used to generate the response vector (abundances of the first species through time, arbitrarily) and the covariate matrix `t(N[-1, ])`. The data should be stored in `Data/terrestrial_sim_data/lnorm_ricker/`.
-  
-    - `<start>`: Numeric time step at which to start using the simulated data. This allows for a 'burnin' period for the community to find a dynamic equilibrium.
-  
-    - `<stop>`: Numeric time step at which to stop using data. This allows the user to control the length of the time series. All simulated datasets go from `t=1,...,500`.
-  
-    - `<outfile>`: Path and filename for the outfile, a list wih confusion matrices and posterior draws from the shrunk model coefficients. The path should start below `/Data/terrestrial_sim_data/lnorm_ricker/`. For example, providing `results/out.rds` would look for a directory called `results` in `/Data/terrestrial_sim_data/lnorm_ricker/` in which to put `out.rds`.
+    - Figure 2: Violin plots comparing true positive rate (TPR), true negative rate (TNR), and RMSE across varying levels of predictor correlation.
 
-* `fit_lnorm_ricker_vrtests_tandem.R`: R script to fit population growth models to data assuming lognormally-distributed demographic errors. This script will fit models to a list of datasets in tandem.
+    - Figure 3: Violin plots comparing prediction RMSE under covariate shift and under assumptions of stationarity.
 
-* `plot_summarize_Ricker_freq_x_nsp_thintests.R`: This script takes `.rds` files from the SLURM array job implemented by `run_fit_lnorm_ricker_thintests_freq_x_nsp.sh` and creates a heatmap of the confusion metrics across the 10 thinning frequency and 10 proportions of the community combinations.
+The script relies on precomputed simulation results that can be replicated using scripts in the `Simulations/` directory. Outputs are saved as PDF figures in the `Figures/` directory.
 
-* `plot_summarize_Ricker_thintests.R`: This script takes results from fitting models to simulations in which we only varied the interval between thinning treatments and plots the confusion metrics over those thinning intervals. The fitting is implemented using `run_fit_lnorm_ricker_thintests.sh`, which calls the `fit_lnorm_ricker_mods_tandem.R` script.
+* `data_ex.R`: Exploratory plots for Prism and tree ring data.
 
-* `run_fit_lnorm_ricker_dist_freq_x_nsp_x_int.sh`: This SLURM script takes the 40,200 datasets generated for the disturbance experiments (200 reps x 201 treatments), splits them into 4020 jobs and fits the lnorm ricker model to the 10 datasets in each job in parallel. The results are stored as `.rds` files with suffixes indicating the indexes of the datasets used based on the original input file with all datasets.
+* `datatrends.R`: Exploratory plots and analyses for Prism and tree ring data.
 
-* `run_fit_lnorm_ricker_thintests_freq_x_nsp.sh`: This SLURM script takes the 20,100 datasets generated for the disturbance experiments (200 reps x 101 treatments), splits them into 2010 jobs and fits the lnorm ricker model to the 10 datasets in each job in parallel. The results are stored as `.rds` files with suffixes indicating the indexes of the datasets used based on the original input file with all datasets.
+* `plot_individual_ARp_simulation.R`: Script to construct Figure 1 of the manuscript.
 
-* `run_fit_lnorm_ricker_thintests.sh`: Running initial thinning tests in which only the interval between thinning treatments was varied.
+* `PrismDat_Agg.R`: Script to aggregate the prism data into different parts of the water-year.
 
-* `run_fit_lnorm_ricker_vrtests.sh`: SLURM script to fit the Ricker models to communities for which the ratio of the variance of the focal species demographic stochasticity to variation in heterospecific abundances was manipulated.
+* `tree_dat_forecasts_env_covariates.R`: Script to fit Bayesian sparse models and conduct AIC-based model selection to predict tree growth based on relationships with historical Prism data. This script is used to create **Figures 7 and 8** of the main text.
 
-* `run_plot_freq_x_nsp_thintests.sh`: SLURM script to create the heatmaps from the thinning interval x proportion of community thinned experiments.
+* `tree_dat_forecasts_fourier.R`: Script to compare the proposed method to the Auto-Arima method of Hyndman and Khandakar, 2008. 
+
+
 
 
