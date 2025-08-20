@@ -33,6 +33,14 @@ con_runs <- filter(dd, divergent_trans <= divergent_trans_cap) %>%
   group_by(n, sigma, model, betas) %>%
   summarize(runs = n())
 
+left_join(con_runs, total_runs) %>%
+  mutate(converged_runs = runs/total_runs) %>%
+  group_by(model) %>%
+  summarize(n = sum(total_runs),
+            n_con = sum(runs),
+            mean_percent = mean(converged_runs)) %>%
+  mutate(percent = n_con/n)
+
 png('Manuscript/Figures/ARp_err_model_convergence.png',
     width = 8, height = 5, units = 'in', res = 300)
   left_join(con_runs, total_runs) %>%
@@ -161,10 +169,10 @@ legend_data <- data.frame(
 
 
 png(file = "Manuscript/Figures/Fourier_seasonality_Arima_comparison.png",
-    width = 3.5, height = 5, units = 'in', res = 300)
+    width = 5, height = 7, units = 'in', res = 300)
 
   par(mar=c(2,7,1,2),
-      oma = c(2,0,0,0))
+      oma = c(2.1,0,0,0))
   par(mfrow=c(2,1))
   # Define the data for each group
   arima_data <- list(dat$rmse_forecast[which(dat$n == 365 & dat$model == 'Seasonal \nAuto Arima')],
@@ -197,9 +205,10 @@ png(file = "Manuscript/Figures/Fourier_seasonality_Arima_comparison.png",
                    colMed = rep(c( '#000000', dark_cols[2]), each = 3))
 
 
-  axis(2, at = c(2, 6), labels = c("Arima", "Horseshoe"),
+  axis(2, at = c(2, 6), labels = c("ARIMA", "Horseshoe"),
        las = 3, line = 3, tick = FALSE)  # Cluster labels
 
+  mtext( "a)", side = 3, line=-1,cex.lab=1, adj = 0.02, outer = TRUE)
   title(ylab = "Time Series Length",line=5.5,cex.lab=1)
   # title(xlab="Prediction RMSE",line=2.5,cex.lab=1)
 
@@ -230,11 +239,12 @@ png(file = "Manuscript/Figures/Fourier_seasonality_Arima_comparison.png",
                    colMed = rep(c( '#000000', dark_cols[2]), each = 3))
 
 
-  axis(2, at = c(2, 6), labels = c("Arima", "Horseshoe"),
+  mtext( "b)", side = 1, line=-16,cex.lab=1, adj = 0.02, outer = TRUE)
+  axis(2, at = c(2, 6), labels = c("ARIMA", "Horseshoe"),
        las = 3, line = 3, tick = FALSE)  # Cluster labels
 
   title(ylab="Number of Known Covariates",line=5.5,cex.lab=1)
-  title(xlab="Covariate Effect RMSE",line= 2.5, cex.lab=1)
+  title(xlab="Prediction RMSE",line= 0.6, cex.lab=1, outer = TRUE, adj = 0.65)
 
 dev.off()
 

@@ -104,8 +104,8 @@ fit_ARp_beta_model <- function(model_pars, iter = 2000, warmup = 1000,
 #' @param model_pars a list of parameters describing the AR-p time series as well
 #' as a matrix of covariates, vectors of beta and phi parameters, and a simulated
 #' time series. Must include:
-#'    + n: length of time series
-#'    + p: number of AR lags to consider
+#'    + N: length of time series
+#'    + P: number of AR lags to consider
 #'    + tau_0: the prior guess for tau0
 #'    + X: matrix of covariates arranged with the first column as the intercept,
 #'    columns 2:(nlags covariate + 1) are lagged versions of covariate 1, and the
