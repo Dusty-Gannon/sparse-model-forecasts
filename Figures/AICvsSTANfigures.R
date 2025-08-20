@@ -93,28 +93,37 @@ corData4=corData3[-which(corData3$numStrongCorr==1),]
 # fix percent of weak covariates to 0.5
 corData5=corData4[which(corData4$probWeakCorr==0.5),]
 # fix correlations to 0.5 and 0.9
-corData6=corData5[-which(corData5$corrLevel==0.7),]
+#corData6=corData5[-which(corData5$corrLevel==0.7),]
+corData6=corData5
 
-
-pdf(file=here("Figures/correlated_variable_effects_combined.pdf"), width = 5, height = 7.5)
+pdf(file=here("Figures/correlated_variable_effects_combined.pdf"), width = 5, height = 9)
 
 par(mar=c(5,9,2,2))
 par(mfrow=c(3,1))
-vioplot::vioplot(cbind(AIC5=corData6$TPRaic[which(corData6$corrLevel==0.5)],AIC9=corData6$TPRaic[which(corData6$corrLevel==0.9)],STAN5=corData6$TPRstan[which(corData6$corrLevel==0.5)],STAN9=corData6$TPRstan[which(corData6$corrLevel==0.9)]), xlab="",
-                 horizontal=T,las=1,names=c("Stepwise AIC\n correlation 0.5","Stepwise AIC\n correlation 0.9","Horseshoe\n correlation 0.5","Horseshoe\n correlation 0.9"),col=c("steelblue1","steelblue4","tan","tan3"),
-                 pchMed=20,border=c("royalblue4","royalblue4","tan4","tan4"),rectCol=c("royalblue4","royalblue4","tan4","tan4"), lineCol=c("royalblue4","royalblue4","tan4","tan4"),colMed=c("royalblue4","royalblue4","tan4","tan4"),ylab="")
+vioplot::vioplot(cbind(AIC1=corData6$TPRaic[which(corData6$corrLevel==0.1)],STAN1=corData6$TPRstan[which(corData6$corrLevel==0.1)],AIC5=corData6$TPRaic[which(corData6$corrLevel==0.5)],STAN5=corData6$TPRstan[which(corData6$corrLevel==0.5)],AIC9=corData6$TPRaic[which(corData6$corrLevel==0.9)],STAN9=corData6$TPRstan[which(corData6$corrLevel==0.9)]), xlab="",
+                 horizontal=T,las=1,names=c("Stepwise AIC\n correlation 0.1","Horseshoe\n correlation 0.1","Stepwise AIC\n correlation 0.5","Horseshoe\n correlation 0.5","Stepwise AIC\n correlation 0.9","Horseshoe\n correlation 0.9"),col=c("skyblue","steelblue1","steelblue4","wheat","tan","tan3"),
+                 pchMed=20,border=c("royalblue4","royalblue4","royalblue4","tan4","tan4","tan4"),rectCol=c("royalblue4","royalblue4","royalblue4","tan4","tan4","tan4"), lineCol=c("royalblue4","royalblue4","royalblue4","tan4","tan4","tan4"),colMed=c("royalblue4","royalblue4","royalblue4","tan4","tan4","tan4"),ylab="")
 title(ylab="Density of TPR",line=7,cex.lab=1.2)
-title(xlab="TPR",line=3,cex.lab=1.2)
-vioplot::vioplot(cbind(AIC5=corData6$TNRaic[which(corData6$corrLevel==0.5)],AIC9=corData6$TNRaic[which(corData6$corrLevel==0.9)],STAN5=corData6$TNRstan[which(corData6$corrLevel==0.5)],STAN9=corData6$TNRstan[which(corData6$corrLevel==0.9)]), xlab="",
-                 horizontal=T,las=1,names=c("Stepwise AIC\n correlation 0.5","Stepwise AIC\n correlation 0.9","Horseshoe\n correlation 0.5","Horseshoe\n correlation 0.9"),col=c("steelblue1","steelblue4","tan","tan3"),
-                 pchMed=20,border=c("royalblue4","royalblue4","tan4","tan4"),rectCol=c("royalblue4","royalblue4","tan4","tan4"), lineCol=c("royalblue4","royalblue4","tan4","tan4"),colMed=c("royalblue4","royalblue4","tan4","tan4"),ylab="")
+title(xlab="True Positive Rate (TPR)",line=3,cex.lab=1.2)
+par(xpd=T)
+text(-0.06,7,"a)",cex=1.5)
+par(xpd=F)
+vioplot::vioplot(cbind(AIC1=corData6$TNRaic[which(corData6$corrLevel==0.1)],STAN1=corData6$TNRstan[which(corData6$corrLevel==0.1)],AIC5=corData6$TNRaic[which(corData6$corrLevel==0.5)],STAN5=corData6$TNRstan[which(corData6$corrLevel==0.5)],AIC9=corData6$TNRaic[which(corData6$corrLevel==0.9)],STAN9=corData6$TNRstan[which(corData6$corrLevel==0.9)]), xlab="",
+                 horizontal=T,las=1,names=c("Stepwise AIC\n correlation 0.1","Horseshoe\n correlation 0.1","Stepwise AIC\n correlation 0.5","Horseshoe\n correlation 0.5","Stepwise AIC\n correlation 0.9","Horseshoe\n correlation 0.9"),col=c("skyblue","steelblue1","steelblue4","wheat","tan","tan3"),
+                 pchMed=20,border=c("royalblue4","royalblue4","royalblue4","tan4","tan4","tan4"),rectCol=c("royalblue4","royalblue4","royalblue4","tan4","tan4","tan4"), lineCol=c("royalblue4","royalblue4","royalblue4","tan4","tan4","tan4"),colMed=c("royalblue4","royalblue4","royalblue4","tan4","tan4","tan4"),ylab="")
 title(ylab="Density of TNR",line=7,cex.lab=1.2)
-title(xlab="TNR",line=3,cex.lab=1.2)
-vioplot::vioplot(cbind(AIC5=corData6$RMSEaic[which(corData6$corrLevel==0.5)],AIC9=corData6$RMSEaic[which(corData6$corrLevel==0.9)],STAN5=corData6$RMSEstan[which(corData6$corrLevel==0.5)],STAN9=corData6$RMSEstan[which(corData6$corrLevel==0.9)]), xlab="",
-                 horizontal=T,las=1,names=c("Stepwise AIC\n correlation 0.5","Stepwise AIC\n correlation 0.9","Horseshoe\n correlation 0.5","Horseshoe\n correlation 0.9"),col=c("steelblue1","steelblue4","tan","tan3"),
-                 pchMed=20,border=c("royalblue4","royalblue4","tan4","tan4"),rectCol=c("royalblue4","royalblue4","tan4","tan4"), lineCol=c("royalblue4","royalblue4","tan4","tan4"),colMed=c("royalblue4","royalblue4","tan4","tan4"),ylab="")
+title(xlab="True Negative Rate (TNR)",line=3,cex.lab=1.2)
+par(xpd=T)
+text(-0.3,7,"b)",cex=1.5)
+par(xpd=F)
+vioplot::vioplot(cbind(AIC1=corData6$RMSEaic[which(corData6$corrLevel==0.1)],STAN1=corData6$RMSEstan[which(corData6$corrLevel==0.1)],AIC5=corData6$RMSEaic[which(corData6$corrLevel==0.5)],STAN5=corData6$RMSEstan[which(corData6$corrLevel==0.5)],AIC9=corData6$RMSEaic[which(corData6$corrLevel==0.9)],STAN9=corData6$RMSEstan[which(corData6$corrLevel==0.9)]), xlab="",
+                 horizontal=T,las=1,names=c("Stepwise AIC\n correlation 0.1","Horseshoe\n correlation 0.1","Stepwise AIC\n correlation 0.5","Horseshoe\n correlation 0.5","Stepwise AIC\n correlation 0.9","Horseshoe\n correlation 0.9"),col=c("skyblue","steelblue1","steelblue4","wheat","tan","tan3"),
+                 pchMed=20,border=c("royalblue4","royalblue4","royalblue4","tan4","tan4","tan4"),rectCol=c("royalblue4","royalblue4","royalblue4","tan4","tan4","tan4"), lineCol=c("royalblue4","royalblue4","royalblue4","tan4","tan4","tan4"),colMed=c("royalblue4","royalblue4","royalblue4","tan4","tan4","tan4"),ylab="")
 title(ylab="Density of Prediction RMSE",line=7,cex.lab=1.2)
-title(xlab="Prediction RMSE",line=3,cex.lab=1.2)
+title(xlab="Prediction Root Mean Square Error (RMSE)",line=3,cex.lab=1.2)
+par(xpd=T)
+text(0.02,7,"c)",cex=1.5)
+par(xpd=F)
 
 dev.off()
 
@@ -125,13 +134,40 @@ dev.off()
 decorData=read.csv(file="Simulations/AICvsSTANdecorrelation.csv")
 
 
-pdf(file=here("Figures/decorrelation_comparison.pdf"), width = 7, height = 4)
+pdf(file=here("Figures/decorrelation_comparison.pdf"), width = 7, height = 8)
 
 
 par(mar=c(5,9,2,2))
 par(mfrow=c(1,1))
-vioplot::vioplot(cbind(AICdecorr=decorData$RMSEaic[1:1800],STANdecorr=decorData$RMSEstan[1:1800],AICnorm=decorData$RMSEaic[1801:3600],STANnorm=decorData$RMSEstan[1801:3600]),las=1,cex.axis=0.9,names=c("Stepwise AIC\n decorrelated","Horseshoe\n decorrelated","Stepwise AIC\n normal","Horseshoe\n normal"),
-                 xlab="",horizontal=T,col=c("steelblue1","tan","steelblue4","tan3"),pchMed=20,border=c("royalblue4","tan4","royalblue4","tan4"),rectCol=c("royalblue4","tan4","royalblue4","tan4"),
-                 lineCol=c("royalblue4","tan4","royalblue4","tan4"),colMed=c("royalblue4","tan4","royalblue4","tan4"),ylab="")
+
+corr0.9_change=which(decorData$corrLevel==0.9&decorData$corrChange)
+corr0.9_nochange=which(decorData$corrLevel==0.9&!decorData$corrChange)
+corr0.5_change=which(decorData$corrLevel==0.5&decorData$corrChange)
+corr0.5_nochange=which(decorData$corrLevel==0.5&!decorData$corrChange)
+corr0.1_change=which(decorData$corrLevel==0.1&decorData$corrChange)
+corr0.1_nochange=which(decorData$corrLevel==0.1&!decorData$corrChange)
+
+plot(1, type = "n", xlim = c(0, 12), ylim = c(0.5, 12.5),
+     xaxt = "n", yaxt = "n", xlab = "", ylab = "", bty = "n")
+
+rect(xleft=-0.5,ybottom=4.5,xright=13,ytop=8.5,col="gray",border=F)
+
+vioplot::vioplot(cbind(AICdecorr9=decorData$RMSEaic[corr0.9_change],STANdecorr9=decorData$RMSEstan[corr0.9_change],AICnorm9=decorData$RMSEaic[corr0.9_nochange],STANnorm9=decorData$RMSEstan[corr0.9_nochange],
+                       AICdecorr5=decorData$RMSEaic[corr0.5_change],STANdecorr5=decorData$RMSEstan[corr0.5_change],AICnorm5=decorData$RMSEaic[corr0.5_nochange],STANnorm5=decorData$RMSEstan[corr0.5_nochange],
+                       AICdecorr1=decorData$RMSEaic[corr0.1_change],STANdecorr1=decorData$RMSEstan[corr0.1_change],AICnorm1=decorData$RMSEaic[corr0.1_nochange],STANnorm1=decorData$RMSEstan[corr0.1_nochange]),las=1,cex.axis=0.9,
+                 names=c("Stepwise AIC\n decorrelated 0.9","Horseshoe\n decorrelated 0.9","Stepwise AIC\n normal 0.9","Horseshoe\n normal 0.9",
+                         "Stepwise AIC\n decorrelated 0.5","Horseshoe\n decorrelated 0.5","Stepwise AIC\n normal 0.5","Horseshoe\n normal 0.5",
+                         "Stepwise AIC\n decorrelated 0.1","Horseshoe\n decorrelated 0.1","Stepwise AIC\n normal 0.1","Horseshoe\n normal 0.1"),
+                 xlab="Root Mean Square Error (RMSE)",horizontal=T,col=c("steelblue1","tan","steelblue4","tan3","steelblue1","tan","steelblue4","tan3","steelblue1","tan","steelblue4","tan3"),
+                 pchMed=20,border=c("royalblue4","tan4","royalblue4","tan4","royalblue4","tan4","royalblue4","tan4","royalblue4","tan4","royalblue4","tan4"),
+                 rectCol=c("royalblue4","tan4","royalblue4","tan4","royalblue4","tan4","royalblue4","tan4","royalblue4","tan4","royalblue4","tan4"),
+                 lineCol=c("royalblue4","tan4","royalblue4","tan4","royalblue4","tan4","royalblue4","tan4","royalblue4","tan4","royalblue4","tan4"),
+                 colMed=c("royalblue4","tan4","royalblue4","tan4","royalblue4","tan4","royalblue4","tan4","royalblue4","tan4","royalblue4","tan4"),ylab="",add=T)
+
+axis(2, at = 1:12, labels = c("Stepwise AIC\n decorrelated 0.9","Horseshoe\n decorrelated 0.9","Stepwise AIC\n normal 0.9","Horseshoe\n normal 0.9",
+                              "Stepwise AIC\n decorrelated 0.5","Horseshoe\n decorrelated 0.5","Stepwise AIC\n normal 0.5","Horseshoe\n normal 0.5",
+                              "Stepwise AIC\n decorrelated 0.1","Horseshoe\n decorrelated 0.1","Stepwise AIC\n normal 0.1","Horseshoe\n normal 0.1"),las=2)
+axis(1,at=seq(0,12,by=2),labels=seq(0,12,by=2))
+
 
 dev.off()

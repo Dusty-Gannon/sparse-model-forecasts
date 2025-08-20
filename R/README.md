@@ -2,20 +2,21 @@
 
 **All functions are documented using Roxygen2. For documentation, see `/man/`.**
 
-* `aquatic_AR-p_sim_functions.R`: Functions to simulate AR-p datasets and extract results from stan model objects.
+* `AR-p_sim_functions.R`: Functions to simulate AR-p datasets and extract results from stan model objects.
 
-* `aquatic_simulation_processing_functions.R`: Functions to summarize the results from fitted AR-p simulation models.
+* `AR-p_fit_functions.R`: Functions to fit sparse models to simulated data.
 
-* `fitting_functions_lnorm_ricker.R`: Wrapper functions used to take in simulated data, fit Ricker models with log-normal errors, and summarize the results.
+* `continue_fourier.R`: Function to continue a set of Fourier basis functions into the future.
 
-* `model_checking.R`: Functions used to verify that STAN and JAGS models are written correctly.
+* `lag_covariates.R`: Function to create a set of covariates lagged by $\ell$ time steps and combine them into a dataframe.
+
+* `model_checking.R`: Functions used to check model fit and predictions.
+
+* `sim1_temporal_drivers`: Functions to simulate realistic temporal covariates with seasonal cycles and trends.
 
 * `simulate_seasonal_ARp.R`: Simulate a seasonal AR timeseries by translating a seasonal cycle into a stationary vector of phis. Includes the option to add a sparse covariate matrix. 
 
-* `stat_model_sim_functions.R`: Functions for simulating data from statistical time series models.
+* `simulation_processing_functions.R`: Functions to summarize the results from fitted AR-p simulation models.
 
-* `terrestrial_data_processing_functions.R`: Functions for processing the simulated data from competitive communities (Ricker models).
+* `tau0_from_data.R`: Function to provide an initial $\tau_0$ based on Piironen and Vehtari, 2017.
 
-* `terrestrial_lottery_sim_functions.R`: Functions to simulate a spatial lottery model with competition, dispersal, and mortality across a lattice.
-
-* `terrestrial_ricker_sim_functions.R`: Functions used to simulate time series for competitive communities using Ricker models. These include functions for Poisson-distributed errors and log-normally distributed errors.

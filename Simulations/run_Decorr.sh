@@ -2,7 +2,7 @@
 
 #SBATCH --account=modelscape
 #SBATCH --nodes=1
-#SBATCH --time=72:00:00
+#SBATCH --time=48:00:00
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=1
 #SBATCH --mem-per-cpu=24G
@@ -11,12 +11,15 @@
 #SBATCH --mail-user=apatte12@uwyo.edu
 ### enter any job name that you prefer
 #SBATCH --job-name=AICvsSTANdecorr
-#SBATCH --array=1-72
+#SBATCH --array=1-120
 
+# Set the locale
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
 
-module load arcc/1.0 gcc/12.2.0 r/4.4.0
+module load arcc/1.0 gcc/14.2.0 r/4.4.0
 
-cd /project/modelscape/analyses/sponges
+cd /project/modelscape/analyses/sparse-model-forecasts
 
 config=Simulations/DecorrConfig.txt
 

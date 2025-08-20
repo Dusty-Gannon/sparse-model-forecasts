@@ -3,6 +3,10 @@
 -   `AR-p_err3_FHS_DG.stan`: Stan model to fit a Gaussian dynamic regression model with AR error structure. 'Finnish Horseshoe priors' are placed on the AR coefficients and the regression coefficients, each with separate global shrinkage priors so that model selection of the regression coefficient and AR coefficients can happen separately. Weakly-informative priors can be specified for a number of covariate coefficients (including the intercept term) by defining the data input `P_0` $\ge$ 1. These must come as the first columns in the model matrix supplied as data to Stan.
 
     -   **New feature**: Forecasts are done internally by supplying a matrix of "future" covariates as well as the number of steps to forecast.
+    
+    -   Used in `Simulations/fit_AR-p_seasonal_model_sims.R`
+    
+    -   Used in `Analyses/tree_dat_forecasts_fourier.R`
 
 -   `AR-p_err3_Gauss_DG.stan`: Stan model to fit a Gaussian dynamic regression model with AR error structure. Weakly-informative priors are used for all parameters, but flat priors can be specified for specific covariate coefficients (including the intercept term) by defining the data input `P_0` $\ge$ 1. These must come as the first columns in the model matrix supplied as data to Stan.
 
@@ -12,6 +16,12 @@
 
 -   `sparse_reg_FHS.stan`: Stan model to fit a Bayesian sparse regression using Regularized Horseshoe priors. Weakly-informative priors can be specified for a number of covariate coefficients (including the intercept term) by defining the data input `P_0` $\ge$ 1. These must come as the first columns in the model matrix supplied as data to Stan. It is recommended that `P_0` is at least 1 to leave the intercept term unregularized. Predictions can be constructed by supplying a model matrix, `X_new`, of `N_new` observations. If no predictions are required, set `N_new = 0` and `X_new = matrix(data = 1, nrow = 0, ncol = P)` as a null or dummy matrix in the data input to Stan.
 
+    - Used in `Simulations/AICvsStanRMSE.R`
+    
+    - Used in `Analyses/tree_dat_forecasts_env_covariates.R`
+
+# Archived
+
 -   `AR-p_FHS-p-beta.stan`: Stan model to fit a Gaussian AR(p) process with arbitrary p. 'Finnish Horseshoe Priors' are placed on the AR coefficients and the regression coefficients to perform Bayesian model selection/regularization on both the phi and beta vectors.
 
 -   `AR-p_FHS.stan`: Stan model to fit a Gaussian AR(p) process with arbitrary p. 'Finnish Horseshoe Priors' are placed on the regression coefficients to perform Bayesian model selection/regularization on the beta vector.
@@ -19,8 +29,6 @@
 -   `AR-p.stan`: Stan model to fit a Gaussian AR(p) process with arbitrary p. Commonly used weakly-informative priors are placed on the AR coefficients and the regression coefficients.
 
 -   `ARMA-p-q_FHS.stan`: Stan model to fit a Gaussian ARMA(p, q) process with arbitrary p and q. 'Finnish Horseshoe Priors' are placed on the regression coefficients to perform Bayesian model selection/regularization on the beta vector.
-
-# Archived
 
 -   `Gamma_LatAR1_FHS_EBtest.stan`: Gamma-distributed response with 'Finnish Horseshoe Priors' on the regression coefficients to perform model selection. The autocorrelation is introduced through a latent AR process on the link scale. Because of identifiability problems with the dispersion parameter and error of the latent process, an `empirical Bayes` approach is implemented, supplying the MLE for the dispersion parameter in terms of the other parameters in the model. **Note that these Latent variable models are computationally costly with long time series.**
 

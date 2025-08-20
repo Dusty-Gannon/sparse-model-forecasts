@@ -11,446 +11,434 @@ library(here)
 library(ggplot2)
 library(devtools)
 library(dplyr)
-devtools::load_all()
+devtools::load_all("/Users/amypatterson/Documents/Laramie_postdoc/Sparse_time_series_project/sponges")
 
-
+################################################################
 #### Simulating the data ####
 
-  # length of time series
-  n <- 150
+#set.seed(198440)# maybe
+set.seed(198441) # maybe
+# length of time series
+n <- 150
 
-  # time series parameters, constrained for stationarity
-  phi <- c(0.6, rep(0, 4), -0.2, rep(0, 9), 0.3)
+# time series parameters, constrained for stationarity
+#phi <- c(0.6, rep(0, 4), -0.2, rep(0, 9), 0.3)
+phi <- 0
 
-  # coefficient vector with two non-zero elements and the intercepts
-  beta <- c(0.5, 1, 2, runif(48, min=0, max=0.1))
+# coefficient vector with two non-zero elements and the intercepts
+beta <- c(0.5, 1, 2, runif(9, min=0, max=0.1), 1.5, runif(7, min=0, max=0.1),1.8,runif(13,min=0,max=0.1))
 
-  ### generate the model matrix with some correlated variables ###
+### generate the model matrix with some correlated variables ###
 
-  # To create a covariance matrix, step one is to create an orthogonal matrix,
-  # which can be done using QR decomposition of an arbitrary matrix
-  P <- length(beta) - 1
-  Q <- qr.Q(qr(matrix(rnorm(P^2), nrow = P, ncol = P)))
+# To create a covariance matrix, step one is to create an orthogonal matrix,
+# which can be done using QR decomposition of an arbitrary matrix
+P <- length(beta) - 1
+Q <- qr.Q(qr(matrix(rnorm(P^2), nrow = P, ncol = P)))
 
-  # step two is to generate a diagonal matrix with the standard deviations
-  D <- diag(x = rgamma(P, shape = 2, rate = 2))
+# step two is to generate a diagonal matrix with the standard deviations
+D <- diag(x = rgamma(P, shape = 2, rate = 2))
 
-  # now use matrix multiplication to generate Sigma
-  Sigma <- t(Q) %*% D %*% Q
+# now use matrix multiplication to generate Sigma
+Sigma <- t(Q) %*% D %*% Q
 
-  # to test that this is positive definite, check that all eigenvalues are positive
-  # sum(eigen(Sigma)$values < 0)
+# to test that this is positive definite, check that all eigenvalues are positive
+# sum(eigen(Sigma)$values < 0)
 
-  # then Cholesky decompose Sigma to multiply by independent standard normal draws
-  # and create the matrix
-  X <- cbind(
-    rep(1, n),
-    matrix(rnorm(n = n * P), nrow = n, ncol = P) %*% chol(Sigma)
-  )
+# then Cholesky decompose Sigma to multiply by independent standard normal draws
+# and create the matrix
+X <- cbind(
+  rep(1, n),
+  matrix(rnorm(n = n * P), nrow = n, ncol = P) %*% chol(Sigma)
+)
 
-  # mean of the process
-  mu <- as.double(X %*% beta)
-  sigma_e <- 2
+# mean of the process
+mu <- as.double(X %*% beta)
+sigma_e <- 2
 
-  # simulate the AR process
-  y <- arima.sim(
-    n = n,
-    model = list(ar = phi),
-    mean = mu,
-    sd = sigma_e
-  )
-
-#### Fit the model, holding out last 10 observations for forecasting ####
-
-  # compile stan model
-  arp_r <- stan_model(here("Stan/AR-p_FHS-p-beta.stan"))
-
-  # number of observation to hold out for forecast testing
-  holdout <- 50
-
-  # compute prior guess for tau0 based on a guess of 5
-  #  non-zero coefficients
-  #  see ?tau0() for documentation
-  tau_0 <- tau0(
-    y = y[1:(n - holdout)],
-    m0 = 5,
-    M = P + 20,
-    N = n - holdout,
-    fam = "gaussian"
-  )
-
-  # compile data (see Stan file for descriptions of each input)
-  datlist <- list(
-    N = n - holdout,
-    P0 = 1,
-    P = P,
-    p = 20,
-    y = y[1:(n - holdout)],
-    X_alpha = matrix(X[1:(n - holdout), 1], ncol = 1),
-    X_beta = X[1:(n - holdout), -1],
-    tau0 = tau_0,
-    slab_scl = 1,
-    slab_df = 10
-  )
-
-  # sample the posterior
-  mfit_arp_r <- sampling(
-    arp_r,
-    data = datlist,
-    chains = 3,
-    cores = 3,
-    iter = 4000
-  )
+# simulate the AR process
+y <- arima.sim(
+  n = n,
+  model = list(ar = phi),
+  mean = mu,
+  sd = sigma_e
+)
 
 
-#### Compare parameter posteriors to truth ####
-  alpha_post_r <- rstan::extract(mfit_arp_r, pars = "alpha")$alpha
-  beta_post_r <- rstan::extract(mfit_arp_r, pars = "beta")$beta
-  phi_post_r <- rstan::extract(mfit_arp_r, pars = "phi")$phi
+################################################################
+####  Perform the 3 fits ####
+#### Fit the model, holding out last few observations for forecasting ####
 
-  # create data frames for plotting
-  df_beta <- data.frame(
-    param = paste0("beta", 1:(length(beta) - 1)),
-    beta_true = beta[-1],
-    beta_hat = apply(beta_post_r, 2, mean),
-    low = apply(beta_post_r, 2, quantile, probs = 0.025),
-    high = apply(beta_post_r, 2, quantile, probs = 0.975)
-  )
+# compile stan model
+arp_r <- stan_model(here("Stan/AR-p_FHS-p-beta.stan"))
 
-  df_phi <- data.frame(
-    param = paste0("phi", 1:ncol(phi_post_r)),
-    # note that the ordering of phi is reversed in the stan model
-    phi_true = c(phi, rep(0, 4))[20:1],
-    phi_hat = apply(phi_post_r, 2, mean),
-    low = apply(phi_post_r, 2, quantile, probs = 0.025),
-    high = apply(phi_post_r, 2, quantile, probs = 0.975)
-  )
+# number of observation to hold out for forecast testing
+holdout <- 50
 
-  # visualize the results
-  rawdata_df <- data.frame(
-    time = 1:n,
-    response = as.double(y)
-  )
+# compute prior guess for tau0 based on a guess of 5
+#  non-zero coefficients
+#  see ?tau0() for documentation
+tau_0 <- tau0(
+  y = y[1:(n - holdout)],
+  m0 = 5,
+  M = P + length(phi),
+  N = n - holdout,
+  fam = "gaussian"
+)
 
-  # plot for raw time series
-  plot_ts <- ggplot(data = rawdata_df, aes(x = time, y = response)) +
-    geom_line() +
-    theme_classic() +
-    ggtitle("Raw data")
+# compile data (see Stan file for descriptions of each input)
+datlist <- list(
+  N = n - holdout,
+  P0 = 1,
+  P = P,
+  p = length(phi),
+  y = y[1:(n - holdout)],
+  X_alpha = matrix(X[1:(n - holdout), 1], ncol = 1),
+  X_beta = X[1:(n - holdout), -1],
+  tau0 = tau_0,
+  slab_scl = 1,
+  slab_df = 10
+)
 
-  # plots for posterior estimates and CIs compared to simulated values
-  plot_beta <- ggplot(data = df_beta, aes(x = param)) +
-    geom_errorbar(aes(ymin = low, ymax = high), width = 0) +
-    geom_point(aes(y = beta_hat)) +
-    geom_point(aes(y = beta_true), shape = 2, color = "steelblue", size = 3) +
-    theme_classic() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-    annotate("point", x = 40, y = 2, shape = 2, color = "steelblue", size = 3) +
-    annotate("text", label = "True value", x = 41, y = 2, hjust = 0) +
-    annotate("point", x = 40, y = 1.5) +
-    annotate("text", x = 41, y = 1.5, label = "Estimate", hjust = 0) +
-    ylab("value") +
-    ggtitle("Covariate coefficients")
-
-  plot_phi <- ggplot(data = df_phi, aes(x = param)) +
-    geom_errorbar(aes(ymin = low, ymax = high), width = 0) +
-    geom_point(aes(y = phi_hat)) +
-    geom_point(aes(y = phi_true), shape = 2, color = "steelblue", size = 3) +
-    theme_classic() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-    annotate("point", x = 2, y = 0.5, shape = 2, color = "steelblue", size = 3) +
-    annotate("text", label = "True value", x = 3, y = 0.5, hjust = 0) +
-    annotate("point", x = 2, y = 0.375) +
-    annotate("text", x = 3, y = 0.375, label = "Estimate", hjust = 0) +
-    ylab("value") +
-    ggtitle("AR coefficients")
-
-  ## save figure ##
-  lo <- rbind(
-    c(1, 1, 2, 2),
-    c(3, 3, 3, 3)
-  )
-  png(
-    filename = here("Figures/param_checks_AR-p.png"),
-    width = 2700,
-    height = 2100,
-    res = 300, units = "px"
-  )
-  gridExtra::grid.arrange(plot_phi, plot_ts, plot_beta, layout_matrix = lo)
-  dev.off()
-
-
+# sample the posterior
+mfit_arp_r <- sampling(
+  arp_r,
+  data = datlist,
+  chains = 3,
+  cores = 3,
+  iter = 4000
+)
 
 
 #### Compare forecasting to a non-regularized fitted model #####
 
-  # fitting the non-regularized AR model Gaussian priors
-  datlist_nr <- list(
-    N = n - holdout,
-    P = P + 1,
-    p = 20,
-    y = y[1:(n - holdout)],
-    X = X[1:(n - holdout), ]
-  )
+# fitting the non-regularized AR model Gaussian priors
+datlist_nr <- list(
+  N = n - holdout,
+  P = P + 1,
+  p = length(phi),
+  y = y[1:(n - holdout)],
+  X = X[1:(n - holdout), ]
+)
 
-  arp_nr <- stan_model(here("Stan/AR-p.stan"))
+arp_nr <- stan_model(here("Stan/AR-p.stan"))
 
-  mfit_arp_nr <- sampling(
-    arp_nr,
-    data = datlist_nr,
-    chains = 3,
-    cores = 3,
-    iter = 4000,
-    control = list(max_treedepth = 15)
-  )
+mfit_arp_nr <- sampling(
+  arp_nr,
+  data = datlist_nr,
+  chains = 3,
+  cores = 3,
+  iter = 4000,
+  control = list(max_treedepth = 15)
+)
 
 
 #### Compare forecasting to a model with flat priors (no priors) #####
 
-  # fitting the non-regularized AR model with flat priors
-  datlist_fl <- list(
-    N = n - holdout,
-    P = P + 1,
-    p = 20,
-    y = y[1:(n - holdout)],
-    X = X[1:(n - holdout), ]
-  )
+# fitting the non-regularized AR model with flat priors
+datlist_fl <- list(
+  N = n - holdout,
+  P = P + 1,
+  p = length(phi),
+  y = y[1:(n - holdout)],
+  X = X[1:(n - holdout), ]
+)
 
-  arp_fl <- stan_model(here("Stan/AR-p_flat.stan"))
+arp_fl <- stan_model(here("Stan/AR-p_flat.stan"))
 
-  mfit_arp_fl <- sampling(
-    arp_fl,
-    data = datlist_fl,
-    chains = 3,
-    cores = 3,
-    iter = 4000,
-    control = list(max_treedepth = 15)
-  )
-
-
+mfit_arp_fl <- sampling(
+  arp_fl,
+  data = datlist_fl,
+  chains = 3,
+  cores = 3,
+  iter = 4000,
+  control = list(max_treedepth = 15)
+)
 
 
 
-  # COMPARISON STARTS
+################################################################
+#### Get parameter estimates for all models ####
+#### Compare parameter posteriors to truth ####
+alpha_post_r <- rstan::extract(mfit_arp_r, pars = "alpha")$alpha # this is the intercept
+beta_post_r <- rstan::extract(mfit_arp_r, pars = "beta")$beta
+phi_post_r <- rstan::extract(mfit_arp_r, pars = "phi")$phi
 
-  # forecast the held-out observations
-  beta_post_nr <- rstan::extract(mfit_arp_nr, pars = "beta")$beta
-  beta_post_fl <- rstan::extract(mfit_arp_fl, pars = "beta")$beta
-  phi_post_nr <- rstan::extract(mfit_arp_nr, pars = "phi")$phi
-  phi_post_fl <- rstan::extract(mfit_arp_fl, pars = "phi")$phi
-  sigma_post_nr <- rstan::extract(mfit_arp_nr, pars = "sigma")$sigma
-  sigma_post_r <- rstan::extract(mfit_arp_r, pars = "sigma")$sigma
-  sigma_post_fl <- rstan::extract(mfit_arp_fl, pars = "sigma")$sigma
-  y_rep_nr <- rstan::extract(mfit_arp_nr, pars = "y_rep")$y_rep
-  y_rep_r <- rstan::extract(mfit_arp_r, pars = "y_rep")$y_rep
-  y_rep_fl <- rstan::extract(mfit_arp_fl, pars = "y_rep")$y_rep
+beta_post_nr <- rstan::extract(mfit_arp_nr, pars = "beta")$beta
+phi_post_nr <- rstan::extract(mfit_arp_nr, pars = "phi")$phi
 
-  draws <- nrow(beta_post_nr)
+beta_post_fl <- rstan::extract(mfit_arp_fl, pars = "beta")$beta
+phi_post_fl <- rstan::extract(mfit_arp_fl, pars = "phi")$phi
 
-  # matrix of draws from the posterior-predictive distribution
-  # non-regularized model
-  post_preds_nr <- matrix(nrow = draws, ncol = n)
 
-  # regularized model
-  post_preds_r <- matrix(nrow = draws, ncol = n)
+# create data frames for plotting
+df_beta <- data.frame(
+  param = paste0("beta", 1:(length(beta) - 1)),
+  beta_true = beta[-1],
+  beta_hat_r = apply(beta_post_r, 2, mean),
+  low_r = apply(beta_post_r, 2, quantile, probs = 0.025),
+  high_r = apply(beta_post_r, 2, quantile, probs = 0.975),
+  beta_hat_nr = apply(beta_post_nr, 2, mean)[2:length(beta)],
+  low_nr = apply(beta_post_nr, 2, quantile, probs = 0.025)[2:length(beta)],
+  high_nr = apply(beta_post_nr, 2, quantile, probs = 0.975)[2:length(beta)],
+  beta_hat_fl = apply(beta_post_fl, 2, mean)[2:length(beta)],
+  low_fl = apply(beta_post_fl, 2, quantile, probs = 0.025)[2:length(beta)],
+  high_fl = apply(beta_post_fl, 2, quantile, probs = 0.975)[2:length(beta)]
+)
 
-  # flat model
-  post_preds_fl <- matrix(nrow = draws, ncol = n)
+df_phi <- data.frame(
+  param = paste0("phi", 1:ncol(phi_post_r)),
+  # note that the ordering of phi is reversed in the stan model
+  phi_true = c(phi, rep(0, 4))[ncol(phi_post_r):1],
+  phi_hat_r = apply(phi_post_r, 2, mean),
+  low_r = apply(phi_post_r, 2, quantile, probs = 0.025),
+  high_r = apply(phi_post_r, 2, quantile, probs = 0.975),
+  phi_hat_nr = apply(phi_post_nr, 2, mean),
+  low_nr = apply(phi_post_nr, 2, quantile, probs = 0.025),
+  high_nr = apply(phi_post_nr, 2, quantile, probs = 0.975),
+  phi_hat_fl = apply(phi_post_fl, 2, mean),
+  low_fl = apply(phi_post_fl, 2, quantile, probs = 0.025),
+  high_fl = apply(phi_post_fl, 2, quantile, probs = 0.975)
+)
 
-  # fill in first p observations that are considered fixed
-  post_preds_r[, 1:datlist$p] <- matrix(
-    rep(y[1:datlist$p], each = draws), nrow = draws, ncol = datlist$p
-  )
-  post_preds_nr[, 1:datlist_nr$p] <- matrix(
-    rep(y[1:datlist_nr$p], each = draws), nrow = draws, ncol = datlist_nr$p
-  )
-  post_preds_fl[, 1:datlist_fl$p] <- matrix(
-    rep(y[1:datlist_fl$p], each = draws), nrow = draws, ncol = datlist_fl$p
-  )
+################################################################
+# plots for posterior estimates and CIs compared to simulated values
+plot_beta <- ggplot(data = df_beta, aes(x = 1:nrow(df_beta))) +
+  geom_rect(aes(xmin=20.5,xmax=21.5,ymin=-1,ymax=3),fill="gray") +
+  #geom_rect(aes(xmin=0.5,xmax=1.5,ymin=-1,ymax=3),fill="gray") +
+  geom_errorbar(aes(ymin = low_fl, ymax = high_fl, x=(1:nrow(df_beta))-0.2), width = 0) +
+  geom_point(aes(y = beta_hat_fl, x=(1:nrow(df_beta))-0.2)) +
+  geom_errorbar(aes(ymin = low_nr, ymax = high_nr), width = 0,color="#a52a2aff") +
+  geom_point(aes(y = beta_hat_nr),color = "#a52a2aff") +
+  geom_errorbar(aes(ymin = low_r, ymax = high_r, x=(1:nrow(df_beta))+0.2), width = 0,color="#33406fff") +
+  geom_point(aes(y = beta_hat_r, x=(1:nrow(df_beta))+0.2), color = "#33406fff") +
+  geom_point(aes(y = beta_true), shape = "l", color = "green3", size = 5) +
+  theme_classic() +
+  theme(axis.title.y = element_blank(),axis.text.y = element_blank(),axis.ticks.y = element_blank()) +
+  annotate("point", x = 9, y = 1.8, shape = "l", color = "green3", size = 5) +
+  annotate("text", label = "Actual", x = 9, y = 2, hjust = 0, size = 3) +
+  annotate("point", x = 8, y = 1.8, color = "#33406fff") +
+  annotate("text", x = 8, y = 2, label = "Horseshoe", hjust = 0, size = 3) +
+  annotate("point", x = 7, y = 1.8, color = "#a52a2aff") +
+  annotate("text", x = 7, y = 2, label = "Gaussian", hjust = 0, size = 3) +
+  annotate("point", x = 6, y = 1.8) +
+  annotate("text", x = 6, y = 2, label = "Flat", hjust = 0, size = 3) +
+  ylab("value") +
+  ggtitle("d) Covariate coefficients")
 
-  # fill in post. pred. draws from stan
-  post_preds_r[, (datlist$p + 1):(n - holdout)] <- y_rep_r
-  post_preds_nr[, (datlist_nr$p + 1):(n - holdout)] <- y_rep_nr
-  post_preds_fl[, (datlist_fl$p + 1):(n - holdout)] <- y_rep_fl
+plot_phi <- ggplot(data = df_phi, aes(x = 1:nrow(df_phi))) +
+  geom_errorbar(aes(ymin = low_fl, ymax = high_fl, x=(1:nrow(df_phi))-0.2), width = 0,color="#33406fff") +
+  geom_point(aes(y = phi_hat_fl, x=(1:nrow(df_phi))-0.2),color="#33406fff") +
+  geom_errorbar(aes(ymin = low_nr, ymax = high_nr), width = 0,color="#a52a2aff") +
+  geom_point(aes(y = phi_hat_nr),color="#a52a2aff") +
+  geom_errorbar(aes(ymin = low_r, ymax = high_r, x=(1:nrow(df_phi))+0.2), width = 0) +
+  geom_point(aes(y = phi_hat_r), x=(1:nrow(df_phi))+0.2) +
+  geom_point(aes(y = phi_true), shape = "|", color = "goldenrod2", size = 4) +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 0, hjust = 1)) +
+  annotate("point", x = 6, y = 0.35, shape = "|", color = "goldenrod2", size = 4) +
+  annotate("text", label = "Actual", x = 6, y = 0.4, hjust = 0, size = 3) +
+  annotate("point", x = 5, y = 0.35) +
+  annotate("text", x = 5, y = 0.4, label = "Horseshoe", hjust = 0, size = 3) +
+  annotate("point", x = 4, y = 0.35, color = "#a52a2aff") +
+  annotate("text", x = 4, y = 0.4, label = "Gaussian", hjust = 0, size = 3) +
+  annotate("point", x = 3, y = 0.35, color = "#33406fff") +
+  annotate("text", x = 3, y = 0.4, label = "Flat", hjust = 0, size = 3) +
+  ylab("value") +
+  xlab("parameters") +
+  ggtitle("AR coefficients")
 
-  for(i in 1:draws){
-    for(t in (n - holdout + 1):n){
-      # regularized model
-      y_past_r <- as.double(post_preds_r[i, (t - datlist$p):(t - 1)])
-      post_preds_r[i, t] <- alpha_post_r[i, 1] + X[t, -1] %*% beta_post_r[i, ] +
-        phi_post_r[i, ] %*% y_past_r +
-        rnorm(1, sd = sigma_post_r[i])
+#names(df_beta)=names(df_phi)
+df_betaphi=rbind(df_phi,df_beta)
 
-      # non-regularized model
-      y_past_nr <- as.double(post_preds_nr[i, (t - datlist_nr$p):(t - 1)])
-      post_preds_nr[i, t] <- X[t, ] %*% beta_post_nr[i, ] +
-        phi_post_nr[i, ] %*% y_past_nr +
-        rnorm(1, sd = sigma_post_nr[i])
+plot_betaphi <- ggplot(data = df_betaphi, aes(x = 1:nrow(df_betaphi))) +
+  geom_rect(aes(xmin=11.5,xmax=12.5,ymin=-1,ymax=3),fill="gray") +
+  geom_rect(aes(xmin=18.5,xmax=19.5,ymin=-1,ymax=3),fill="gray") +
+  geom_errorbar(aes(ymin = low_fl, ymax = high_fl, x=(1:nrow(df_betaphi))-0.2), width = 0) +
+  geom_point(aes(y = phi_hat_fl, x=(1:nrow(df_betaphi))-0.2)) +
+  geom_errorbar(aes(ymin = low_nr, ymax = high_nr), width = 0,color="#a52a2aff") +
+  geom_point(aes(y = phi_hat_nr),color="#a52a2aff") +
+  geom_errorbar(aes(ymin = low_r, ymax = high_r, x=(1:nrow(df_betaphi))+0.2), width = 0, color="#33406fff") +
+  geom_point(aes(y = phi_hat_r), x=(1:nrow(df_betaphi))+0.2, color="#33406fff") +
+  geom_point(aes(y = phi_true), shape = "|", color = "goldenrod3", size = 4) +
+  theme_classic() +
+  theme(axis.text.y = element_blank(),axis.ticks.y = element_blank(),axis.title.y=element_blank()) +
+  annotate("point", x = 6, y = 1.65, shape = "|", color = "goldenrod3", size = 4) +
+  annotate("text", label = "Actual", x = 6, y = 1.75, hjust = 0, size = 3) +
+  annotate("point", x = 5, y = 1.65, color = "#33406fff") +
+  annotate("text", x = 5, y = 1.75, label = "Horseshoe", hjust = 0, size = 3) +
+  annotate("point", x = 4, y = 1.65, color = "#a52a2aff") +
+  annotate("text", x = 4, y = 1.75, label = "Gaussian", hjust = 0, size = 3) +
+  annotate("point", x = 3, y = 1.65) +
+  annotate("text", x = 3, y = 1.75, label = "Flat", hjust = 0, size = 3) +
+  ylab("value") +
+  xlab("parameters") +
+  ggtitle("Parameter Estimates")
 
-      # flat model
-      y_past_fl <- as.double(post_preds_fl[i, (t - datlist_fl$p):(t - 1)])
-      post_preds_fl[i, t] <- X[t, ] %*% beta_post_fl[i, ] +
-        phi_post_fl[i, ] %*% y_past_fl +
-        rnorm(1, sd = sigma_post_fl[i])
-    }
+
+
+################################################################
+#### Get predictions for all models ####
+# COMPARISON STARTS
+
+# forecast the held-out observations
+beta_post_nr <- rstan::extract(mfit_arp_nr, pars = "beta")$beta
+beta_post_fl <- rstan::extract(mfit_arp_fl, pars = "beta")$beta
+beta_post_r <- rstan::extract(mfit_arp_r, pars = "beta")$beta
+phi_post_nr <- rstan::extract(mfit_arp_nr, pars = "phi")$phi
+phi_post_fl <- rstan::extract(mfit_arp_fl, pars = "phi")$phi
+phi_post_r <- rstan::extract(mfit_arp_r, pars = "phi")$phi
+sigma_post_nr <- rstan::extract(mfit_arp_nr, pars = "sigma")$sigma
+sigma_post_r <- rstan::extract(mfit_arp_r, pars = "sigma")$sigma
+sigma_post_fl <- rstan::extract(mfit_arp_fl, pars = "sigma")$sigma
+y_rep_nr <- rstan::extract(mfit_arp_nr, pars = "y_rep")$y_rep
+y_rep_r <- rstan::extract(mfit_arp_r, pars = "y_rep")$y_rep
+y_rep_fl <- rstan::extract(mfit_arp_fl, pars = "y_rep")$y_rep
+
+draws <- nrow(beta_post_nr)
+
+# matrix of draws from the posterior-predictive distribution
+# non-regularized model
+post_preds_nr <- matrix(nrow = draws, ncol = n)
+
+# regularized model
+post_preds_r <- matrix(nrow = draws, ncol = n)
+
+# flat model
+post_preds_fl <- matrix(nrow = draws, ncol = n)
+
+# fill in first p observations that are considered fixed
+post_preds_r[, 1:datlist$p] <- matrix(
+  rep(y[1:datlist$p], each = draws), nrow = draws, ncol = datlist$p
+)
+post_preds_nr[, 1:datlist_nr$p] <- matrix(
+  rep(y[1:datlist_nr$p], each = draws), nrow = draws, ncol = datlist_nr$p
+)
+post_preds_fl[, 1:datlist_fl$p] <- matrix(
+  rep(y[1:datlist_fl$p], each = draws), nrow = draws, ncol = datlist_fl$p
+)
+
+# fill in post. pred. draws from stan
+post_preds_r[, (datlist$p + 1):(n - holdout)] <- y_rep_r
+post_preds_nr[, (datlist_nr$p + 1):(n - holdout)] <- y_rep_nr
+post_preds_fl[, (datlist_fl$p + 1):(n - holdout)] <- y_rep_fl
+
+for(i in 1:draws){
+  for(t in (n - holdout + 1):n){
+    # regularized model
+    y_past_r <- as.double(post_preds_r[i, (t - datlist$p):(t - 1)])
+    post_preds_r[i, t] <- alpha_post_r[i, 1] + X[t, -1] %*% beta_post_r[i, ] +
+      phi_post_r[i, ] %*% y_past_r +
+      rnorm(1, sd = sigma_post_r[i])
+
+    # non-regularized model
+    y_past_nr <- as.double(post_preds_nr[i, (t - datlist_nr$p):(t - 1)])
+    post_preds_nr[i, t] <- X[t, ] %*% beta_post_nr[i, ] +
+      phi_post_nr[i, ] %*% y_past_nr +
+      rnorm(1, sd = sigma_post_nr[i])
+
+    # flat model
+    y_past_fl <- as.double(post_preds_fl[i, (t - datlist_fl$p):(t - 1)])
+    post_preds_fl[i, t] <- X[t, ] %*% beta_post_fl[i, ] +
+      phi_post_fl[i, ] %*% y_past_fl +
+      rnorm(1, sd = sigma_post_fl[i])
   }
+}
 
-  forecast_df <- data.frame(
-    time = 1:n,
-    y = as.double(y),
-    estim_r = apply(post_preds_r, 2, mean),
-    low_r = apply(post_preds_r, 2, quantile, probs = 0.025),
-    high_r = apply(post_preds_r, 2, quantile, probs = 0.975),
-    estim_nr = apply(post_preds_nr, 2, mean),
-    low_nr = apply(post_preds_nr, 2, quantile, probs = 0.025),
-    high_nr = apply(post_preds_nr, 2, quantile, probs = 0.975),
-    estim_fl = apply(post_preds_fl, 2, mean),
-    low_fl = apply(post_preds_fl, 2, quantile, probs = 0.025),
-    high_fl = apply(post_preds_fl, 2, quantile, probs = 0.975)
-  )
+forecast_df <- data.frame(
+  time = 1:n,
+  y = as.double(y),
+  estim_r = apply(post_preds_r, 2, mean),
+  low_r = apply(post_preds_r, 2, quantile, probs = 0.025),
+  high_r = apply(post_preds_r, 2, quantile, probs = 0.975),
+  estim_nr = apply(post_preds_nr, 2, mean),
+  low_nr = apply(post_preds_nr, 2, quantile, probs = 0.025),
+  high_nr = apply(post_preds_nr, 2, quantile, probs = 0.975),
+  estim_fl = apply(post_preds_fl, 2, mean),
+  low_fl = apply(post_preds_fl, 2, quantile, probs = 0.025),
+  high_fl = apply(post_preds_fl, 2, quantile, probs = 0.975)
+)
 
-  # compute prediction root mean squared error for each model
-  # RMSE_bayes() is a user-defined function in R/model_checking.R
-  # n_xAxis is the maximum value of the x-axis (i.e. how many predicted observations are included in the figure)
-  n_xAxis <- 115
-  rmse_df <- data.frame(
-    model = rep(c("Horseshoe", "Gaussian","Flat"), each = draws),
-    rmse = c(
-      RMSE_bayes(y[(n - holdout + 1):n_xAxis], ppreds = post_preds_r[, (n - holdout + 1):n_xAxis]),
-      RMSE_bayes(y[(n - holdout + 1):n_xAxis], ppreds = post_preds_nr[, (n - holdout + 1):n_xAxis]),
-      RMSE_bayes(y[(n - holdout + 1):n_xAxis], ppreds = post_preds_fl[, (n - holdout + 1):n_xAxis])
-    )
-  )
+# n_xAxis is the maximum value of the x-axis (i.e. how many predicted observations are included in the figure)
+n_xAxis <- 115
 
-  # add values to the df for mean and SD of RMSE for each prior type
-  rmse_df <- rmse_df %>%
-    group_by(model) %>%
-    summarize(mean = mean(rmse),
-              sd = sd(rmse),
-              median = median(rmse)) %>%
-    right_join(y = rmse_df) %>%
-    mutate(low_sd = mean - 2*sd,
-           high_sd = mean + 2*sd)
+################################################################
+#### Plot predictions all models ####
 
-  # Plots comparing simulated values against post. pred intervals
-  # variables to determine spread of y-axis (min and max observed +/- rmse for flat prior model)
-  y_minVal <- min(forecast_df[50:n_xAxis, "low_fl"])
-  y_maxVal <- max(forecast_df[50:n_xAxis, "high_fl"])
+# Show x after time...
+xmin=80
 
-  r_forecast <- ggplot(forecast_df[50:n_xAxis, ], aes(x = time, y = y))+
-    geom_ribbon(aes(ymin = low_r, ymax = high_r), fill = "#33406fff", alpha = 0.5) +
-    #geom_point() +
-    geom_line(linetype = "dashed") +
-    geom_vline(xintercept = 100) +
-    ylim(c(y_minVal, y_maxVal)) +
-    xlim(c(50,n_xAxis)) +
-    theme_classic() +
-    ggtitle("Horseshoe priors")
+# Plots comparing simulated values against post. pred intervals
+# variables to determine spread of y-axis (min and max observed +/- rmse for flat prior model)
+y_minVal <- min(forecast_df[xmin:n_xAxis, "low_fl"])-1
+y_maxVal <- max(forecast_df[xmin:n_xAxis, "high_fl"])+1
 
-  nr_forecast <- ggplot(forecast_df[50:n_xAxis, ], aes(x = time, y = y)) +
-    geom_ribbon(aes(ymin = low_nr, ymax = high_nr), fill = "#a52a2aff", alpha = 0.5) +
-    #geom_point() +
-    geom_line(linetype = "dashed") +
-    geom_vline(xintercept = 100) +
-    ylim(c(y_minVal, y_maxVal)) +
-    xlim(c(50,n_xAxis)) +
-    theme_classic() +
-    ggtitle("Gaussian Priors")
-
-  fl_forecast <- ggplot(forecast_df[50:n_xAxis, ], aes(x = time, y = y)) +
-    geom_ribbon(aes(ymin = low_fl, ymax = high_fl), fill = "#bebebeff", alpha = 0.5) +
-    #geom_point() +
-    geom_line(linetype = "dashed") +
-    geom_vline(xintercept = 100) +
-    ylim(c(y_minVal, y_maxVal)) +
-    xlim(c(50,n_xAxis)) +
-    theme_classic() +
-    ggtitle("Flat Priors")
-
-
-# posterior predictive distributions of RMSE
- #rmse <-
-   ggplot(rmse_df, aes(x = rmse, y = model, fill = model, color = model)) +
-    geom_violin( alpha = .3) +
-    geom_point(aes(x =mean, fill = model), pch = 8) +
-    geom_ribbon(aes(xmin = low_sd, xmax = high_sd, fill = model)) +
-    theme_classic() +
-    scale_color_manual(values = c( "black", "#a52a2aff", "#33406fff"), guide = "none") + # removed color key, since the y-axis is labeled now
-    scale_fill_manual(values = c( "#bebebeff", "#a52a2aff", "#33406fff"), guide = "none") +
-    xlab("Forecasting RMSE") +
-    ylab("Density of RMSE") +
-    xlim(0,30) ## not too sure how big to make this axis, because the highest RMSE is ~1400, which makes the violin plots impossible to read
-
-# save the plot
-  png(
-    here("Figures/forecast_comparson_AR-p.png"),
-    height = 3600, width = 1500,
-    units = "px", res = 300
-  )
-
-    gridExtra::grid.arrange(rmse, r_forecast, nr_forecast, fl_forecast, ncol = 1, heights = c(.3, .23, .23, .23))
-
-     dev.off()
-
-
-## Plot coefficient recovery from gaussian and horseshoe prior models ##########
-
-     mod_cols <- c("#a52a2aff", "#33406fff")
-     phi_true = c(phi, rep(0, 4))[20:1]
-
-
-     beta_r <- data.frame(
-       beta = apply(beta_post_r, 2, median),
-       high = apply(beta_post_r, 2, quantile, probs = 0.975),
-       low = apply(beta_post_r, 2, quantile, probs = 0.025))
-     phi_r <- data.frame(
-       phi = apply(phi_post_r, 2, median),
-       high = apply(phi_post_r, 2, quantile, probs = 0.975),
-       low = apply(phi_post_r, 2, quantile, probs = 0.025))
-     beta_nr <- data.frame(
-       beta = apply(beta_post_nr, 2, median),
-       high = apply(beta_post_nr, 2, quantile, probs = 0.975),
-       low = apply(beta_post_nr, 2, quantile, probs = 0.025))
-     phi_nr = data.frame(
-       phi = apply(phi_post_nr, 2, median),
-       high = apply(phi_post_nr, 2, quantile, probs = 0.975),
-       low = apply(phi_post_nr, 2, quantile, probs = 0.025))
-
-
-     par( mar = c(5,3,1,2), oma = c(0,2,1,0))
-     layout(matrix(c(1,1,2,2,2,2,2), nrow = 1, ncol = 7, byrow = TRUE))
-
-     a_r <- out$mod_fit_r$par_ests$beta_hat beta_nr <- out$mod_fit_nr$par_ests$beta_hat phi_r <- out$mod_fit_r$par_ests$phi_hat phi_nr <- out$mod_fit_nr$par_ests$phi_hat plot(forecast_r$time, forecast_r$y, type = 'l', ylim = c(min(forecast_nr$low), max(forecast_nr$high)), ylab = 'GPP', xlab = 'Time' ) polygon(x = c(forecast_nr$time, rev(forecast_nr$time)), y = c(forecast_nr$low, rev(forecast_nr$high)), col = adjustcolor('grey50', alpha.f = 0.5), border = NA) polygon(x = c(forecast_r$time, rev(forecast_r$time)), y = c(forecast_r$low, rev(forecast_r$high)), col = adjustcolor('brown3', alpha.f = 0.5), border = NA) lines(forecast_r$time, forecast_r$estim, col = 'brown3') lines(forecast_nr$time, forecast_r$estim, col = 'grey50') abline(v = 100) mtext('GPP', 2, line = 2)  legend(100, 30, legend = c('Regularized', 'Not regularized'), title = "Model Forecast:", fill = c('brown3', 'grey50'), bty = 'n')
-     plot(seq(1:20), phi_true, pch = 2, xlab = 'Phi', ylab = '')#, ylim = c(-5.5,5.8))
-     points(seq(0.85, 19.85, by = 1), phi_r$phi, pch = 19, col = mod_cols[2])
-     arrows(seq(0.85, 19.85, by = 1), phi_r[,2],
-            seq(0.85, 19.85, by = 1), phi_r[,3],
-            length = 0, col = 'brown3')
-     points(seq(1.15, 20.15, by = 1), phi_nr[,1], pch = 19, col = 'grey50')
-     arrows(seq(1.15, 20.15, by = 1), phi_nr[,2],
-            seq(1.15, 20.15, by = 1), phi_nr[,3],
-            length = 0, col = 'grey50')
-     mtext('Estimate', 2, line = 2)
-
-     plot(seq(1:51), beta, pch = 2, xlab = 'Beta', ylab = 'Value', ylim = c(-5.5,5.8))
-     points(seq(0.85, 50.85, by = 1), beta_r[,1], pch = 19, col = 'brown3')
-     arrows(seq(0.85, 50.85, by = 1), beta_r[,2],
-            seq(0.85, 50.85, by = 1), beta_r[,3],
-            length = 0, col = 'brown3')
-     points(seq(1.15, 51.15, by = 1), beta_nr[,1], pch = 19, col = 'grey50')
-     arrows(seq(1.15, 51.15, by = 1), beta_nr[,2],
-            seq(1.15, 51.15, by = 1), beta_nr[,3],
-            length = 0, col = 'grey50')
-
-     legend('topright',
-            legend = c('true value', 'regularized', 'not regularized'),
-            pch = c(2, 19, 19), col = c('black', 'brown3', 'grey50'),
-            bty = 'n')
+r_forecast <- ggplot(forecast_df[xmin:n_xAxis, ], aes(x = time, y = y))+
+  geom_ribbon(aes(ymin = low_r, ymax = high_r), fill = "#33406fff", alpha = 0.5) +
+  #geom_point() +
+  geom_line(linetype = "solid") +
+  geom_vline(xintercept = 100) +
+  annotate("rect",xmin=80,xmax=99.9,ymin=y_minVal,ymax=y_maxVal,alpha=0.6,fill="white") +
+  ylim(c(y_minVal, y_maxVal)) +
+  xlim(c(xmin,n_xAxis)) +
+  theme_classic() +
+  ggtitle("a) Horseshoe priors") +
+  geom_segment(x=n_xAxis+0.4,y=(forecast_df$low_r[n_xAxis]+forecast_df$high_r[n_xAxis])/2+1.5,xend=n_xAxis+0.4,yend=forecast_df$high_r[n_xAxis],arrow=arrow(length=unit(0.03,"npc"),ends="last"))+
+  geom_segment(x=n_xAxis+0.4,y=(forecast_df$low_r[n_xAxis]+forecast_df$high_r[n_xAxis])/2-1.5,xend=n_xAxis+0.4,yend=forecast_df$low_r[n_xAxis],arrow=arrow(length=unit(0.03,"npc"),ends="last"))+
+  geom_text(x=n_xAxis+0.4,y=(forecast_df$low_r[n_xAxis]+forecast_df$high_r[n_xAxis])/2,label=round(forecast_df$high_r[n_xAxis]-forecast_df$low_r[n_xAxis],digits=1),size=4)
 
 
 
+nr_forecast <- ggplot(forecast_df[xmin:n_xAxis, ], aes(x = time, y = y)) +
+  geom_ribbon(aes(ymin = low_nr, ymax = high_nr), fill = "#a52a2aff", alpha = 0.5) +
+  #geom_point() +
+  geom_line(linetype = "solid") +
+  geom_vline(xintercept = 100) +
+  annotate("rect",xmin=80,xmax=99.9,ymin=y_minVal,ymax=y_maxVal,alpha=0.6,fill="white") +
+  annotate("point",x=111.5,y=0.3, pch=21,size=10)+
+  ylim(c(y_minVal, y_maxVal)) +
+  xlim(c(xmin,n_xAxis)) +
+  theme_classic() +
+  ggtitle("b) Gaussian Priors")+
+  geom_segment(x=n_xAxis+0.4,y=(forecast_df$low_nr[n_xAxis]+forecast_df$high_nr[n_xAxis])/2+1.5,xend=n_xAxis+0.4,yend=forecast_df$high_nr[n_xAxis],arrow=arrow(length=unit(0.03,"npc"),ends="last"))+
+  geom_segment(x=n_xAxis+0.4,y=(forecast_df$low_nr[n_xAxis]+forecast_df$high_nr[n_xAxis])/2-1.5,xend=n_xAxis+0.4,yend=forecast_df$low_nr[n_xAxis],arrow=arrow(length=unit(0.03,"npc"),ends="last"))+
+  geom_text(x=n_xAxis+0.4,y=(forecast_df$low_nr[n_xAxis]+forecast_df$high_nr[n_xAxis])/2,label=round(forecast_df$high_nr[n_xAxis]-forecast_df$low_nr[n_xAxis],digits=1),size=4)
 
 
+fl_forecast <- ggplot(forecast_df[xmin:n_xAxis, ], aes(x = time, y = y)) +
+  geom_ribbon(aes(ymin = low_fl, ymax = high_fl), fill = "#bebebeff", alpha = 0.5) +
+  #geom_point() +
+  geom_line(linetype = "solid") +
+  geom_vline(xintercept = 100) +
+  annotate("rect",xmin=80,xmax=99.9,ymin=y_minVal,ymax=y_maxVal,alpha=0.6,fill="white") +
+  annotate("point",x=111.5,y=0.3, pch=21,size=10)+
+  ylim(c(y_minVal, y_maxVal)) +
+  xlim(c(xmin,n_xAxis)) +
+  theme_classic() +
+  ggtitle("c) Flat Priors")+
+  geom_segment(x=n_xAxis+0.4,y=(forecast_df$low_fl[n_xAxis]+forecast_df$high_fl[n_xAxis])/2+1.5,xend=n_xAxis+0.4,yend=forecast_df$high_fl[n_xAxis],arrow=arrow(length=unit(0.03,"npc"),ends="last"))+
+  geom_segment(x=n_xAxis+0.4,y=(forecast_df$low_fl[n_xAxis]+forecast_df$high_fl[n_xAxis])/2-1.5,xend=n_xAxis+0.4,yend=forecast_df$low_fl[n_xAxis],arrow=arrow(length=unit(0.03,"npc"),ends="last"))+
+  geom_text(x=n_xAxis+0.4,y=(forecast_df$low_fl[n_xAxis]+forecast_df$high_fl[n_xAxis])/2,label=round(forecast_df$high_fl[n_xAxis]-forecast_df$low_fl[n_xAxis],digits=1),size=4)
+
+
+################################################################
+#### Plot full composite figure ####
+
+lo <- rbind(
+  c(1, 4),
+  c(2, 4),
+  c(3, 4)
+)
+
+png(
+  filename = here("Figures/newFig1_Sep27.png"),
+  width = 2700,
+  height = 2100,
+  res = 300, units = "px"
+)
+
+gridExtra::grid.arrange(r_forecast, nr_forecast, fl_forecast,plot_beta+coord_flip(),layout_matrix = lo)
+
+dev.off()
 
 
 
