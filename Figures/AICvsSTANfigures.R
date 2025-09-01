@@ -101,7 +101,7 @@ pdf(file=here("Figures/correlated_variable_effects_combined.pdf"), width = 5, he
 par(mar=c(5,9,2,2))
 par(mfrow=c(3,1))
 vioplot::vioplot(cbind(AIC1=corData6$TPRaic[which(corData6$corrLevel==0.1)],STAN1=corData6$TPRstan[which(corData6$corrLevel==0.1)],AIC5=corData6$TPRaic[which(corData6$corrLevel==0.5)],STAN5=corData6$TPRstan[which(corData6$corrLevel==0.5)],AIC9=corData6$TPRaic[which(corData6$corrLevel==0.9)],STAN9=corData6$TPRstan[which(corData6$corrLevel==0.9)]), xlab="",
-                 horizontal=T,las=1,names=c("Stepwise AIC\n correlation 0.1","Horseshoe\n correlation 0.1","Stepwise AIC\n correlation 0.5","Horseshoe\n correlation 0.5","Stepwise AIC\n correlation 0.9","Horseshoe\n correlation 0.9"),col=c("wheat","skyblue","tan","steelblue1","tan3","steelblue4"),
+                 horizontal=T,las=1,names=c("Stepwise AIC\n correlation 0.1","RHS\n correlation 0.1","Stepwise AIC\n correlation 0.5","RHS\n correlation 0.5","Stepwise AIC\n correlation 0.9","RHS\n correlation 0.9"),col=c("wheat","skyblue","tan","steelblue1","tan3","steelblue4"),
                  pchMed=20,border=c("tan4","royalblue4","tan4","royalblue4","tan4","royalblue4"),rectCol=c("tan4","royalblue4","tan4","royalblue4","tan4","royalblue4"), lineCol=c("tan4","royalblue4","tan4","royalblue4","tan4","royalblue4"),colMed=c("tan4","royalblue4","tan4","royalblue4","tan4","royalblue4"),ylab="")
 title(ylab="Density of TPR",line=7,cex.lab=1.2)
 title(xlab="True Positive Rate (TPR)",line=3,cex.lab=1.2)
@@ -109,7 +109,7 @@ par(xpd=T)
 text(-0.06,7,"a)",cex=1.5)
 par(xpd=F)
 vioplot::vioplot(cbind(AIC1=corData6$TNRaic[which(corData6$corrLevel==0.1)],STAN1=corData6$TNRstan[which(corData6$corrLevel==0.1)],AIC5=corData6$TNRaic[which(corData6$corrLevel==0.5)],STAN5=corData6$TNRstan[which(corData6$corrLevel==0.5)],AIC9=corData6$TNRaic[which(corData6$corrLevel==0.9)],STAN9=corData6$TNRstan[which(corData6$corrLevel==0.9)]), xlab="",
-                 horizontal=T,las=1,names=c("Stepwise AIC\n correlation 0.1","Horseshoe\n correlation 0.1","Stepwise AIC\n correlation 0.5","Horseshoe\n correlation 0.5","Stepwise AIC\n correlation 0.9","Horseshoe\n correlation 0.9"),col=c("wheat","skyblue","tan","steelblue1","tan3","steelblue4"),
+                 horizontal=T,las=1,names=c("Stepwise AIC\n correlation 0.1","RHS\n correlation 0.1","Stepwise AIC\n correlation 0.5","RHS\n correlation 0.5","Stepwise AIC\n correlation 0.9","RHS\n correlation 0.9"),col=c("wheat","skyblue","tan","steelblue1","tan3","steelblue4"),
                  pchMed=20,border=c("tan4","royalblue4","tan4","royalblue4","tan4","royalblue4"),rectCol=c("tan4","royalblue4","tan4","royalblue4","tan4","royalblue4"), lineCol=c("tan4","royalblue4","tan4","royalblue4","tan4","royalblue4"),colMed=c("tan4","royalblue4","tan4","royalblue4","tan4","royalblue4"),ylab="")
 title(ylab="Density of TNR",line=7,cex.lab=1.2)
 title(xlab="True Negative Rate (TNR)",line=3,cex.lab=1.2)
@@ -117,7 +117,7 @@ par(xpd=T)
 text(-0.3,7,"b)",cex=1.5)
 par(xpd=F)
 vioplot::vioplot(cbind(AIC1=corData6$RMSEaic[which(corData6$corrLevel==0.1)],STAN1=corData6$RMSEstan[which(corData6$corrLevel==0.1)],AIC5=corData6$RMSEaic[which(corData6$corrLevel==0.5)],STAN5=corData6$RMSEstan[which(corData6$corrLevel==0.5)],AIC9=corData6$RMSEaic[which(corData6$corrLevel==0.9)],STAN9=corData6$RMSEstan[which(corData6$corrLevel==0.9)]), xlab="",
-                 horizontal=T,las=1,names=c("Stepwise AIC\n correlation 0.1","Horseshoe\n correlation 0.1","Stepwise AIC\n correlation 0.5","Horseshoe\n correlation 0.5","Stepwise AIC\n correlation 0.9","Horseshoe\n correlation 0.9"),col=c("wheat","skyblue","tan","steelblue1","tan3","steelblue4"),
+                 horizontal=T,las=1,names=c("Stepwise AIC\n correlation 0.1","RHS\n correlation 0.1","Stepwise AIC\n correlation 0.5","RHS\n correlation 0.5","Stepwise AIC\n correlation 0.9","RHS\n correlation 0.9"),col=c("wheat","skyblue","tan","steelblue1","tan3","steelblue4"),
                  pchMed=20,border=c("tan4","royalblue4","tan4","royalblue4","tan4","royalblue4"),rectCol=c("tan4","royalblue4","tan4","royalblue4","tan4","royalblue4"), lineCol=c("tan4","royalblue4","tan4","royalblue4","tan4","royalblue4"),colMed=c("tan4","royalblue4","tan4","royalblue4","tan4","royalblue4"),ylab="")
 title(ylab="Density of Prediction RMSE",line=7,cex.lab=1.2)
 title(xlab="Prediction Root Mean Square Error (RMSE)",line=3,cex.lab=1.2)
