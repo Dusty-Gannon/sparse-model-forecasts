@@ -1,4 +1,4 @@
-# This script contains exploration, selection, and standardization of empirical 
+# This script contains exploration, selection, and standardization of empirical
 # data from the ITRDB
 
 # load packages
@@ -6,7 +6,7 @@ library(tidyverse)
 library(dplR)
 
 # load Giant sequoia data downloaded from collection CA726 in ITRDB
-ca726_se_raw <- read.table("/Users/kaitlynmcknight/Documents/Global Synchrony/SparseTS/ca726-rwl-noaa.txt", header = TRUE, sep = "", stringsAsFactors = FALSE)
+ca726_se_raw <- read.table(url("https://www.ncei.noaa.gov/pub/data/paleo/treering/measurements/northamerica/usa/ca726-rwl-noaa.txt"), header = T, sep = "\t", stringsAsFactors = FALSE)
 
 # pivot raw data into long format
 ca726_se_long <- ca726_se_raw %>%
@@ -23,8 +23,8 @@ ca726_se_wide_ts <- ca726_se_long %>%
   filter(max_year > 1970) %>%
   filter(min_year < 1800)
 
-# pivot longer  
-ca726_se_long_ts <- ca726_se_wide_ts %>% 
+# pivot longer
+ca726_se_long_ts <- ca726_se_wide_ts %>%
   pivot_longer(2:3, names_to = "year_type", values_to = "year")
 
 # create a loop to determine the number of trees with data for a particular timeseries
@@ -38,11 +38,11 @@ for(i in start_years){
       select(min_year, max_year) %>%
       filter(min_year <= i) %>%
       filter(max_year == j)
-    
+
     temp$start_year <- i
     temp$end_year <- j
     temp$num_trees <- dim(temp)[1]
-    
+
     timeseries_container <- rbind(timeseries_container, temp)
   }
 }
@@ -70,7 +70,7 @@ ca726_se_long_1600_2012_filtered <- ca726_se_long %>%
 ca726_se_long_1600_2012_filtered <- ca726_se_long_1600_2012_filtered %>%
   filter(year >= 1600)
 
-# sumarise avg growth across our timeseries 
+# sumarise avg growth across our timeseries
 ca726_se_1600_2012_avg_growth <- ca726_se_long_1600_2012_filtered %>%
   group_by(year) %>%
   summarise(avg.trw = mean(trw), sd.trw = sd(trw),n.trw = n()) %>%
@@ -97,7 +97,7 @@ ca726_se_long_1700_2012_filtered <- ca726_se_long %>%
 ca726_se_long_1700_2012_filtered <- ca726_se_long_1700_2012_filtered %>%
   filter(year >= 1700)
 
-# sumarise avg growth across our timeseries 
+# sumarise avg growth across our timeseries
 ca726_se_1700_2012_avg_growth <- ca726_se_long_1700_2012_filtered %>%
   group_by(year) %>%
   summarise(avg.trw = mean(trw), sd.trw = sd(trw),n.trw = n()) %>%
@@ -125,7 +125,7 @@ ca726_se_long_1800_2012_filtered <- ca726_se_long %>%
 ca726_se_long_1800_2012_filtered <- ca726_se_long_1800_2012_filtered %>%
   filter(year >= 1800)
 
-# sumarise avg growth across our timeseries 
+# sumarise avg growth across our timeseries
 ca726_se_1800_2012_avg_growth <- ca726_se_long_1800_2012_filtered %>%
   group_by(year) %>%
   summarise(avg.trw = mean(trw), sd.trw = sd(trw),n.trw = n()) %>%
@@ -153,7 +153,7 @@ ca726_se_long_1760_2012_filtered <- ca726_se_long %>%
 ca726_se_long_1760_2012_filtered <- ca726_se_long_1760_2012_filtered %>%
   filter(year >= 1760)
 
-# sumarise avg growth across our timeseries 
+# sumarise avg growth across our timeseries
 ca726_se_1760_2012_avg_growth <- ca726_se_long_1760_2012_filtered %>%
   group_by(year) %>%
   summarise(avg.trw = mean(trw), sd.trw = sd(trw),n.trw = n()) %>%
@@ -177,11 +177,11 @@ ggplot(ca726_se_ts_compare_2012) +
   facet_grid(vars(tree), scales = "free")
 
 
-ca726_se_ts_compare$tree<- factor(ca726_se_ts_compare_2012$tree, levels = c(5, 20, 30, 41))
-ggplot(ca726_se_ts_compare, aes(x = tree, y = avg.trw)) +
-  geom_boxplot() +
-  ylab("Average TRW (mm)") +
-  theme_minimal()
+# ca726_se_ts_compare$tree<- factor(ca726_se_ts_compare_2012$tree, levels = c(5, 20, 30, 41))
+# ggplot(ca726_se_ts_compare, aes(x = tree, y = avg.trw)) +
+#   geom_boxplot() +
+#   ylab("Average TRW (mm)") +
+#   theme_minimal()
 
 # select trees from BMC 1800-2012 timeseries for final analyses
 BMC_trees <- ca726_se_1800_2012$tree_id[1:22]
@@ -191,24 +191,24 @@ ca726_seq_BMC <- ca726_se_long %>%
   filter(year >= 1800)
 
 # pull in data from BM site specifically CA719
-ca719_seq_rwl <- read.table("/Users/kaitlynmcknight/Documents/Global Synchrony/SparseTS/ca719-rwl-noaa.txt", header = TRUE, sep = "", stringsAsFactors = FALSE)
+ca719_seq_rwl <- read.table(url("https://www.ncei.noaa.gov/pub/data/paleo/treering/measurements/northamerica/usa/ca719-rwl-noaa.txt"), header = TRUE, sep = "", stringsAsFactors = FALSE)
 # pivot longer and subset trees identified as alive for entire timeseries
 ca719_seq_rwl_long <- ca719_seq_rwl %>%
   pivot_longer(2:121, names_to = "tree_id", values_to = "rwl") %>%
   filter(tree_id %in% BMC_trees)
 
 # pivot wider and add row names so that tree_ids are the columns (representing a series)
-# and year as rows 
+# and year as rows
 ca719_seq_rwl <- ca719_seq_rwl_long %>%
   pivot_wider(names_from = tree_id, values_from = rwl)
-rownames(ca719_seq_rwl) <- ca719_seq_rwl$age_CE 
+rownames(ca719_seq_rwl) <- ca719_seq_rwl$age_CE
 
-# detrend the data using the spline method 
+# detrend the data using the spline method
 ca719_seq_detrended <- detrend(ca719_seq_rwl, y.name=names(ca719_seq_rwl), make.plot = TRUE,
                                method = "AgeDepSpline", nyrs = NULL)
 
 # make year a column again
-ca719_seq_detrended$year <- rownames(ca719_seq_detrended) 
+ca719_seq_detrended$year <- rownames(ca719_seq_detrended)
 
 # delete age_CE since it was also detrended (hense the negative warning)
 ca719_seq_detrended <- ca719_seq_detrended %>%
@@ -221,6 +221,6 @@ ca719_seq_detrended_long <- ca719_seq_detrended %>%
   filter(year >= 1800)
 
 # save data
-saveRDS(ca719_seq_detrended_long, "/Users/kaitlynmcknight/Documents/Global Synchrony/SparseTS/ca719_BM_Seq_1800_2012.rds" )
+# saveRDS("SparseTS_prismdata/ca719_BM_Seq_1800_2012.rds" )
 
 

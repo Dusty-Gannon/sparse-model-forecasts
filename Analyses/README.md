@@ -29,15 +29,15 @@
     
     - **Data files**
     
-        - ca726-rwl-noaa.txt (unknown origin)
+        - ca726-rwl-noaa.txt [https://www.ncei.noaa.gov/access/paleo-search/study/32188](https://www.ncei.noaa.gov/access/paleo-search/study/32188)
         
-        - ca719-rwl-noaa.txt (unknown origin)
+        - ca719-rwl-noaa.txt [https://www.ncei.noaa.gov/access/paleo-search/study/32188](https://www.ncei.noaa.gov/access/paleo-search/study/32188)
 
     -   **To do**:
 
-        - [] Let's fix the filepaths in this script so they use relative paths and the `here` package.
+        - [x] Let's fix the filepaths in this script so they use relative paths and the `here` package.
         
-        - [] Decide if/how to make data available for reproducibility.
+        - [x] Decide if/how to make data available for reproducibility. (Links provided above)
 
 -   `datatrends.R`: This script contains investigation of trends, breakpoints, and correlations in the PRISM climate data.
 
@@ -63,7 +63,7 @@
 
     -   **To do**:
 
-        - [] Let's fix the filepaths in this script so they use the `here` package.
+        - [x] Let's fix the filepaths in this script so they use the `here` package.
 
 -   `plot_ARp_simulations.R`: This script plots summary data from AR-p beta-p simulation runs. These simulations iterate through different time series lengths and different standard deviations for the random innovations where there are sparse covariates, lags in one covariate, and sparse AR terms comparing the fits of regularized and not regularized models.
 

@@ -11,7 +11,7 @@ library(here)
 library(ggplot2)
 library(devtools)
 library(dplyr)
-devtools::load_all("/Users/amypatterson/Documents/Laramie_postdoc/Sparse_time_series_project/sponges")
+devtools::load_all(here())
 
 ################################################################
 #### Simulating the data ####
