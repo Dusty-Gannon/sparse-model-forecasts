@@ -192,7 +192,7 @@ l1 <- grid::textGrob(
 l2 <- grid::textGrob(
   label = "Joint densities during\ntesting period",
   x = unit(0.4, "npc"), y = unit(0.9, "npc"),
-  gp = grid::gpar(fontsize = 10, fontfamily = "Arial"),
+  gp = grid::gpar(fontsize = 10),
   vjust = 1
 )
 
