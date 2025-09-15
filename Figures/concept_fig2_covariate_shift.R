@@ -103,7 +103,8 @@ ts_data <- data.frame(
       legend.title = element_text(size = 10)
     ) +
     guides(color = guide_legend(override.aes = list(linewidth = 1))) +
-    labs(color = "Covariate")
+    labs(color = "Covariate") +
+    ggtitle("a)")
 )
 
 ################################################################
@@ -142,7 +143,8 @@ dens_post <- data.frame(
    ylab(expression(x[2])) +
    theme(
      axis.title.y = element_text(color = PNWColors::pnw_palette("Bay", 5)[1])
-   )
+   ) +
+   ggtitle("b)")
 )
 
 (dplot_grad_post <- ggplot(dens_post, aes(x, y1)) +
@@ -153,7 +155,8 @@ dens_post <- data.frame(
     ylab(expression(x[2])) +
     theme(
       axis.title.y = element_text(color = PNWColors::pnw_palette("Bay", 5)[1])
-    )
+    ) +
+    ggtitle("c)")
 )
 
 (dplot_abrupt_pre <- ggplot(dens_pre, aes(x, y2)) +
