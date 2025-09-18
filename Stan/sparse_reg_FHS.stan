@@ -52,7 +52,7 @@ transformed parameters{
   real c2 = slab_scl2 * c2_std;
 
   // tau ~ cauchy(0, tau0)
-  real tau = tau0 * tau_std;
+  real tau = tau0 * tau_std * sigma;
 
   // This calculation follows equation 2.8 in Piironen and Vehtari 2017
   vector[P - P0] local_scale_tilde =
