@@ -53,8 +53,8 @@ STANmodlist=mapply(function(x,y) STANselect(x,y,nfit=60,n=n,K=K),ts1train,ts1tes
 STANpredlist=lapply(STANmodlist,FUN=function(x) STANgetpredict(x)) # get STAN predictions for y
 STANy=lapply(ts1test,"[",,1)
 
-
-RMSESTANlistraw=mapply(function(x,y) RMSE_bayes(x,y),STANy,STANpredlist) # get RMSE STAN
+RMSESTANlistraw=mapply(function(x, y) RMSE_bayes(x, y[, (ncol(y) - 39):ncol(y)]),STANy, STANpredlist) # just select the last 40 time points (the predicted points)
+#RMSESTANlistraw=mapply(function(x,y) RMSE_bayes(x,y),STANy,STANpredlist) # get RMSE STAN
 RMSESTANlist=colMeans(RMSESTANlistraw)
 
 
