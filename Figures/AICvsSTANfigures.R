@@ -148,7 +148,7 @@ corr0.5_nochange=corr0.5_nochange[1:300]
 corr0.1_change=corr0.1_change[1:300]
 corr0.1_nochange=corr0.1_nochange[1:300]
 
-pdf(file=here("Figures/decorrelation_comparison.pdf"), width = 7, height = 8)
+pdf(file=here("Figures/decorrelation_comparison.pdf"), width = 5, height = 8)
 
 
 par(mar=c(5,9,2,2))
