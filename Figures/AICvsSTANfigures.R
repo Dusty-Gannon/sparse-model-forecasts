@@ -87,20 +87,20 @@ corData2=read.csv(here("Simulations/AICvsSTANcorrResults.csv"))
 
 # Remove unwanted variables
 # fix strongSelf=F
-corData3=corData2[-which(corData2$strongSelf),]
+#corData3=corData2[-which(corData2$strongSelf),]
 # fix numStrongCorr=3
-corData4=corData3[-which(corData3$numStrongCorr==1),]
+#corData4=corData3[-which(corData3$numStrongCorr==1),]
 # fix percent of weak covariates to 0.5
-corData5=corData4[which(corData4$probWeakCorr==0.5),]
+#corData5=corData4[which(corData4$probWeakCorr==0.5),]
 # fix correlations to 0.5 and 0.9
 #corData6=corData5[-which(corData5$corrLevel==0.7),]
-corData6=corData5
+#corData6=corData5
 
 pdf(file=here("Figures/correlated_variable_effects_combined.pdf"), width = 5, height = 9)
 
 par(mar=c(5,9,2,2))
 par(mfrow=c(3,1))
-vioplot::vioplot(cbind(AIC1=corData6$TPRaic[which(corData6$corrLevel==0.1)],STAN1=corData6$TPRstan[which(corData6$corrLevel==0.1)],AIC5=corData6$TPRaic[which(corData6$corrLevel==0.5)],STAN5=corData6$TPRstan[which(corData6$corrLevel==0.5)],AIC9=corData6$TPRaic[which(corData6$corrLevel==0.9)],STAN9=corData6$TPRstan[which(corData6$corrLevel==0.9)]), xlab="",
+vioplot::vioplot(cbind(AIC1=corData2$TPRaic[which(corData2$corrLevel==0.1)],STAN1=corData2$TPRstan[which(corData2$corrLevel==0.1)],AIC5=corData2$TPRaic[which(corData2$corrLevel==0.5)],STAN5=corData2$TPRstan[which(corData2$corrLevel==0.5)],AIC9=corData2$TPRaic[which(corData2$corrLevel==0.9)],STAN9=corData2$TPRstan[which(corData2$corrLevel==0.9)]), xlab="",
                  horizontal=T,las=1,names=c("Stepwise AIC\n correlation 0.1","RHS\n correlation 0.1","Stepwise AIC\n correlation 0.5","RHS\n correlation 0.5","Stepwise AIC\n correlation 0.9","RHS\n correlation 0.9"),col=c("wheat","skyblue","tan","steelblue1","tan3","steelblue4"),
                  pchMed=20,border=c("tan4","royalblue4","tan4","royalblue4","tan4","royalblue4"),rectCol=c("tan4","royalblue4","tan4","royalblue4","tan4","royalblue4"), lineCol=c("tan4","royalblue4","tan4","royalblue4","tan4","royalblue4"),colMed=c("tan4","royalblue4","tan4","royalblue4","tan4","royalblue4"),ylab="")
 title(ylab="Density of TPR",line=7,cex.lab=1.2)
@@ -108,7 +108,7 @@ title(xlab="True Positive Rate (TPR)",line=3,cex.lab=1.2)
 par(xpd=T)
 text(-0.06,7,"a)",cex=1.5)
 par(xpd=F)
-vioplot::vioplot(cbind(AIC1=corData6$TNRaic[which(corData6$corrLevel==0.1)],STAN1=corData6$TNRstan[which(corData6$corrLevel==0.1)],AIC5=corData6$TNRaic[which(corData6$corrLevel==0.5)],STAN5=corData6$TNRstan[which(corData6$corrLevel==0.5)],AIC9=corData6$TNRaic[which(corData6$corrLevel==0.9)],STAN9=corData6$TNRstan[which(corData6$corrLevel==0.9)]), xlab="",
+vioplot::vioplot(cbind(AIC1=corData2$TNRaic[which(corData2$corrLevel==0.1)],STAN1=corData2$TNRstan[which(corData2$corrLevel==0.1)],AIC5=corData2$TNRaic[which(corData2$corrLevel==0.5)],STAN5=corData2$TNRstan[which(corData2$corrLevel==0.5)],AIC9=corData2$TNRaic[which(corData2$corrLevel==0.9)],STAN9=corData2$TNRstan[which(corData2$corrLevel==0.9)]), xlab="",
                  horizontal=T,las=1,names=c("Stepwise AIC\n correlation 0.1","RHS\n correlation 0.1","Stepwise AIC\n correlation 0.5","RHS\n correlation 0.5","Stepwise AIC\n correlation 0.9","RHS\n correlation 0.9"),col=c("wheat","skyblue","tan","steelblue1","tan3","steelblue4"),
                  pchMed=20,border=c("tan4","royalblue4","tan4","royalblue4","tan4","royalblue4"),rectCol=c("tan4","royalblue4","tan4","royalblue4","tan4","royalblue4"), lineCol=c("tan4","royalblue4","tan4","royalblue4","tan4","royalblue4"),colMed=c("tan4","royalblue4","tan4","royalblue4","tan4","royalblue4"),ylab="")
 title(ylab="Density of TNR",line=7,cex.lab=1.2)
@@ -116,7 +116,7 @@ title(xlab="True Negative Rate (TNR)",line=3,cex.lab=1.2)
 par(xpd=T)
 text(-0.3,7,"b)",cex=1.5)
 par(xpd=F)
-vioplot::vioplot(cbind(AIC1=corData6$RMSEaic[which(corData6$corrLevel==0.1)],STAN1=corData6$RMSEstan[which(corData6$corrLevel==0.1)],AIC5=corData6$RMSEaic[which(corData6$corrLevel==0.5)],STAN5=corData6$RMSEstan[which(corData6$corrLevel==0.5)],AIC9=corData6$RMSEaic[which(corData6$corrLevel==0.9)],STAN9=corData6$RMSEstan[which(corData6$corrLevel==0.9)]), xlab="",
+vioplot::vioplot(cbind(AIC1=corData2$RMSEaic[which(corData2$corrLevel==0.1)],STAN1=corData2$RMSEstan[which(corData2$corrLevel==0.1)],AIC5=corData2$RMSEaic[which(corData2$corrLevel==0.5)],STAN5=corData2$RMSEstan[which(corData2$corrLevel==0.5)],AIC9=corData2$RMSEaic[which(corData2$corrLevel==0.9)],STAN9=corData2$RMSEstan[which(corData2$corrLevel==0.9)]), xlab="",
                  horizontal=T,las=1,names=c("Stepwise AIC\n correlation 0.1","RHS\n correlation 0.1","Stepwise AIC\n correlation 0.5","RHS\n correlation 0.5","Stepwise AIC\n correlation 0.9","RHS\n correlation 0.9"),col=c("wheat","skyblue","tan","steelblue1","tan3","steelblue4"),
                  pchMed=20,border=c("tan4","royalblue4","tan4","royalblue4","tan4","royalblue4"),rectCol=c("tan4","royalblue4","tan4","royalblue4","tan4","royalblue4"), lineCol=c("tan4","royalblue4","tan4","royalblue4","tan4","royalblue4"),colMed=c("tan4","royalblue4","tan4","royalblue4","tan4","royalblue4"),ylab="")
 title(ylab="Density of Prediction RMSE",line=7,cex.lab=1.2)
@@ -133,6 +133,20 @@ dev.off()
 ################################################
 decorData=read.csv(file="Simulations/AICvsSTANdecorrelation.csv")
 
+corr0.9_change=which(decorData$corrLevel==0.9&decorData$corrChange)
+corr0.9_nochange=which(decorData$corrLevel==0.9&!decorData$corrChange)
+corr0.5_change=which(decorData$corrLevel==0.5&decorData$corrChange)
+corr0.5_nochange=which(decorData$corrLevel==0.5&!decorData$corrChange)
+corr0.1_change=which(decorData$corrLevel==0.1&decorData$corrChange)
+corr0.1_nochange=which(decorData$corrLevel==0.1&!decorData$corrChange)
+
+# subset: choose 300 sims from each option
+corr0.9_change=corr0.9_change[1:300]
+corr0.9_nochange=corr0.9_nochange[1:300]
+corr0.5_change=corr0.5_change[1:300]
+corr0.5_nochange=corr0.5_nochange[1:300]
+corr0.1_change=corr0.1_change[1:300]
+corr0.1_nochange=corr0.1_nochange[1:300]
 
 pdf(file=here("Figures/decorrelation_comparison.pdf"), width = 7, height = 8)
 
@@ -140,12 +154,7 @@ pdf(file=here("Figures/decorrelation_comparison.pdf"), width = 7, height = 8)
 par(mar=c(5,9,2,2))
 par(mfrow=c(3,1))
 
-corr0.9_change=which(decorData$corrLevel==0.9&decorData$corrChange)
-corr0.9_nochange=which(decorData$corrLevel==0.9&!decorData$corrChange)
-corr0.5_change=which(decorData$corrLevel==0.5&decorData$corrChange)
-corr0.5_nochange=which(decorData$corrLevel==0.5&!decorData$corrChange)
-corr0.1_change=which(decorData$corrLevel==0.1&decorData$corrChange)
-corr0.1_nochange=which(decorData$corrLevel==0.1&!decorData$corrChange)
+
 
 # plot(1, type = "n", xlim = c(0, 12), ylim = c(0.5, 12.5),
 #      xaxt = "n", yaxt = "n", xlab = "", ylab = "", bty = "n")
