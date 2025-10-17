@@ -22,6 +22,8 @@ dd <- dd %>%
   mutate(prior = case_when(model == 'not_reg' ~ 'Gaussian',
                            model == 'reg' ~ 'Horseshoe'))
 
+
+write_csv(dd, 'Data/aquatic_sim_data/ARp_err_sims_all_runs_summary.csv')
 divergent_trans_cap <- 20
 
 # Plot divergent transitions:
@@ -71,6 +73,7 @@ good_fits_gauss <-  dd %>%
   filter(divergent_trans <= divergent_trans_cap)
 
 min_size = min(c(con_runs$runs[con_runs$model == 'hs']))
+min_size <- 300 # we are setting this to 300 for consistency with the other challenges
 good_fits <- dd %>%
   mutate(divergent_trans = case_when(model == 'gauss' ~ 0,
                                      TRUE ~ divergent_trans)) %>%

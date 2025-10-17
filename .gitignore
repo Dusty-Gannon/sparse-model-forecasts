@@ -18,7 +18,7 @@ Stan/*.rds
 
 # Log files
 *.log
-*.out 
+*.out
 ricker_thintests
 ricker_thin2
 Simulations/slurmlogs
@@ -63,8 +63,12 @@ Thumbs.db
 # Data files
 /Data/*
 !/Data/aquatic_sims
+!/Data/aquatic_sim_data
 /Data/aquatic_sims/*
+/Data/aquatic_sim_data/*
 !/Data/aquatic_sims/summary_files
+!/Data/aquatic_sim_data/ARp_err_sims_all_runs_summary.csv
+
 
 # presentation files
 /Presentations
