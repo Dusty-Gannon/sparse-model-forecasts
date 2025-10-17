@@ -37,7 +37,7 @@ X_test <- continue_fourier(
 
 # compile stan model
 sparse_mod <- rstan::stan_model(
-  here::here("Stan/AR-p_err3_FHS_DG.stan")
+  here::here("Stan/AR-p_err3_FHS2_DG.stan")
 )
 
 # base_mod <- rstan::stan_model(
@@ -84,8 +84,8 @@ sparse_fit <- rstan::sampling(
   sparse_mod,
   data = dat_stan,
   chains = 4,
-  iter = 4000,
-  warmup = 2000,
+  iter = 8000,
+  warmup = 6000,
   cores = 4,
   control = list(adapt_delta = 0.99, max_treedepth = 15)
 )
@@ -282,8 +282,8 @@ sparse_fit2 <- rstan::sampling(
   sparse_mod,
   data = dat_stan2,
   chains = 4,
-  iter = 4000,
-  warmup = 2000,
+  iter = 8000,
+  warmup = 6000,
   cores = 4,
   control = list(adapt_delta = 0.99, max_treedepth = 15)
 )
@@ -468,8 +468,8 @@ dat_stan3 <- modifyList(
 sparse_fit3 <- rstan::sampling(
   sparse_mod,
   data = dat_stan3,
-  iter = 4000,
-  warmup = 2000,
+  iter = 8000,
+  warmup = 7000,
   cores = 4,
   control = list(adapt_delta = 0.99, max_treedepth = 15)
 )

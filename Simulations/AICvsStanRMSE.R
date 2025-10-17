@@ -11,9 +11,13 @@ library(dplyr)
 library(MASS)
 library(rstan)
 library(here)
-source("R/model_checking.R")
-source("R/sim1_temporal_drivers.R")
-source("R/stat_model_sim_functions.R")
+library(devtools)
+#source("R/model_checking.R")
+#source("R/sim1_temporal_drivers.R")
+#source("R/stat_model_sim_functions.R")
+#source("R/tau0_from_data.R")
+devtools::load_all()
+
 # compile the stan model
 stanFHS<-stan_model(here("Stan/sparse_reg_FHS.stan"))
 
@@ -203,7 +207,7 @@ STANselect<-function(dataSet,testSet,m0=5,K=50,n=100,nfit=60,slab_scl=1,slab_df=
 #'
 #' @examples
 STANgetpredict=function(model){
-  predictionInfo=rstan::extract(model, pars = "y_pred")$y_pred
+  predictionInfo=rstan::extract(model, pars = "y_rep")$y_rep
   return(predictionInfo)
 }
 

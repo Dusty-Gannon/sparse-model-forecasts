@@ -11,7 +11,7 @@ library(here)
 library(ggplot2)
 library(devtools)
 library(dplyr)
-devtools::load_all("/Users/amypatterson/Documents/Laramie_postdoc/Sparse_time_series_project/sponges")
+devtools::load_all(here())
 
 ################################################################
 #### Simulating the data ####
@@ -204,6 +204,7 @@ df_phi <- data.frame(
 # plots for posterior estimates and CIs compared to simulated values
 plot_beta <- ggplot(data = df_beta, aes(x = 1:nrow(df_beta))) +
   geom_rect(aes(xmin=20.5,xmax=21.5,ymin=-1,ymax=3),fill="gray") +
+  geom_rect(aes(xmin=11.5,xmax=12.5,ymin=-1,ymax=3),fill="white",linewidth=1,color = "black") +
   #geom_rect(aes(xmin=0.5,xmax=1.5,ymin=-1,ymax=3),fill="gray") +
   geom_errorbar(aes(ymin = low_fl, ymax = high_fl, x=(1:nrow(df_beta))-0.2), width = 0) +
   geom_point(aes(y = beta_hat_fl, x=(1:nrow(df_beta))-0.2)) +
@@ -223,7 +224,7 @@ plot_beta <- ggplot(data = df_beta, aes(x = 1:nrow(df_beta))) +
   annotate("point", x = 6, y = 1.8) +
   annotate("text", x = 6, y = 2, label = "Flat", hjust = 0, size = 3) +
   ylab("value") +
-  ggtitle("d) Covariate coefficients")
+  ggtitle("a) Covariate coefficients")
 
 plot_phi <- ggplot(data = df_phi, aes(x = 1:nrow(df_phi))) +
   geom_errorbar(aes(ymin = low_fl, ymax = high_fl, x=(1:nrow(df_phi))-0.2), width = 0,color="#33406fff") +
@@ -248,32 +249,32 @@ plot_phi <- ggplot(data = df_phi, aes(x = 1:nrow(df_phi))) +
   ggtitle("AR coefficients")
 
 #names(df_beta)=names(df_phi)
-df_betaphi=rbind(df_phi,df_beta)
-
-plot_betaphi <- ggplot(data = df_betaphi, aes(x = 1:nrow(df_betaphi))) +
-  geom_rect(aes(xmin=11.5,xmax=12.5,ymin=-1,ymax=3),fill="gray") +
-  geom_rect(aes(xmin=18.5,xmax=19.5,ymin=-1,ymax=3),fill="gray") +
-  geom_errorbar(aes(ymin = low_fl, ymax = high_fl, x=(1:nrow(df_betaphi))-0.2), width = 0) +
-  geom_point(aes(y = phi_hat_fl, x=(1:nrow(df_betaphi))-0.2)) +
-  geom_errorbar(aes(ymin = low_nr, ymax = high_nr), width = 0,color="#a52a2aff") +
-  geom_point(aes(y = phi_hat_nr),color="#a52a2aff") +
-  geom_errorbar(aes(ymin = low_r, ymax = high_r, x=(1:nrow(df_betaphi))+0.2), width = 0, color="#33406fff") +
-  geom_point(aes(y = phi_hat_r), x=(1:nrow(df_betaphi))+0.2, color="#33406fff") +
-  geom_point(aes(y = phi_true), shape = "|", color = "goldenrod3", size = 4) +
-  theme_classic() +
-  theme(axis.text.y = element_blank(),axis.ticks.y = element_blank(),axis.title.y=element_blank()) +
-  annotate("point", x = 6, y = 1.65, shape = "|", color = "goldenrod3", size = 4) +
-  annotate("text", label = "Actual", x = 6, y = 1.75, hjust = 0, size = 3) +
-  annotate("point", x = 5, y = 1.65, color = "#33406fff") +
-  annotate("text", x = 5, y = 1.75, label = "Horseshoe", hjust = 0, size = 3) +
-  annotate("point", x = 4, y = 1.65, color = "#a52a2aff") +
-  annotate("text", x = 4, y = 1.75, label = "Gaussian", hjust = 0, size = 3) +
-  annotate("point", x = 3, y = 1.65) +
-  annotate("text", x = 3, y = 1.75, label = "Flat", hjust = 0, size = 3) +
-  ylab("value") +
-  xlab("parameters") +
-  ggtitle("Parameter Estimates")
-
+# df_betaphi=rbind(df_phi,df_beta)
+#
+# plot_betaphi <- ggplot(data = df_betaphi, aes(x = 1:nrow(df_betaphi))) +
+#   geom_rect(aes(xmin=11.5,xmax=12.5,ymin=-1,ymax=3),fill="gray") +
+#   geom_rect(aes(xmin=18.5,xmax=19.5,ymin=-1,ymax=3),fill="gray") +
+#   geom_errorbar(aes(ymin = low_fl, ymax = high_fl, x=(1:nrow(df_betaphi))-0.2), width = 0) +
+#   geom_point(aes(y = phi_hat_fl, x=(1:nrow(df_betaphi))-0.2)) +
+#   geom_errorbar(aes(ymin = low_nr, ymax = high_nr), width = 0,color="#a52a2aff") +
+#   geom_point(aes(y = phi_hat_nr),color="#a52a2aff") +
+#   geom_errorbar(aes(ymin = low_r, ymax = high_r, x=(1:nrow(df_betaphi))+0.2), width = 0, color="#33406fff") +
+#   geom_point(aes(y = phi_hat_r), x=(1:nrow(df_betaphi))+0.2, color="#33406fff") +
+#   geom_point(aes(y = phi_true), shape = "|", color = "goldenrod3", size = 4) +
+#   theme_classic() +
+#   theme(axis.text.y = element_blank(),axis.ticks.y = element_blank(),axis.title.y=element_blank()) +
+#   annotate("point", x = 6, y = 1.65, shape = "|", color = "goldenrod3", size = 4) +
+#   annotate("text", label = "Actual", x = 6, y = 1.75, hjust = 0, size = 3) +
+#   annotate("point", x = 5, y = 1.65, color = "#33406fff") +
+#   annotate("text", x = 5, y = 1.75, label = "Horseshoe", hjust = 0, size = 3) +
+#   annotate("point", x = 4, y = 1.65, color = "#a52a2aff") +
+#   annotate("text", x = 4, y = 1.75, label = "Gaussian", hjust = 0, size = 3) +
+#   annotate("point", x = 3, y = 1.65) +
+#   annotate("text", x = 3, y = 1.75, label = "Flat", hjust = 0, size = 3) +
+#   ylab("value") +
+#   xlab("parameters") +
+#   ggtitle("Parameter Estimates")
+#
 
 
 ################################################################
@@ -381,10 +382,12 @@ r_forecast <- ggplot(forecast_df[xmin:n_xAxis, ], aes(x = time, y = y))+
   ylim(c(y_minVal, y_maxVal)) +
   xlim(c(xmin,n_xAxis)) +
   theme_classic() +
-  ggtitle("a) Horseshoe priors") +
-  geom_segment(x=n_xAxis+0.4,y=(forecast_df$low_r[n_xAxis]+forecast_df$high_r[n_xAxis])/2+1.5,xend=n_xAxis+0.4,yend=forecast_df$high_r[n_xAxis],arrow=arrow(length=unit(0.03,"npc"),ends="last"))+
-  geom_segment(x=n_xAxis+0.4,y=(forecast_df$low_r[n_xAxis]+forecast_df$high_r[n_xAxis])/2-1.5,xend=n_xAxis+0.4,yend=forecast_df$low_r[n_xAxis],arrow=arrow(length=unit(0.03,"npc"),ends="last"))+
-  geom_text(x=n_xAxis+0.4,y=(forecast_df$low_r[n_xAxis]+forecast_df$high_r[n_xAxis])/2,label=round(forecast_df$high_r[n_xAxis]-forecast_df$low_r[n_xAxis],digits=1),size=4)
+  ggtitle("b) Horseshoe priors") +
+  geom_segment(x=n_xAxis+0.5,y=(forecast_df$low_r[n_xAxis]+forecast_df$high_r[n_xAxis])/2+1.5,xend=n_xAxis+0.5,yend=forecast_df$high_r[n_xAxis],arrow=arrow(length=unit(0.03,"npc"),ends="last"))+
+  geom_segment(x=n_xAxis+0.5,y=(forecast_df$low_r[n_xAxis]+forecast_df$high_r[n_xAxis])/2-1.5,xend=n_xAxis+0.5,yend=forecast_df$low_r[n_xAxis],arrow=arrow(length=unit(0.03,"npc"),ends="last"))+
+  geom_text(x=n_xAxis+1.3,y=(forecast_df$low_r[n_xAxis]+forecast_df$high_r[n_xAxis])/2,label=round(forecast_df$high_r[n_xAxis]-forecast_df$low_r[n_xAxis],digits=1),size=4)+
+  coord_cartesian(clip = "off")+
+  scale_x_continuous(expand = expansion(mult = c(0, 0.09)))
 
 
 
@@ -398,10 +401,12 @@ nr_forecast <- ggplot(forecast_df[xmin:n_xAxis, ], aes(x = time, y = y)) +
   ylim(c(y_minVal, y_maxVal)) +
   xlim(c(xmin,n_xAxis)) +
   theme_classic() +
-  ggtitle("b) Gaussian Priors")+
-  geom_segment(x=n_xAxis+0.4,y=(forecast_df$low_nr[n_xAxis]+forecast_df$high_nr[n_xAxis])/2+1.5,xend=n_xAxis+0.4,yend=forecast_df$high_nr[n_xAxis],arrow=arrow(length=unit(0.03,"npc"),ends="last"))+
-  geom_segment(x=n_xAxis+0.4,y=(forecast_df$low_nr[n_xAxis]+forecast_df$high_nr[n_xAxis])/2-1.5,xend=n_xAxis+0.4,yend=forecast_df$low_nr[n_xAxis],arrow=arrow(length=unit(0.03,"npc"),ends="last"))+
-  geom_text(x=n_xAxis+0.4,y=(forecast_df$low_nr[n_xAxis]+forecast_df$high_nr[n_xAxis])/2,label=round(forecast_df$high_nr[n_xAxis]-forecast_df$low_nr[n_xAxis],digits=1),size=4)
+  ggtitle("c) Gaussian Priors")+
+  geom_segment(x=n_xAxis+0.5,y=(forecast_df$low_nr[n_xAxis]+forecast_df$high_nr[n_xAxis])/2+1.5,xend=n_xAxis+0.5,yend=forecast_df$high_nr[n_xAxis],arrow=arrow(length=unit(0.03,"npc"),ends="last"))+
+  geom_segment(x=n_xAxis+0.5,y=(forecast_df$low_nr[n_xAxis]+forecast_df$high_nr[n_xAxis])/2-1.5,xend=n_xAxis+0.5,yend=forecast_df$low_nr[n_xAxis],arrow=arrow(length=unit(0.03,"npc"),ends="last"))+
+  geom_text(x=n_xAxis+1.4,y=(forecast_df$low_nr[n_xAxis]+forecast_df$high_nr[n_xAxis])/2,label=round(forecast_df$high_nr[n_xAxis]-forecast_df$low_nr[n_xAxis],digits=1),size=4)+
+  coord_cartesian(clip = "off")+
+  scale_x_continuous(expand = expansion(mult = c(0, 0.09)))
 
 
 fl_forecast <- ggplot(forecast_df[xmin:n_xAxis, ], aes(x = time, y = y)) +
@@ -414,23 +419,25 @@ fl_forecast <- ggplot(forecast_df[xmin:n_xAxis, ], aes(x = time, y = y)) +
   ylim(c(y_minVal, y_maxVal)) +
   xlim(c(xmin,n_xAxis)) +
   theme_classic() +
-  ggtitle("c) Flat Priors")+
-  geom_segment(x=n_xAxis+0.4,y=(forecast_df$low_fl[n_xAxis]+forecast_df$high_fl[n_xAxis])/2+1.5,xend=n_xAxis+0.4,yend=forecast_df$high_fl[n_xAxis],arrow=arrow(length=unit(0.03,"npc"),ends="last"))+
-  geom_segment(x=n_xAxis+0.4,y=(forecast_df$low_fl[n_xAxis]+forecast_df$high_fl[n_xAxis])/2-1.5,xend=n_xAxis+0.4,yend=forecast_df$low_fl[n_xAxis],arrow=arrow(length=unit(0.03,"npc"),ends="last"))+
-  geom_text(x=n_xAxis+0.4,y=(forecast_df$low_fl[n_xAxis]+forecast_df$high_fl[n_xAxis])/2,label=round(forecast_df$high_fl[n_xAxis]-forecast_df$low_fl[n_xAxis],digits=1),size=4)
+  ggtitle("d) Flat Priors")+
+  geom_segment(x=n_xAxis+0.5,y=(forecast_df$low_fl[n_xAxis]+forecast_df$high_fl[n_xAxis])/2+1.5,xend=n_xAxis+0.5,yend=forecast_df$high_fl[n_xAxis],arrow=arrow(length=unit(0.03,"npc"),ends="last"))+
+  geom_segment(x=n_xAxis+0.5,y=(forecast_df$low_fl[n_xAxis]+forecast_df$high_fl[n_xAxis])/2-1.5,xend=n_xAxis+0.5,yend=forecast_df$low_fl[n_xAxis],arrow=arrow(length=unit(0.03,"npc"),ends="last"))+
+  geom_text(x=n_xAxis+1.4,y=(forecast_df$low_fl[n_xAxis]+forecast_df$high_fl[n_xAxis])/2,label=round(forecast_df$high_fl[n_xAxis]-forecast_df$low_fl[n_xAxis],digits=1),size=4)+
+  coord_cartesian(clip = "off")+
+  scale_x_continuous(expand = expansion(mult = c(0, 0.09)))
 
 
 ################################################################
 #### Plot full composite figure ####
 
 lo <- rbind(
-  c(1, 4),
-  c(2, 4),
-  c(3, 4)
+  c(4,1),
+  c(4,2),
+  c(4,3)
 )
 
 png(
-  filename = here("Figures/newFig1_Sep27.png"),
+  filename = here("Figures/newFig1.png"),
   width = 2700,
   height = 2100,
   res = 300, units = "px"

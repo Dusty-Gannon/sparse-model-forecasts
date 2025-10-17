@@ -20,7 +20,7 @@ tau0 <- function(y, m0, M, N, fam){
     stop("This family is not supported (yet). To add it, see Table 1 in Piironen and Vehtari (2017)")
   }
   if(fam == "gaussian"){
-    sigma <- sd(y)
+    sigma <- 1
   }
   if(fam == "poisson"){
     sigma <- mean(y)^{-0.5}

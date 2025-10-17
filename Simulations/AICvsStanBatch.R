@@ -8,7 +8,7 @@ source("Simulations/AICvsStanRMSE.R")
 args<-commandArgs(TRUE)
 
 cat(args)
-
+cat("yup these are the args")
 
 # sample arguments
 # args= c(50, 100, 50, 5, 0.2, 0.2, 1, 0.5, 0.9, 0.9, 0.9, "ACP1")
@@ -31,6 +31,9 @@ propChange=as.numeric(args[14])
 changeSize=as.numeric(args[15])
 changeTimeVar=as.numeric(args[16])
 
+cat("hi got the args saved")
+cat(numStrongCorr)
+cat(probWeakCorr)
 nameID=args[17]
 
 ts1=getTS(numTrials = numTrials, n = n, K = K, num_strong = num_strong,prob_cycle = prob_cycle, trend_fraction = trend_fraction,freq=freq,sigma=sigma,probWeakCorr=probWeakCorr,numStrongCorr=numStrongCorr,strongSelf=strongSelf,corrLevel=corrLevel,corrChange=corrChange, propChange=propChange, changeSize=changeSize, changeTimeVar=changeTimeVar) # make timeseries
@@ -50,8 +53,8 @@ STANmodlist=mapply(function(x,y) STANselect(x,y,nfit=60,n=n,K=K),ts1train,ts1tes
 STANpredlist=lapply(STANmodlist,FUN=function(x) STANgetpredict(x)) # get STAN predictions for y
 STANy=lapply(ts1test,"[",,1)
 
-
-RMSESTANlistraw=mapply(function(x,y) RMSE_bayes(x,y),STANy,STANpredlist) # get RMSE STAN
+RMSESTANlistraw=mapply(function(x, y) RMSE_bayes(x, y[, (ncol(y) - 39):ncol(y)]),STANy, STANpredlist) # just select the last 40 time points (the predicted points)
+#RMSESTANlistraw=mapply(function(x,y) RMSE_bayes(x,y),STANy,STANpredlist) # get RMSE STAN
 RMSESTANlist=colMeans(RMSESTANlistraw)
 
 
