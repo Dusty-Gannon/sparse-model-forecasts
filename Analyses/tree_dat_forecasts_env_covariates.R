@@ -551,16 +551,16 @@ fc_plot2_final <- fc_plot2 +
     axis.text.x = element_text(angle = 45, hjust = 1)
   ) +
   ylim(c(0, 4)) +
-  xlab("") +
+  xlab("Year") +
   ggtitle("b)")
 
 fc_plot_all_final / fc_plot2_final
 
 ggsave(
-  filename = here::here("Figures/tree_growth_forecasts_env_covs.png"),
+  filename = here::here("Figures/tree_growth_forecasts_env_covs.pdf"),
   width = 6,
   height = 5,
-  device = "png",
+  device = "pdf",
   units = "in",
   dpi = 300
 )
@@ -621,7 +621,7 @@ ggsave(
   filename = here::here("Figures/tree_growth_coefs.png"),
   width = 6.5,
   height = 9,
-  device = "png",
+  device = "pdf",
   units = "in",
   dpi = 300
 )
