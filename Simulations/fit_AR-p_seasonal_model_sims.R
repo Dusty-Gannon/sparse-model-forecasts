@@ -15,7 +15,7 @@ setwd("/project/modelscape/analyses/sponges/")
 # compile stan models:
 ar_err_gauss <- stan_model("Stan/AR-p_err3_Gauss_DG.stan")
 # ar_err_flat <- stan_model("Stan/AR-p_err3_Flat_DG.stan")
-ar_err_hs <- stan_model("Stan/AR-p_err3_FHS_DG.stan")
+ar_err_hs <- stan_model("Stan/AR-p_err3_FHS2_DG.stan")
 
 beta <- c(0, 2, 4) # how many of the important betas did you measure?
 # sigmas <- c(0.5, 2, 5)
