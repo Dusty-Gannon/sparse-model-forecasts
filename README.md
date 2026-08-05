@@ -1,5 +1,5 @@
 
-# Sparse modeling for timeseries and forecasting #
+# Sparse modeling for timeseries and forecasting
 
 ## Repo organization ##
 
@@ -7,7 +7,11 @@ This repo is organized like an R package in order to facilitate code documentati
 all the existing functions into the environment.
 All user-defined R functions are written in an R script and placed inside the R directory with RoxyGen2 function documentation. 
 This allows others to clone the repo and use the usual R syntax
-```?some_function()```
+
+```r
+?some_function()
+```
+
 to render the documentation for the function and learn how to use it.
 
 Other directories and files (not common to all R packages) can be added as needed.
@@ -33,3 +37,37 @@ The general workflow in the repo is:
 4. Inside the R console, use `devtools::document()` to add the function to the man pages.
 
 5. Use `devtools::load_all()` to load all the functions in the 'package'
+
+## Revision 1 notes
+
+### Meeting 5 August 2026
+
+#### Prediction vs forecasting
+
+- Care around challenge 1
+
+	- Hypothesis generation across the methods, not inference on parameters
+
+- Add sims with full model to all challenges
+
+
+## Motivation
+
+- Motivate the choice of HS priors right away
+
+  - flexibility of the approach to sparse modeling objectives
+  
+  - Less computationally demanding than all-subsets regression or similar
+  
+  - Still requires some adaptation for uses case in time series modeling
+
+
+## Next steps (by next meeting 25 Aug 2026)
+
+- [ ] Amy -- Add full model fits to sims
+
+- [ ] Kait and Josh -- Tree ring data methods
+
+- [ ] Lauren and Alice -- Conceptual figure
+
+- [ ] Dusty and Topher -- Framing and motivation
