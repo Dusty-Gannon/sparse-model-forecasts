@@ -1,0 +1,27 @@
+\documentclass[border=6pt]{standalone}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage[T1]{fontenc}
+\usepackage{microtype}
+
+\begin{document}
+\begin{minipage}{7cm}
+\setlength{\jot}{6pt}
+\begin{align*}
+  y_i \mid \boldsymbol{\beta}, \sigma
+    &\sim \mathcal{N}\!\left(\mathbf{x}_i^\top \boldsymbol{\beta},\; \sigma^2\right) \\
+  \beta_j \mid \tilde{\lambda}_j, \tau
+    &\sim \mathcal{N}\!\left(0,\; \tau^2 \tilde{\lambda}_j^2\right) \\
+  \tilde{\lambda}_j^2
+    &= \frac{c^2 \lambda_j^2}{c^2 + \tau^2 \lambda_j^2} \\
+  \lambda_j
+    &\sim \mathrm{C}^{+}(0,\,1) \\
+  \tau \mid \sigma
+    &\sim \mathrm{C}^{+}(0,\,\tau_0 \sigma) \\
+  c^2
+    &\sim \mathrm{Inv\text{-}Gamma}\!\left(\tfrac{\nu}{2},\;\tfrac{\nu s^2}{2}\right) \\
+  \sigma
+    &\sim \mathrm{C}^{+}(0,\,2.5)
+\end{align*}
+\end{minipage}
+\end{document}
