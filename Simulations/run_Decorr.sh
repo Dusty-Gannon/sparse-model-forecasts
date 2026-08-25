@@ -19,7 +19,7 @@ export LANG=en_US.UTF-8
 
 module load arcc/1.0 gcc/14.2.0 r/4.4.0
 
-cd /project/modelscape/analyses/sparse-model-forecasts
+cd /project/rangeecoevomodels/apatte12/sparse-model-forecasts
 
 config=Simulations/DecorrConfig.txt
 

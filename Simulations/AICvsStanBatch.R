@@ -46,14 +46,22 @@ ts1test=lapply(ts1clean,FUN=function(x) splitTS(x,set="test",n=n,nfit=round(0.6*
 ts1train=lapply(ts1clean,FUN=function(x) splitTS(x,set="train",n=n,nfit=round(0.6*n))) #training set
 AICmodlist=lapply(ts1train,FUN=function(x) AICselect(x)) # do model selection AIC
 RMSEAIClist=mapply(function(x,y) RMSE_AIC(x,y), AICmodlist,ts1test) # get RMSE AIC
+GLMmodlist=lapply(ts1train,FUN=function(x) glm(y~.,data=x)) # get full GLM models
+RMSEGLMlist=mapply(function(x,y) RMSE_GLM(x,y), GLMmodlist,ts1test) # get RMSE GLM
 STANmodlist=mapply(function(x,y) STANselect(x,y,nfit=60,n=n,K=K),ts1train,ts1test) # do model selection STAN
 STANpredlist=lapply(STANmodlist,FUN=function(x) STANgetpredict(x)) # get STAN predictions for y
 STANy=lapply(ts1test,"[",,1)
 
 
-RMSESTANlistraw=mapply(function(x,y) RMSE_bayes(x,y),STANy,STANpredlist) # get RMSE STAN
+
+RMSESTANlistraw=mapply(function(x, y) RMSE_bayes(x, y[, (ncol(y) - 39):ncol(y)]),STANy, STANpredlist) # just select the last 40 time points (the predicted points)
+#RMSESTANlistraw=mapply(function(x,y) RMSE_bayes(x,y),STANy,STANpredlist) # get RMSE STAN
 RMSESTANlist=colMeans(RMSESTANlistraw)
 
+
+GLMconfusion=mapply(function(x,y) GLMconfusionRates(x,y),ts1,GLMmodlist)
+mean(GLMconfusion[1,])# TPR is 0.64
+mean(GLMconfusion[2,])# TNR is 0.9822222
 
 AICconfusion=mapply(function(x,y) AICconfusionRates(x,y),ts1,AICmodlist)
 mean(AICconfusion[1,])# TPR is 0.992
@@ -82,10 +90,13 @@ FNR_STANbeta <- mean(unlist(STANconfusion[4,]))   # 0.241
 # Save RMSEAIClist
 saveRDS(RMSESTANlist,file=paste0("Data/AICvsStan_data/RMSESTAN_",nameID,".rds")) # customize these, allow args input?
 saveRDS(RMSEAIClist,file=paste0("Data/AICvsStan_data/RMSEAIC_",nameID,".rds"))
+saveRDS(RMSEGLMlist,file=paste0("Data/AICvsStan_data/RMSEGLM_",nameID,".rds"))
+
 
 # Save the confusion matrices
 saveRDS(AICconfusion,file=paste0("Data/AICvsStan_data/AICconfusion_",nameID,".rds"))
 saveRDS(STANconfusion,file=paste0("Data/AICvsStan_data/STANconfusion_",nameID,".rds"))
+saveRDS(GLMconfusion,file=paste0("Data/AICvsStan_data/GLMconfusion_",nameID,".rds"))
 
 # Save the lists of models for possible future analysis
 # saveRDS(AICmodlist,file=paste0("Data/AICvsStan_data/AICmodlist_",nameID,".rds"))
