@@ -71,3 +71,25 @@ The general workflow in the repo is:
 - [ ] Lauren and Alice -- Conceptual figure
 
 - [ ] Dusty and Topher -- Framing and motivation
+
+
+
+## Progress 25 Aug 2026
+
+- Simulations still in progress
+
+    - Add full model (just lm or arima) to all simulations
+    
+- Concept Figure
+
+    - If we include prior maths, include arrows/colors to highlight connections
+    
+    - Keeping separate panels give an "easy" and "challenge" avenue, which could be nice
+    
+- General organization
+
+    - Maybe title includes "with and without covariates"
+    
+    - How do we tie all this together from the beginning? reiterate throughout
+    
+    - 
