@@ -11,9 +11,13 @@ library(dplyr)
 library(MASS)
 library(rstan)
 library(here)
-source("R/model_checking.R")
-source("R/sim1_temporal_drivers.R")
-source("R/tau0_from_data.R")
+library(devtools)
+#source("R/model_checking.R")
+#source("R/sim1_temporal_drivers.R")
+#source("R/stat_model_sim_functions.R")
+#source("R/tau0_from_data.R")
+devtools::load_all()
+
 # compile the stan model
 stanFHS<-stan_model(here("Stan/sparse_reg_FHS.stan"))
 
@@ -35,7 +39,7 @@ AICselect=function(dataSet){
 
 
 
-#' Title Calculate prediction RMSE for standard lm model
+#' Title Calculate prediction RMSE for standard linear model with AIC selection
 #'
 #' @param model A model to be evaluated
 #' @param testData The test dataset to be used for prediction and model evaluation, response variable is called y
@@ -51,6 +55,15 @@ RMSE_AIC=function(model,testData){
 }
 
 
+#' Title Calculate prediction RMSE for full GLM model
+#'
+#' @param model The model to be evaluated
+#' @param testData The test dataset to be used for prediction and model evaluation, response variable is called y
+#'
+#' @returns The root mean squared error for the model prediction
+#' @export
+#'
+#' @examples
 RMSE_GLM=function(model,testData){
   predValues<-predict(model,testData)
   RMSE_GLM<-sqrt(mean((predValues-testData$y)^2))
@@ -58,6 +71,16 @@ RMSE_GLM=function(model,testData){
 }
 
 
+#' Title Function to collect true/false positives/negatives from the full GLM model
+#'
+#' @param timeseries timeseries that model is based on, needed to extract true betas
+#' @param model glm result model to be evaluated
+#' @param strongCutoff cutoff for true positive
+#'
+#' @returns true positive and negative rates based on p<0.05
+#' @export
+#'
+#' @examples
 GLMconfusionRates<-function(timeseries,model,strongCutoff=0.3){
 
   strong1<-which(abs(timeseries$beta)>strongCutoff)
@@ -220,7 +243,7 @@ STANselect<-function(dataSet,testSet,m0=5,K=50,n=100,nfit=60,slab_scl=1,slab_df=
   return(mfit_FHScompare)
 }
 
-#' Title
+#' Title Function to get predictions from stan model
 #'
 #' @param model model fit from stan
 #'
@@ -229,9 +252,10 @@ STANselect<-function(dataSet,testSet,m0=5,K=50,n=100,nfit=60,slab_scl=1,slab_df=
 #'
 #' @examples
 STANgetpredict=function(model){
-  predictionInfo=rstan::extract(model, pars = "y_pred")$y_pred
+  predictionInfo=rstan::extract(model, pars = "y_rep")$y_rep
   return(predictionInfo)
 }
+
 
 
 # function to extract posterior predictions for beta and place them in a summary data frame
