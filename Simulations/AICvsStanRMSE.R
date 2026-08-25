@@ -34,6 +34,7 @@ AICselect=function(dataSet){
 }
 
 
+
 #' Title Calculate prediction RMSE for standard lm model
 #'
 #' @param model A model to be evaluated
@@ -49,6 +50,31 @@ RMSE_AIC=function(model,testData){
   return(RMSE_AIC)
 }
 
+
+RMSE_GLM=function(model,testData){
+  predValues<-predict(model,testData)
+  RMSE_GLM<-sqrt(mean((predValues-testData$y)^2))
+  return(RMSE_GLM)
+}
+
+
+GLMconfusionRates<-function(timeseries,model,strongCutoff=0.3){
+
+  strong1<-which(abs(timeseries$beta)>strongCutoff)
+  strong2<-paste0("driver_",strong1-1)
+  strongaic<-names(which(summary(model)$coefficients[,4]<0.05))
+
+  positives=length(strong1)
+  negatives=(length(timeseries$beta)-length(strong1)-1)
+
+  truePos=length(intersect(strongaic,strong2))
+  trueNeg=negatives-length(strongaic)+length(intersect(strongaic,strong2))
+
+  TPR=truePos/positives
+  TNR=trueNeg/negatives
+
+  return(c(TPR,TNR))
+}
 
 # function to collect true/false positives/negatives from the AIC based model
 #' Title
