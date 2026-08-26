@@ -106,7 +106,7 @@ vioplot::vioplot(cbind(AIC1=corData6$TPRaic[which(corData6$corrLevel==0.1)],STAN
 title(ylab="Density of TPR",line=7,cex.lab=1.2)
 title(xlab="True Positive Rate (TPR)",line=3,cex.lab=1.2)
 par(xpd=T)
-text(-0.06,7,"a)",cex=1.5)
+text(-0.16,7,"a)",cex=1.5)
 par(xpd=F)
 vioplot::vioplot(cbind(AIC1=corData6$TNRaic[which(corData6$corrLevel==0.1)],STAN1=corData6$TNRstan[which(corData6$corrLevel==0.1)],AIC5=corData6$TNRaic[which(corData6$corrLevel==0.5)],STAN5=corData6$TNRstan[which(corData6$corrLevel==0.5)],AIC9=corData6$TNRaic[which(corData6$corrLevel==0.9)],STAN9=corData6$TNRstan[which(corData6$corrLevel==0.9)]), xlab="",
                  horizontal=T,las=1,names=c("Stepwise AIC\n correlation 0.1","RHS\n correlation 0.1","Stepwise AIC\n correlation 0.5","RHS\n correlation 0.5","Stepwise AIC\n correlation 0.9","RHS\n correlation 0.9"),col=c("wheat","skyblue","tan","steelblue1","tan3","steelblue4"),
@@ -114,15 +114,23 @@ vioplot::vioplot(cbind(AIC1=corData6$TNRaic[which(corData6$corrLevel==0.1)],STAN
 title(ylab="Density of TNR",line=7,cex.lab=1.2)
 title(xlab="True Negative Rate (TNR)",line=3,cex.lab=1.2)
 par(xpd=T)
-text(-0.3,7,"b)",cex=1.5)
+text(-0.275,7,"b)",cex=1.5)
 par(xpd=F)
-vioplot::vioplot(cbind(AIC1=corData6$RMSEaic[which(corData6$corrLevel==0.1)],STAN1=corData6$RMSEstan[which(corData6$corrLevel==0.1)],AIC5=corData6$RMSEaic[which(corData6$corrLevel==0.5)],STAN5=corData6$RMSEstan[which(corData6$corrLevel==0.5)],AIC9=corData6$RMSEaic[which(corData6$corrLevel==0.9)],STAN9=corData6$RMSEstan[which(corData6$corrLevel==0.9)]), xlab="",
-                 horizontal=T,las=1,names=c("Stepwise AIC\n correlation 0.1","RHS\n correlation 0.1","Stepwise AIC\n correlation 0.5","RHS\n correlation 0.5","Stepwise AIC\n correlation 0.9","RHS\n correlation 0.9"),col=c("wheat","skyblue","tan","steelblue1","tan3","steelblue4"),
-                 pchMed=20,border=c("tan4","royalblue4","tan4","royalblue4","tan4","royalblue4"),rectCol=c("tan4","royalblue4","tan4","royalblue4","tan4","royalblue4"), lineCol=c("tan4","royalblue4","tan4","royalblue4","tan4","royalblue4"),colMed=c("tan4","royalblue4","tan4","royalblue4","tan4","royalblue4"),ylab="")
+vioplot::vioplot(cbind(GLM1=corData6$RMSEglm[which(corData6$corrLevel==0.1)],AIC1=corData6$RMSEaic[which(corData6$corrLevel==0.1)],STAN1=corData6$RMSEstan[which(corData6$corrLevel==0.1)],
+                       GLM5=corData6$RMSEglm[which(corData6$corrLevel==0.5)],AIC5=corData6$RMSEaic[which(corData6$corrLevel==0.5)],STAN5=corData6$RMSEstan[which(corData6$corrLevel==0.5)],
+                       GLM9=corData6$RMSEglm[which(corData6$corrLevel==0.9)],AIC9=corData6$RMSEaic[which(corData6$corrLevel==0.9)],STAN9=corData6$RMSEstan[which(corData6$corrLevel==0.9)]), xlab="",
+                 horizontal=T,las=1,names=c("GLM\n correlation 0.1","Stepwise AIC\n correlation 0.1","RHS\n correlation 0.1",
+                                            "GLM\n correlation 0.5","Stepwise AIC\n correlation 0.5","RHS\n correlation 0.5",
+                                            "GLM\n correlation 0.9","Stepwise AIC\n correlation 0.9","RHS\n correlation 0.9"),
+                 col=c("lightgreen","wheat","skyblue","green3","tan","steelblue1","forestgreen","tan3","steelblue4"),
+                 pchMed=20,border=c("darkgreen","tan4","royalblue4","darkgreen","tan4","royalblue4","darkgreen","tan4","royalblue4"),
+                 rectCol=c("darkgreen","tan4","royalblue4","darkgreen","tan4","royalblue4","darkgreen","tan4","royalblue4"),
+                 lineCol=c("darkgreen","tan4","royalblue4","darkgreen","tan4","royalblue4","darkgreen","tan4","royalblue4"),
+                 colMed=c("darkgreen","tan4","royalblue4","darkgreen","tan4","royalblue4","darkgreen","tan4","royalblue4"),ylab="")
 title(ylab="Density of Prediction RMSE",line=7,cex.lab=1.2)
 title(xlab="Prediction Root Mean Square Error (RMSE)",line=3,cex.lab=1.2)
 par(xpd=T)
-text(0.02,7,"c)",cex=1.5)
+text(-0.16,10.5,"c)",cex=1.5)
 par(xpd=F)
 
 dev.off()
@@ -151,65 +159,73 @@ corr0.1_nochange=which(decorData$corrLevel==0.1&!decorData$corrChange)
 #      xaxt = "n", yaxt = "n", xlab = "", ylab = "", bty = "n")
 
 # correlation=0.9
-plot(0,0,type="n",ylim=c(0.5,4.5),xlim=c(0.5,12),xlab="",ylab="",xaxt="n",yaxt="n",bty = "n")
+plot(0,0,type="n",ylim=c(0.5,6.5),xlim=c(0.5,40),xlab="",ylab="",xaxt="n",yaxt="n",bty = "n")
 
-rect(xleft=-0.5,ybottom=-0.5,xright=13,ytop=2.5,col="gray",border=F)
+rect(xleft=-1.5,ybottom=-0.5,xright=45,ytop=3.5,col="gray",border=F)
 
-vioplot::vioplot(cbind(AICdecorr9=decorData$RMSEaic[corr0.9_change],STANdecorr9=decorData$RMSEstan[corr0.9_change],AICnorm9=decorData$RMSEaic[corr0.9_nochange],STANnorm9=decorData$RMSEstan[corr0.9_nochange]),las=1,cex.axis=0.9,
-                 names=c("Stepwise AIC,\n decorrelated","RHS,\ndecorrelated","Stepwise AIC,\nno shift","RHS,\nno shift"),
+vioplot::vioplot(cbind(GLMdecorr9=decorData$RMSEglm[corr0.9_change],AICdecorr9=decorData$RMSEaic[corr0.9_change],STANdecorr9=decorData$RMSEstan[corr0.9_change],
+                       GLMnorm9=decorData$RMSEglm[corr0.9_nochange],AICnorm9=decorData$RMSEaic[corr0.9_nochange],STANnorm9=decorData$RMSEstan[corr0.9_nochange]),las=1,cex.axis=0.9,
+                 names=c("GLM,\n decorrelated","Stepwise AIC,\n decorrelated","RHS,\ndecorrelated","GLM,\nno shift","Stepwise AIC,\nno shift","RHS,\nno shift"),
                  xlab="Root Mean Square Error (RMSE)",horizontal=T,ylab="",add=T,
-                 col=c("tan3","steelblue4","tan3","steelblue4"),
-                 border=c("tan4","royalblue4","tan4","royalblue4"),
-                 rectCol=c("tan4","royalblue4","tan4","royalblue4"),
-                 lineCol=c("tan4","royalblue4","tan4","royalblue4"),
-                 colMed=c("tan4","royalblue4","tan4","royalblue4"))
+                 col=c("forestgreen","tan3","steelblue4","forestgreen","tan3","steelblue4"),
+                 border=c("darkgreen","tan4","royalblue4","darkgreen","tan4","royalblue4"),
+                 rectCol=c("darkgreen","tan4","royalblue4","darkgreen","tan4","royalblue4"),
+                 lineCol=c("darkgreen","tan4","royalblue4","darkgreen","tan4","royalblue4"),
+                 colMed=c("darkgreen","tan4","royalblue4","darkgreen","tan4","royalblue4"))
 
-axis(1,at=seq(0,12,by=2),labels=seq(0,12,by=2))
+axis(1,at=seq(0,40,by=5),labels=seq(0,40,by=5))
 
-axis(2, at = 1:4, labels = c("Stepwise AIC,\n decorrelated","RHS,\ndecorrelated","Stepwise AIC,\nno shift","RHS,\nno shift"),las=2)
+axis(2, at = 1:6, labels = c("GLM,\n decorrelated","Stepwise AIC,\n decorrelated","RHS,\ndecorrelated","GLM,\nno shift","Stepwise AIC,\nno shift","RHS,\nno shift"),las=2)
 
 title(ylab="Correlation 0.9",line=7,cex.lab=1.2)
-
+par(xpd=T)
+text(-8,7,"a)",cex=1.5)
+par(xpd=F)
 # correlation=0.5
-plot(0,0,type="n",ylim=c(0.5,4.5),xlim=c(0.5,12),xlab="",ylab="",xaxt="n",yaxt="n",bty = "n")
+plot(0,0,type="n",ylim=c(0.5,6.5),xlim=c(0.5,40),xlab="",ylab="",xaxt="n",yaxt="n",bty = "n")
 
-rect(xleft=-0.5,ybottom=-0.5,xright=13,ytop=2.5,col="gray",border=F)
+rect(xleft=-1.5,ybottom=-0.5,xright=45,ytop=3.5,col="gray",border=F)
 
-vioplot::vioplot(cbind(AICdecorr5=decorData$RMSEaic[corr0.5_change],STANdecorr5=decorData$RMSEstan[corr0.5_change],AICnorm5=decorData$RMSEaic[corr0.5_nochange],STANnorm5=decorData$RMSEstan[corr0.5_nochange]),las=1,cex.axis=0.9,
-                 names=c("Stepwise AIC,\n decorrelated","RHS,\ndecorrelated","Stepwise AIC,\nno shift","RHS,\nno shift"),
+vioplot::vioplot(cbind(GLMdecorr5=decorData$RMSEglm[corr0.5_change],AICdecorr5=decorData$RMSEaic[corr0.5_change],STANdecorr5=decorData$RMSEstan[corr0.5_change],
+                       GLMnorm5=decorData$RMSEglm[corr0.5_nochange],AICnorm5=decorData$RMSEaic[corr0.5_nochange],STANnorm5=decorData$RMSEstan[corr0.5_nochange]),las=1,cex.axis=0.9,
+                 names=c("GLM,\n decorrelated","Stepwise AIC,\n decorrelated","RHS,\ndecorrelated","GLM,\nno shift","Stepwise AIC,\nno shift","RHS,\nno shift"),
                  xlab="Root Mean Square Error (RMSE)",horizontal=T,ylab="",add=T,
-                 col=c("tan","steelblue1","tan","steelblue1"),
-                 border=c("tan4","royalblue4","tan4","royalblue4"),
-                 rectCol=c("tan4","royalblue4","tan4","royalblue4"),
-                 lineCol=c("tan4","royalblue4","tan4","royalblue4"),
-                 colMed=c("tan4","royalblue4","tan4","royalblue4"))
+                 col=c("green3","tan","steelblue1","green3","tan","steelblue1"),
+                 border=c("darkgreen","tan4","royalblue4","darkgreen","tan4","royalblue4"),
+                 rectCol=c("darkgreen","tan4","royalblue4","darkgreen","tan4","royalblue4"),
+                 lineCol=c("darkgreen","tan4","royalblue4","darkgreen","tan4","royalblue4"),
+                 colMed=c("darkgreen","tan4","royalblue4","darkgreen","tan4","royalblue4"))
 
-axis(1,at=seq(0,12,by=2),labels=seq(0,12,by=2))
+axis(1,at=seq(0,40,by=5),labels=seq(0,40,by=5))
 
-axis(2, at = 1:4, labels = c("Stepwise AIC,\n decorrelated","RHS,\ndecorrelated","Stepwise AIC,\nno shift","RHS,\nno shift"),las=2)
+axis(2, at = 1:6, labels = c("GLM,\n decorrelated","Stepwise AIC,\n decorrelated","RHS,\ndecorrelated","GLM,\nno shift","Stepwise AIC,\nno shift","RHS,\nno shift"),las=2)
 
 title(ylab="Correlation 0.5",line=7,cex.lab=1.2)
-
+par(xpd=T)
+text(-8,7,"b)",cex=1.5)
+par(xpd=F)
 # correlation=0.1
-plot(0,0,type="n",ylim=c(0.5,4.5),xlim=c(0.5,12),xlab="",ylab="",xaxt="n",yaxt="n",bty = "n")
+plot(0,0,type="n",ylim=c(0.5,6.5),xlim=c(0.5,40),xlab="",ylab="",xaxt="n",yaxt="n",bty = "n")
 
-rect(xleft=-0.5,ybottom=-0.5,xright=13,ytop=2.5,col="gray",border=F)
+rect(xleft=-1.5,ybottom=-0.5,xright=45,ytop=3.5,col="gray",border=F)
 
-vioplot::vioplot(cbind(AICdecorr1=decorData$RMSEaic[corr0.1_change],STANdecorr1=decorData$RMSEstan[corr0.1_change],AICnorm1=decorData$RMSEaic[corr0.1_nochange],STANnorm1=decorData$RMSEstan[corr0.1_nochange]),las=1,cex.axis=0.9,
+vioplot::vioplot(cbind(GLMdecorr1=decorData$RMSEglm[corr0.1_change],AICdecorr1=decorData$RMSEaic[corr0.1_change],STANdecorr1=decorData$RMSEstan[corr0.1_change],GLMnorm1=decorData$RMSEglm[corr0.1_nochange],AICnorm1=decorData$RMSEaic[corr0.1_nochange],STANnorm1=decorData$RMSEstan[corr0.1_nochange]),las=1,cex.axis=0.9,
                  names=c("Stepwise AIC,\n decorrelated","RHS,\ndecorrelated","Stepwise AIC,\nno shift","RHS,\nno shift"),
                  xlab="Root Mean Square Error (RMSE)",horizontal=T,ylab="",add=T,
-                 col=c("wheat","skyblue","wheat","skyblue"),
-                 border=c("tan4","royalblue4","tan4","royalblue4"),
-                 rectCol=c("tan4","royalblue4","tan4","royalblue4"),
-                 lineCol=c("tan4","royalblue4","tan4","royalblue4"),
-                 colMed=c("tan4","royalblue4","tan4","royalblue4"))
+                 col=c("lightgreen","wheat","skyblue","lightgreen","wheat","skyblue"),
+                 border=c("darkgreen","tan4","royalblue4","darkgreen","tan4","royalblue4"),
+                 rectCol=c("darkgreen","tan4","royalblue4","darkgreen","tan4","royalblue4"),
+                 lineCol=c("darkgreen","tan4","royalblue4","darkgreen","tan4","royalblue4"),
+                 colMed=c("darkgreen","tan4","royalblue4","darkgreen","tan4","royalblue4"))
 
-axis(1,at=seq(0,12,by=2),labels=seq(0,12,by=2))
+axis(1,at=seq(0,40,by=5),labels=seq(0,40,by=5))
 
-axis(2, at = 1:4, labels = c("Stepwise AIC,\n decorrelated","RHS,\ndecorrelated","Stepwise AIC,\nno shift","RHS,\nno shift"),las=2)
+axis(2, at = 1:6, labels = c("GLM,\n decorrelated","Stepwise AIC,\n decorrelated","RHS,\ndecorrelated","GLM,\nno shift","Stepwise AIC,\nno shift","RHS,\nno shift"),las=2)
 
 title(ylab="Correlation 0.1",line=7,cex.lab=1.2)
-
+par(xpd=T)
+text(-8,7,"c)",cex=1.5)
+par(xpd=F)
 
 
 dev.off()
