@@ -96,7 +96,7 @@ corData5=corData4[which(corData4$probWeakCorr==0.5),]
 #corData6=corData5[-which(corData5$corrLevel==0.7),]
 corData6=corData5
 
-pdf(file=here("Figures/correlated_variable_effects_combined.pdf"), width = 5, height = 9)
+pdf(file=here("Figures/correlated_variable_effects_combined.pdf"), width = 5, height = 10)
 
 par(mar=c(5,9,2,2))
 par(mfrow=c(3,1))
