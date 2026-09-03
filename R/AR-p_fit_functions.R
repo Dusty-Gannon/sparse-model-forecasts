@@ -30,6 +30,13 @@ fit_ARp_beta_model <- function(model_pars, iter = 2000, warmup = 1000,
   # arp_r <- rstan::stan_model("Stan/AR-p_FHS-p-beta.stan")
   arp_r <- rstan::stan_model("Stan/AR-p_err_FHS-p-beta2.stan")
 
+  # standardize non-intercept columns using training-set statistics
+  X_train     <- model_pars$X[1:model_pars$n, ]
+  col_means   <- colMeans(X_train[, -1])
+  col_sds     <- apply(X_train[, -1], 2, sd)
+  X_train_std <- X_train
+  X_train_std[, -1] <- scale(X_train[, -1], center = col_means, scale = col_sds)
+
   # compile data (see Stan file for descriptions of each input)
   datlist <- list(
     N = model_pars$n,
@@ -37,9 +44,8 @@ fit_ARp_beta_model <- function(model_pars, iter = 2000, warmup = 1000,
     P = ncol(model_pars$X)-1,
     p = model_pars$p,
     y = model_pars$y[1:model_pars$n],
-    X_alpha = matrix(model_pars$X[1:model_pars$n, 1],
-                     ncol = 1),
-    X_beta = model_pars$X[1:model_pars$n, -1],
+    X_alpha = matrix(X_train_std[, 1], ncol = 1),
+    X_beta = X_train_std[, -1],
     tau0 = model_pars$tau_0,
     slab_scl = 1,
     slab_df = 10
@@ -67,7 +73,7 @@ fit_ARp_beta_model <- function(model_pars, iter = 2000, warmup = 1000,
       P = ncol(model_pars$X),
       p = model_pars$p,
       y = model_pars$y[1:model_pars$n],
-      X = model_pars$X[1:model_pars$n, ]
+      X = X_train_std
     )
 
     # arp_nr <- rstan::stan_model("Stan/AR-p.stan")
@@ -128,6 +134,16 @@ fit_seasonal_ARp_models <- function(model_pars,
   # arp_r <- rstan::stan_model("Stan/AR-p_FHS-p-beta.stan")
   # compile data (see Stan file for descriptions of each input)
 
+  # standardize non-intercept columns using training-set statistics
+  X_full    <- model_pars$X
+  X_tr      <- X_full[1:model_pars$n, ]
+  col_means <- colMeans(X_tr[, -1])
+  col_sds   <- apply(X_tr[, -1], 2, sd)
+  X_std_tr  <- X_tr
+  X_std_tr[, -1]  <- scale(X_tr[, -1], center = col_means, scale = col_sds)
+  X_std_new <- X_full[(model_pars$n + 1):nrow(X_full), ]
+  X_std_new[, -1] <- scale(X_std_new[, -1], center = col_means, scale = col_sds)
+
   # list to use in the stan model
   dat_flat <-
     list(
@@ -135,9 +151,9 @@ fit_seasonal_ARp_models <- function(model_pars,
       P = ncol(model_pars$X),
       p = 15,
       y = as.double(model_pars$y)[1:model_pars$n],
-      X = model_pars$X[1:model_pars$n, ],
+      X = X_std_tr,
       N_new = model_pars$holdout,
-      X_new = model_pars$X[(model_pars$n + 1):nrow(model_pars$X), ]
+      X_new = X_std_new
     )
 
   # don't regularize the trend for the

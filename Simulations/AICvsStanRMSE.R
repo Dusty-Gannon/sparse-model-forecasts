@@ -218,18 +218,26 @@ STANselect<-function(dataSet,testSet,m0=5,K=50,n=100,nfit=60,slab_scl=1,slab_df=
     fam="gaussian"
   )
 
+  # standardize predictor columns using training-set statistics
+  X_raw     <- as.matrix(dataSet[, 2:(K+1)])
+  X_new_raw <- as.matrix(testSet[, 2:(K+1)])
+  col_means <- colMeans(X_raw)
+  col_sds   <- apply(X_raw, 2, sd)
+  X_std     <- scale(X_raw,     center = col_means, scale = col_sds)
+  X_new_std <- scale(X_new_raw, center = col_means, scale = col_sds)
+
   # compile data for stan
   datlist<-list(
     N=nfit, # length of time series
     P0=1, # for intercept
     P=K+1, # number of covariates
     y=dataSet$y,
-    X=cbind(rep(1,nfit),dataSet[,2:(K+1)]),
+    X=cbind(rep(1,nfit), X_std),
     tau0=tau_0,
     slab_scl=slab_scl,
     slab_df=slab_df,
     N_new=n-nfit,
-    X_new=cbind(rep(1,n-nfit),testSet[,2:(K+1)])
+    X_new=cbind(rep(1,n-nfit), X_new_std)
   )
 
   # sample the posterior
