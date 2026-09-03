@@ -67,12 +67,8 @@ AICconfusion=mapply(function(x,y) AICconfusionRates(x,y),ts1,AICmodlist)
 mean(AICconfusion[1,])# TPR is 0.992
 mean(AICconfusion[2,])# TNR is 0.498
 
-STANbetalist1=lapply(STANmodlist, FUN=function(x) STANbetapost(x)) # get summary of stan predictions for beta
-STANbetalist=lapply(STANbetalist1, function(x) x[!(rownames(x) %in% c(1)),]) # remove row 1 (intercept) as this is not included for AIC method
-# ts_betas=lapply(ts1....)  # How do I extract the beta values from the timeseries list?
-ts_betas=lapply(ts1, FUN=function(x) x$beta[2:(K+1)])  # removing the beta[1], 0 in all cases, so there are 50 ts_betas to match the 50 modeled betas
-STANconfusion=mapply(function(x,y) STANconfusionRates(x,y), STANbetalist, ts_betas) #returns a matrix of false pos, false neg,
-## NB: this is VERY close to Alice C's function, not 100% sure it's the best fit for what we want here.
+STANbetalist=lapply(STANmodlist, FUN=function(x) STANbetapost(x)) # get summary of stan predictions for beta
+STANconfusion=mapply(function(x,y) STANconfusionRates(x,y), STANbetalist, ts1)
 
 
 TPR_STANbeta <- mean(unlist(STANconfusion[1,]))   # 0.759
@@ -82,6 +78,14 @@ FNR_STANbeta <- mean(unlist(STANconfusion[4,]))   # 0.241
 
 #hist(RMSESTANlist,xlim=c(0,2.5),ylim=c(0,50),breaks=seq(0,2.5,by=0.1),xlab="RMSE",main="RMSE using horseshoe priors")
 #hist(RMSEAIClist,xlim=c(0,2.5),ylim=c(0,50),breaks=seq(0,2.5,by=0.1),xlab="RMSE",main="RMSE using stepwise AIC")
+
+# Coverage rates
+coverageList=mapply(
+  function(ts, train, aic, stan, glm) coverageRates(ts, train, aic, stan, glm, K=K),
+  ts1, ts1train, AICmodlist, STANmodlist, GLMmodlist,
+  SIMPLIFY=FALSE
+)
+coverageResults=do.call(rbind, coverageList)
 
 # Output- want to save the confusion values, and save the RMSE values
 # Put each into dataframes and save as .csv?
@@ -97,6 +101,7 @@ saveRDS(RMSEGLMlist,file=paste0("Data/AICvsStan_data/RMSEGLM_",nameID,".rds"))
 saveRDS(AICconfusion,file=paste0("Data/AICvsStan_data/AICconfusion_",nameID,".rds"))
 saveRDS(STANconfusion,file=paste0("Data/AICvsStan_data/STANconfusion_",nameID,".rds"))
 saveRDS(GLMconfusion,file=paste0("Data/AICvsStan_data/GLMconfusion_",nameID,".rds"))
+saveRDS(coverageResults,file=paste0("Data/AICvsStan_data/coverage_",nameID,".rds"))
 
 # Save the lists of models for possible future analysis
 # saveRDS(AICmodlist,file=paste0("Data/AICvsStan_data/AICmodlist_",nameID,".rds"))

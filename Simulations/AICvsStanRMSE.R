@@ -73,28 +73,26 @@ RMSE_GLM=function(model,testData){
 
 #' Title Function to collect true/false positives/negatives from the full GLM model
 #'
-#' @param timeseries timeseries that model is based on, needed to extract true betas
+#' @param timeseries timeseries that model is based on; must contain strong_ids
 #' @param model glm result model to be evaluated
-#' @param strongCutoff cutoff for true positive
 #'
 #' @returns true positive and negative rates based on p<0.05
 #' @export
 #'
 #' @examples
-GLMconfusionRates<-function(timeseries,model,strongCutoff=0.3){
+GLMconfusionRates<-function(timeseries, model){
 
-  strong1<-which(abs(timeseries$beta)>strongCutoff)
-  strong2<-paste0("driver_",strong1-1)
-  strongaic<-names(which(summary(model)$coefficients[,4]<0.05))
+  strong2 <- paste0("driver_", timeseries$strong_ids)
+  strongaic <- names(which(summary(model)$coefficients[,4]<0.05))
 
-  positives=length(strong1)
-  negatives=(length(timeseries$beta)-length(strong1)-1)
+  positives <- length(timeseries$strong_ids)
+  negatives <- length(timeseries$beta) - 1 - positives
 
-  truePos=length(intersect(strongaic,strong2))
-  trueNeg=negatives-length(strongaic)+length(intersect(strongaic,strong2))
+  truePos <- length(intersect(strongaic, strong2))
+  trueNeg <- negatives - length(strongaic) + length(intersect(strongaic, strong2))
 
-  TPR=truePos/positives
-  TNR=trueNeg/negatives
+  TPR <- truePos/positives
+  TNR <- trueNeg/negatives
 
   return(c(TPR,TNR))
 }
@@ -102,28 +100,26 @@ GLMconfusionRates<-function(timeseries,model,strongCutoff=0.3){
 # function to collect true/false positives/negatives from the AIC based model
 #' Title
 #'
-#' @param timeseries timeseries that model is based on, needed to extract true betas
+#' @param timeseries timeseries that model is based on; must contain strong_ids
 #' @param model step AIC lm result model to be evaluated
-#' @param strongCutoff cutoff for true positive
 #'
 #' @return true positive and negative rates
 #' @export
 #'
 #' @examples
-AICconfusionRates<-function(timeseries,model,strongCutoff=0.3){
+AICconfusionRates<-function(timeseries, model){
 
-  strong1<-which(abs(timeseries$beta)>strongCutoff)
-  strong2<-paste0("driver_",strong1-1)
-  strongaic<-names(model$coefficients)
+  strong2 <- paste0("driver_", timeseries$strong_ids)
+  strongaic <- names(model$coefficients)
 
-  positives=length(strong1)
-  negatives=(length(timeseries$beta)-length(strong1)-1)
+  positives <- length(timeseries$strong_ids)
+  negatives <- length(timeseries$beta) - 1 - positives
 
-  truePos=length(intersect(strongaic,strong2))
-  trueNeg=negatives-length(strongaic)+length(intersect(strongaic,strong2))
+  truePos <- length(intersect(strongaic, strong2))
+  trueNeg <- negatives - length(strongaic) + length(intersect(strongaic, strong2))
 
-  TPR=truePos/positives
-  TNR=trueNeg/negatives
+  TPR <- truePos/positives
+  TNR <- trueNeg/negatives
 
   return(c(TPR,TNR))
 }
@@ -302,47 +298,145 @@ STANbetapost <- function(modelfit) {
 }
 
 
+
+#' Compute interval coverage rates for AIC, Stan, and full-GLM models
+#'
+#' For each model, checks what fraction of the true beta values (from the
+#' simulation) fall inside the estimated 95% confidence or credible interval.
+#'
+#' AIC: coverage is computed only for the variables that were selected.
+#' Stan: coverage is split by whether the 95% CrI excludes zero ("escapes") or
+#'   not.  Stan posteriors are back-transformed from the standardised predictor
+#'   scale to the original scale before comparison.
+#' GLM: coverage is computed for all K predictor variables.
+#'
+#' @param timeseries Simulated timeseries object containing true beta values
+#'   (intercept first, then K driver betas).
+#' @param trainData Training data frame used to fit the models (y in column 1,
+#'   driver_1 … driver_K in the remaining columns).  Used to recover the
+#'   column standard deviations needed to back-transform Stan posteriors.
+#' @param aicModel Stepwise-AIC lm model fit returned by AICselect().
+#' @param stanModel Stan model fit returned by STANselect().
+#' @param glmModel Full lm model fit (all K predictors).
+#' @param K Number of predictor variables.
+#' @param conf Nominal coverage level (default 0.95).
+#'
+#' @return A one-row data frame with four coverage rates:
+#'   \describe{
+#'     \item{AIC_coverage}{Proportion of *selected* variables whose true beta
+#'       falls inside the 95\% CI.}
+#'     \item{GLM_coverage}{Proportion of *all* K variables whose true beta
+#'       falls inside the 95\% CI.}
+#'     \item{Stan_coverage_escape}{Coverage among posteriors whose 95\% CrI
+#'       excludes zero.}
+#'     \item{Stan_coverage_noescape}{Coverage among posteriors whose 95\% CrI
+#'       includes zero.}
+#'   }
+#' @export
+coverageRates <- function(timeseries, trainData, aicModel, stanModel, glmModel,
+                          K = 50, conf = 0.95) {
+
+  true_betas <- timeseries$beta[2:(K + 1)]  # driver betas, original scale
+  driver_names <- paste0("driver_", 1:K)
+
+  ## ---- AIC: CI for selected variables only ----
+  aic_selected <- setdiff(names(aicModel$coefficients), "(Intercept)")
+
+  if (length(aic_selected) == 0) {
+    aic_coverage <- NA_real_
+  } else {
+    aic_ci <- confint(aicModel, parm = aic_selected, level = conf)
+    aic_idx <- as.integer(sub("driver_", "", aic_selected))
+    aic_true <- true_betas[aic_idx]
+    aic_coverage <- mean(aic_true >= aic_ci[, 1] & aic_true <= aic_ci[, 2])
+  }
+
+  ## ---- GLM: CI for all K variables ----
+  glm_ci <- confint(glmModel, level = conf)[driver_names, ]
+  glm_coverage <- mean(true_betas >= glm_ci[, 1] & true_betas <= glm_ci[, 2])
+
+  ## ---- Stan: CrI back-transformed to original predictor scale ----
+  # Stan fits on standardised X; dividing by col_sds recovers the original scale.
+  col_sds <- apply(as.matrix(trainData[, 2:(K + 1)]), 2, sd)
+  beta_post <- STANbetapost(stanModel)
+  bp <- beta_post[2:(K + 1), ]  # drop intercept row
+  low_orig <- bp$low / col_sds
+  high_orig <- bp$high / col_sds
+
+  escape_zero <- low_orig > 0 | high_orig < 0
+
+  if (sum(escape_zero) == 0) {
+    stan_coverage_escape <- NA_real_
+  } else {
+    stan_coverage_escape <- mean(
+      true_betas[escape_zero] >= low_orig[escape_zero] &
+      true_betas[escape_zero] <= high_orig[escape_zero]
+    )
+  }
+
+  if (sum(!escape_zero) == 0) {
+    stan_coverage_noescape <- NA_real_
+  } else {
+    stan_coverage_noescape <- mean(
+      true_betas[!escape_zero] >= low_orig[!escape_zero] &
+      true_betas[!escape_zero] <= high_orig[!escape_zero]
+    )
+  }
+
+  data.frame(
+    AIC_coverage = aic_coverage,
+    GLM_coverage = glm_coverage,
+    Stan_coverage_escape = stan_coverage_escape,
+    Stan_coverage_noescape = stan_coverage_noescape
+  )
+}
+
+
+
 ## The STANconfusionRates() code leans HEAVILY on Alice C's 'calculate_true_pos_rate()', but some things don't make sense to me"
 ##    - the 'zero' values for beta
 ##    - there is one definition of 'true positive' in the description, but it looks like the code is doing something else...
 
-#' function to provide confusion metrics (rates for true pos, false pos, false neg) for stan based models
+
+#' function to provide confusion metrics
 #'
-#' For a model fit to simulated AR-p data, a true positive is a correctly
-#' identified beta or phi parameter as non-zero. **We define a true positive as
-#' any parameter estimate for which 90% of the posterior mass lies above or
-#' below zero, given that the true parameter is non-zero.**  CHECK THIS IN AM
+#' A true positive is a driver whose posterior mass (defined by threshold)
+#' lies entirely above or below zero, given that it is a true large-effect
+#' predictor (i.e. its index is in timeseries$strong_ids).  The intercept row
+#' of par_post is excluded; only the K driver rows are evaluated.
 #'
-#' Title
+#' @param par_post a summary of the posterior estimates from STANbetapost()
+#' @param timeseries the simulated timeseries object; must contain strong_ids
+#' @param par label prefix for the returned column names (default 'beta')
+#' @param threshold posterior mass threshold defining a 'detected' effect (default 0.90)
 #'
-#' @param par_post a summary of the posterior estimates of the parameter values (beta is the default)
-#' @param par_vals the data set ('true') values for the parameter
-#' @param threshold the posterior mass threshold that defines a 'true positive' result;
-#' 0.9 (90%) is the default value
-#'
-#' @return a matrix of the true positive, false positive and false negative rates for the model
+#' @return a data frame of TPR, TNR, FPR, FNR prefixed by par
 #' @export
 #'
 #' @examples
-STANconfusionRates<-function(par_post, par_vals, par='beta', threshold=0.90) {
-  min_pos = 0
-  if(par == 'beta') min_pos = 1.96 * 0.05 #this is from Alice C's code, not sure why this was done/ why these values for 'zero' - CT
+STANconfusionRates<-function(par_post, timeseries, par='beta', threshold=0.90) {
 
-  # calculate the boundaries of the posterior mass based on the threshold
+  K <- length(timeseries$beta) - 1
+  strong_ids <- timeseries$strong_ids
+  true_betas <- timeseries$beta[2:(K + 1)]
+
   bottom <- paste0('q', (1-threshold))
   top <- paste0('q', (threshold))
 
-  ests <- par_post[,c('mean', 'median', bottom, top)]
-  colnames(ests) <- c('mean', 'median', 'bottom', 'top')
+  # operate on driver rows only (skip intercept at row 1)
+  bp <- par_post[2:(K + 1), c('mean', 'median', bottom, top)]
+  colnames(bp) <- c('mean', 'median', 'bottom', 'top')
 
-  ests <- ests %>%
-    mutate(value = par_vals,
-           effect = case_when(abs(value) <= min_pos ~ 'zero',
-                              value > min_pos ~ 'positive',
-                              value < -min_pos ~ 'negative'),
+  is_strong <- seq_len(K) %in% strong_ids
+
+  ests <- bp %>%
+    mutate(effect = case_when(!is_strong      ~ 'zero',
+                              true_betas > 0  ~ 'positive',
+                              true_betas < 0  ~ 'negative'),
            post_mass = case_when(bottom > 0 ~ 'positive',
-                                 top < 0 ~ 'negative',
-                                 TRUE ~ 'zero'))
+                                 top < 0    ~ 'negative',
+                                 TRUE       ~ 'zero'))
+
   # True Positive Rate
   true_pos = sum((ests$effect == 'positive' & ests$post_mass == 'positive')|
                    (ests$effect == 'negative' & ests$post_mass == 'negative'))/
@@ -362,14 +456,13 @@ STANconfusionRates<-function(par_post, par_vals, par='beta', threshold=0.90) {
                     (ests$effect == 'positive' & ests$post_mass != 'positive'))/
     sum(ests$effect != 'zero')
 
-
   TFP <- data.frame(TPR = true_pos,
                     TNR = true_neg,
                     FPR = false_pos,
                     FNR = false_neg) %>%
     rename_with(function(x) paste0(par, '_', x))
 
-  return( TFP )
+  return(TFP)
 
 }
 

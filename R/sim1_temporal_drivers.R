@@ -25,7 +25,9 @@
 #' @param changeTimeVar how much variance is allowed in when each correlation breaks down
 #'
 #' @return List with the response, \code{y}, the model matrix, \code{X},
-#' and the regression coefficients used to construct the response, \code{beta}.
+#' the regression coefficients used to construct the response, \code{beta},
+#' and \code{strong_ids}: a integer vector of 1-based driver indices (into
+#' columns 2:(K+1) of \code{X}) identifying the large-effect predictors.
 #'
 #' @examples
 #' # simulating a 3-year time series with data from each day,
@@ -111,10 +113,9 @@ basic_timeseries <- function(
   )
 
   # distribute these randomly
-  beta <- c(
-    0,
-    beta[sample(1:K, size = K)]
-  )
+  perm <- sample(1:K, size = K)
+  beta <- c(0, beta[perm])
+  strong_ids <- which(perm <= num_strong)
 
   # substitute in the correlated covariates
   # goal: we want to make some weakly explanatory drivers correlate with some strong explanatory drivers
@@ -261,7 +262,7 @@ basic_timeseries <- function(
   y <- as.double(X %*% beta) + rnorm(n, sd = sigma)
 
   # Store everything together in a list
-  ts <- list(y = y, X = X, beta = beta)
+  ts <- list(y = y, X = X, beta = beta, strong_ids = strong_ids)
   return(ts)
 }
 

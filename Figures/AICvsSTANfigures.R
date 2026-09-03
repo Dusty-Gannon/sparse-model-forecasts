@@ -114,75 +114,75 @@ pdf(file=here("Figures/correlated_variable_effects_combined.pdf"), width = 6, he
 par(mar=c(5,6,2,2))
 #par(mfrow=c(3,1))
 
-## ---- TPR plot ----
+# ## ---- TPR plot ----
+#
+# vioplot::vioplot(cbind(
+#   AIC1=corData6$TPRaic[which(corData6$corrLevel==0.1)],
+#   STAN1=corData6$TPRstan[which(corData6$corrLevel==0.1)],
+#   AIC5=corData6$TPRaic[which(corData6$corrLevel==0.5)],
+#   STAN5=corData6$TPRstan[which(corData6$corrLevel==0.5)],
+#   AIC9=corData6$TPRaic[which(corData6$corrLevel==0.9)],
+#   STAN9=corData6$TPRstan[which(corData6$corrLevel==0.9)]
+# ),
+#   xlab="",
+#   horizontal=T,
+#   las=1,
+#   names=c(
+#     "Stepwise AIC\n correlation 0.1",
+#     "RHS\n correlation 0.1",
+#     "Stepwise AIC\n correlation 0.5",
+#     "RHS\n correlation 0.5",
+#     "Stepwise AIC\n correlation 0.9",
+#     "RHS\n correlation 0.9"
+#   ),
+#   col=colors,
+#   pchMed=20,
+#   border=rep(c("tan4","royalblue4"), 3),
+#   rectCol=rep(c("tan4","royalblue4"), 3),
+#   lineCol=rep(c("tan4","royalblue4"), 3),
+#   colMed=rep(c("tan4","royalblue4"), 3),
+#   ylab=""
+# )
+# title(ylab="Density of TPR",line=7,cex.lab=1.2)
+# title(xlab="True Positive Rate (TPR)",line=3,cex.lab=1.2)
+# par(xpd=T)
+# text(-0.16,7,"a)",cex=1.5)
+# par(xpd=F)
 
-vioplot::vioplot(cbind(
-  AIC1=corData6$TPRaic[which(corData6$corrLevel==0.1)],
-  STAN1=corData6$TPRstan[which(corData6$corrLevel==0.1)],
-  AIC5=corData6$TPRaic[which(corData6$corrLevel==0.5)],
-  STAN5=corData6$TPRstan[which(corData6$corrLevel==0.5)],
-  AIC9=corData6$TPRaic[which(corData6$corrLevel==0.9)],
-  STAN9=corData6$TPRstan[which(corData6$corrLevel==0.9)]
-),
-  xlab="",
-  horizontal=T,
-  las=1,
-  names=c(
-    "Stepwise AIC\n correlation 0.1",
-    "RHS\n correlation 0.1",
-    "Stepwise AIC\n correlation 0.5",
-    "RHS\n correlation 0.5",
-    "Stepwise AIC\n correlation 0.9",
-    "RHS\n correlation 0.9"
-  ),
-  col=colors,
-  pchMed=20,
-  border=rep(c("tan4","royalblue4"), 3),
-  rectCol=rep(c("tan4","royalblue4"), 3),
-  lineCol=rep(c("tan4","royalblue4"), 3),
-  colMed=rep(c("tan4","royalblue4"), 3),
-  ylab=""
-)
-title(ylab="Density of TPR",line=7,cex.lab=1.2)
-title(xlab="True Positive Rate (TPR)",line=3,cex.lab=1.2)
-par(xpd=T)
-text(-0.16,7,"a)",cex=1.5)
-par(xpd=F)
-
-## ---- TNR plot ----
-
-vioplot::vioplot(cbind(
-  AIC1=corData6$TNRaic[which(corData6$corrLevel==0.1)],
-  STAN1=corData6$TNRstan[which(corData6$corrLevel==0.1)],
-  AIC5=corData6$TNRaic[which(corData6$corrLevel==0.5)],
-  STAN5=corData6$TNRstan[which(corData6$corrLevel==0.5)],
-  AIC9=corData6$TNRaic[which(corData6$corrLevel==0.9)],
-  STAN9=corData6$TNRstan[which(corData6$corrLevel==0.9)]
-),
-  xlab="",
-  horizontal=T,
-  las=1,
-  names=c(
-    "Stepwise AIC\n correlation 0.1",
-    "RHS\n correlation 0.1",
-    "Stepwise AIC\n correlation 0.5",
-    "RHS\n correlation 0.5",
-    "Stepwise AIC\n correlation 0.9",
-    "RHS\n correlation 0.9"
-  ),
-  col=c("wheat","skyblue","tan","steelblue1","tan3","steelblue4"),
-  pchMed=20,
-  border=rep(c("tan4","royalblue4"), 3),
-  rectCol=rep(c("tan4","royalblue4"), 3),
-  lineCol=rep(c("tan4","royalblue4"), 3),
-  colMed=rep(c("tan4","royalblue4"), 3),
-  ylab=""
-)
-title(ylab="Density of TNR",line=7,cex.lab=1.2)
-title(xlab="True Negative Rate (TNR)",line=3,cex.lab=1.2)
-par(xpd=T)
-text(-0.275,7,"b)",cex=1.5)
-par(xpd=F)
+# ## ---- TNR plot ----
+#
+# vioplot::vioplot(cbind(
+#   AIC1=corData6$TNRaic[which(corData6$corrLevel==0.1)],
+#   STAN1=corData6$TNRstan[which(corData6$corrLevel==0.1)],
+#   AIC5=corData6$TNRaic[which(corData6$corrLevel==0.5)],
+#   STAN5=corData6$TNRstan[which(corData6$corrLevel==0.5)],
+#   AIC9=corData6$TNRaic[which(corData6$corrLevel==0.9)],
+#   STAN9=corData6$TNRstan[which(corData6$corrLevel==0.9)]
+# ),
+#   xlab="",
+#   horizontal=T,
+#   las=1,
+#   names=c(
+#     "Stepwise AIC\n correlation 0.1",
+#     "RHS\n correlation 0.1",
+#     "Stepwise AIC\n correlation 0.5",
+#     "RHS\n correlation 0.5",
+#     "Stepwise AIC\n correlation 0.9",
+#     "RHS\n correlation 0.9"
+#   ),
+#   col=c("wheat","skyblue","tan","steelblue1","tan3","steelblue4"),
+#   pchMed=20,
+#   border=rep(c("tan4","royalblue4"), 3),
+#   rectCol=rep(c("tan4","royalblue4"), 3),
+#   lineCol=rep(c("tan4","royalblue4"), 3),
+#   colMed=rep(c("tan4","royalblue4"), 3),
+#   ylab=""
+# )
+# title(ylab="Density of TNR",line=7,cex.lab=1.2)
+# title(xlab="True Negative Rate (TNR)",line=3,cex.lab=1.2)
+# par(xpd=T)
+# text(-0.275,7,"b)",cex=1.5)
+# par(xpd=F)
 
 ## ---- RMSE plot ----
 {
