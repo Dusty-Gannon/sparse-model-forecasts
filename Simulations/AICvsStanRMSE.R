@@ -31,10 +31,28 @@ stanFHS<-stan_model(here("Stan/sparse_reg_FHS.stan"))
 #'
 #' @examples
 AICselect=function(dataSet){
+  all_vars <- names(dataSet)[-1]
+  K <- length(all_vars)
   mod_full=lm(y~.,data=dataSet)
   mod_null=lm(y~1,data=dataSet)
-  stepAIC<-MASS::stepAIC(mod_null, direction = "forward", scope = list(lower = mod_null,                                                                     upper = mod_full))
-  return(stepAIC)
+  result<-MASS::stepAIC(mod_null, direction = "forward",
+    scope = list(lower = mod_null, upper = mod_full),
+    keep = function(model, aic) list(model = model, aic = aic))
+
+  chain_models <- result$keep["model", ]
+  chain_aic    <- unlist(result$keep["aic", ])
+  delta        <- chain_aic - min(chain_aic)
+  weights      <- exp(-0.5 * delta) / sum(exp(-0.5 * delta))
+
+  avg_coef <- setNames(numeric(K + 1), c("(Intercept)", all_vars))
+  for (i in seq_along(chain_models)) {
+    cf <- coef(chain_models[[i]])
+    avg_coef[names(cf)] <- avg_coef[names(cf)] + weights[i] * cf
+  }
+
+  result$avg_coef    <- avg_coef
+  result$avg_weights <- weights
+  return(result)
 }
 
 
@@ -68,6 +86,21 @@ RMSE_GLM=function(model,testData){
   predValues<-predict(model,testData)
   RMSE_GLM<-sqrt(mean((predValues-testData$y)^2))
   return(RMSE_GLM)
+}
+
+
+#' Title Calculate prediction RMSE using model-averaged coefficients from AICselect
+#'
+#' @param aicModel AICselect result (must have $avg_coef attached)
+#' @param testData The test dataset, response in column y
+#'
+#' @return scalar RMSE
+#' @export
+RMSE_modelAvg=function(aicModel, testData){
+  avg_coef <- aicModel$avg_coef
+  X <- model.matrix(~ ., data = testData[, -1, drop = FALSE])
+  preds <- as.vector(X[, names(avg_coef)] %*% avg_coef)
+  sqrt(mean((preds - testData$y)^2))
 }
 
 
@@ -122,6 +155,38 @@ AICconfusionRates<-function(timeseries, model){
   TNR <- trueNeg/negatives
 
   return(c(TPR,TNR))
+}
+
+
+#' Title Confusion rates from model-averaged AIC variable importances
+#'
+#' @param timeseries Simulated timeseries with strong_ids
+#' @param aicModel AICselect result (must have $keep, $avg_weights)
+#'
+#' @return c(TPR, TNR); detection defined as relative importance > 0.5
+#' @export
+modelAvg_confusionRates<-function(timeseries, aicModel){
+  strong2 <- paste0("driver_", timeseries$strong_ids)
+  K <- length(timeseries$beta) - 1
+  all_vars <- paste0("driver_", 1:K)
+  positives <- length(timeseries$strong_ids)
+  negatives <- K - positives
+
+  chain_models <- aicModel$keep["model", ]
+  weights <- aicModel$avg_weights
+
+  ri <- setNames(numeric(K), all_vars)
+  for (i in seq_along(chain_models)) {
+    in_model <- setdiff(names(coef(chain_models[[i]])), "(Intercept)")
+    present <- intersect(in_model, all_vars)
+    ri[present] <- ri[present] + weights[i]
+  }
+  detected <- names(ri)[ri > 0.5]
+
+  truePos <- length(intersect(detected, strong2))
+  trueNeg <- negatives - length(detected) + length(intersect(detected, strong2))
+
+  return(c(TPR = truePos/positives, TNR = trueNeg/negatives))
 }
 
 
@@ -209,7 +274,7 @@ STANselect<-function(dataSet,testSet,m0=5,K=50,n=100,nfit=60,slab_scl=1,slab_df=
   tau_0=tau0(
     y=dataSet$y,
     m0=m0,
-    M=K+1,
+    M=K,
     N=nfit,
     fam="gaussian"
   )
@@ -219,7 +284,7 @@ STANselect<-function(dataSet,testSet,m0=5,K=50,n=100,nfit=60,slab_scl=1,slab_df=
   X_new_raw <- as.matrix(testSet[, 2:(K+1)])
   col_means <- colMeans(X_raw)
   col_sds   <- apply(X_raw, 2, sd)
-  X_std     <- scale(X_raw,     center = col_means, scale = col_sds)
+  X_std     <- scale(X_raw, center = col_means, scale = col_sds)
   X_new_std <- scale(X_new_raw, center = col_means, scale = col_sds)
 
   # compile data for stan
@@ -232,8 +297,8 @@ STANselect<-function(dataSet,testSet,m0=5,K=50,n=100,nfit=60,slab_scl=1,slab_df=
     tau0=tau_0,
     slab_scl=slab_scl,
     slab_df=slab_df,
-    N_new=n-nfit,
-    X_new=cbind(rep(1,n-nfit), X_new_std)
+    N_new=n - nfit,
+    X_new=cbind(rep(1, n - nfit), X_new_std)
   )
 
   # sample the posterior
@@ -272,31 +337,71 @@ STANgetpredict=function(model){
 #'
 #' @examples
 
-STANbetapost <- function(modelfit) {
+STANbetapost <- function(modelfit, scaled = T, sd_x = NULL) {
 
+  if(scaled & is.null(sd_x)){
+    stop("Were columns of X_train standardized?
+         If so, we need to rescale beta with sd_x for them to be compared to the simulation values.")
+  }
   # extract the posterior betas
-  beta_pred=rstan::extract(modelfit, pars = 'beta')$beta
+  beta_post=rstan::extract(modelfit, pars = 'beta')$beta
+  # rescale all columns except the intercept
+  beta_post[, 2:ncol(beta_post)] <- t(t(beta_post[, 2:ncol(beta_post)]) / sd_x)
 
   # create a data frame w summary stats for these posterior betas
-  beta_post <- data.frame(
-    mean = apply(beta_pred, 2, mean),
-    median = apply(beta_pred, 2, median),
-    min = apply(beta_pred, 2, min),
-    max = apply(beta_pred, 2, max),
-    low = apply(beta_pred, 2, quantile, probs = 0.025),
-    high = apply(beta_pred, 2, quantile, probs = 0.975),
-    q0.01 = apply(beta_pred, 2, quantile, probs = 0.01),
-    q0.05 = apply(beta_pred, 2, quantile, probs = 0.05),
-    q0.1 = apply(beta_pred, 2, quantile, probs = 0.1),
-    q0.9 = apply(beta_pred, 2, quantile, probs = 0.9),
-    q0.95 = apply(beta_pred, 2, quantile, probs = 0.95),
-    q0.99 = apply(beta_pred, 2, quantile, probs = 0.99)
+  beta_df <- data.frame(
+    mean = apply(beta_post, 2, mean),
+    median = apply(beta_post, 2, median),
+    min = apply(beta_post, 2, min),
+    max = apply(beta_post, 2, max),
+    low = apply(beta_post, 2, quantile, probs = 0.025),
+    high = apply(beta_post, 2, quantile, probs = 0.975),
+    q0.01 = apply(beta_post, 2, quantile, probs = 0.01),
+    q0.05 = apply(beta_post, 2, quantile, probs = 0.05),
+    q0.1 = apply(beta_post, 2, quantile, probs = 0.1),
+    q0.9 = apply(beta_post, 2, quantile, probs = 0.9),
+    q0.95 = apply(beta_post, 2, quantile, probs = 0.95),
+    q0.99 = apply(beta_post, 2, quantile, probs = 0.99)
 
   )
 
-  return(beta_post)
+  return(beta_df)
 }
 
+
+
+#' Compute unconditional standard errors for full model-averaged coefficients
+#'
+#' Uses the Burnham & Anderson (2004) formula: SE_j = sum_i w_i * sqrt(var_ij + (beta_ij - beta_bar_j)^2)
+#' where beta_ij = 0 and var_ij = 0 for models that do not contain variable j (full averaging).
+#'
+#' @param aicModel AICselect result with $keep, $avg_weights, and $avg_coef attached
+#' @param all_vars Character vector of predictor names (e.g. "driver_1" ... "driver_K")
+#'
+#' @return Named numeric vector of unconditional SEs, one per variable in all_vars
+modelAvg_uncond_SE <- function(aicModel, all_vars) {
+  chain_models <- aicModel$keep["model", ]
+  weights      <- aicModel$avg_weights
+  avg_coef     <- aicModel$avg_coef
+
+  se <- setNames(numeric(length(all_vars)), all_vars)
+  for (j in all_vars) {
+    beta_bar <- avg_coef[j]
+    contrib <- vapply(seq_along(chain_models), function(i) {
+      cf <- coef(chain_models[[i]])
+      if (j %in% names(cf)) {
+        beta_ij <- cf[j]
+        var_ij  <- vcov(chain_models[[i]])[j, j]
+      } else {
+        beta_ij <- 0
+        var_ij  <- 0
+      }
+      weights[i] * sqrt(var_ij + (beta_ij - beta_bar)^2)
+    }, numeric(1))
+    se[j] <- sum(contrib)
+  }
+  se
+}
 
 
 #' Compute interval coverage rates for AIC, Stan, and full-GLM models
@@ -358,19 +463,17 @@ coverageRates <- function(timeseries, trainData, aicModel, stanModel, glmModel,
   ## ---- Stan: CrI back-transformed to original predictor scale ----
   # Stan fits on standardised X; dividing by col_sds recovers the original scale.
   col_sds <- apply(as.matrix(trainData[, 2:(K + 1)]), 2, sd)
-  beta_post <- STANbetapost(stanModel)
+  beta_post <- STANbetapost(stanModel, sd_x = col_sds)
   bp <- beta_post[2:(K + 1), ]  # drop intercept row
-  low_orig <- bp$low / col_sds
-  high_orig <- bp$high / col_sds
 
-  escape_zero <- low_orig > 0 | high_orig < 0
+  escape_zero <- bp$low > 0 | bp$high < 0
 
   if (sum(escape_zero) == 0) {
     stan_coverage_escape <- NA_real_
   } else {
     stan_coverage_escape <- mean(
-      true_betas[escape_zero] >= low_orig[escape_zero] &
-      true_betas[escape_zero] <= high_orig[escape_zero]
+      true_betas[escape_zero] >= bp$low[escape_zero] &
+      true_betas[escape_zero] <= bp$high[escape_zero]
     )
   }
 
@@ -378,16 +481,31 @@ coverageRates <- function(timeseries, trainData, aicModel, stanModel, glmModel,
     stan_coverage_noescape <- NA_real_
   } else {
     stan_coverage_noescape <- mean(
-      true_betas[!escape_zero] >= low_orig[!escape_zero] &
-      true_betas[!escape_zero] <= high_orig[!escape_zero]
+      true_betas[!escape_zero] >= bp$low[!escape_zero] &
+      true_betas[!escape_zero] <= bp$high[!escape_zero]
     )
   }
 
+  ## ---- Model averaging: unconditional CIs (Burnham & Anderson 2004) ----
+  z <- qnorm((1 + conf) / 2)
+  mavg_se <- modelAvg_uncond_SE(aicModel, driver_names)
+  mavg_lo <- aicModel$avg_coef[driver_names] - z * mavg_se
+  mavg_hi <- aicModel$avg_coef[driver_names] + z * mavg_se
+  escape_mavg <- mavg_lo > 0 | mavg_hi < 0
+  in_ci_mavg  <- true_betas >= mavg_lo & true_betas <= mavg_hi
+
+  mavg_coverage_escape <- if (sum(escape_mavg) == 0) NA_real_ else
+    mean(in_ci_mavg[escape_mavg])
+  mavg_coverage_noescape <- if (sum(!escape_mavg) == 0) NA_real_ else
+    mean(in_ci_mavg[!escape_mavg])
+
   data.frame(
-    AIC_coverage = aic_coverage,
-    GLM_coverage = glm_coverage,
-    Stan_coverage_escape = stan_coverage_escape,
-    Stan_coverage_noescape = stan_coverage_noescape
+    AIC_coverage           = aic_coverage,
+    GLM_coverage           = glm_coverage,
+    Stan_coverage_escape   = stan_coverage_escape,
+    Stan_coverage_noescape = stan_coverage_noescape,
+    MAvg_coverage_escape   = mavg_coverage_escape,
+    MAvg_coverage_noescape = mavg_coverage_noescape
   )
 }
 

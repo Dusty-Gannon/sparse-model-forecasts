@@ -67,6 +67,9 @@ AICconfusion=mapply(function(x,y) AICconfusionRates(x,y),ts1,AICmodlist)
 mean(AICconfusion[1,])# TPR is 0.992
 mean(AICconfusion[2,])# TNR is 0.498
 
+RMSE_modelAvgList=mapply(function(m,test) RMSE_modelAvg(m,test), AICmodlist, ts1test)
+modelAvgConfusion=mapply(function(ts,m) modelAvg_confusionRates(ts,m), ts1, AICmodlist)
+
 STANbetalist=lapply(STANmodlist, FUN=function(x) STANbetapost(x)) # get summary of stan predictions for beta
 STANconfusion=mapply(function(x,y) STANconfusionRates(x,y), STANbetalist, ts1)
 
@@ -102,6 +105,8 @@ saveRDS(AICconfusion,file=paste0("Data/AICvsStan_data/AICconfusion_",nameID,".rd
 saveRDS(STANconfusion,file=paste0("Data/AICvsStan_data/STANconfusion_",nameID,".rds"))
 saveRDS(GLMconfusion,file=paste0("Data/AICvsStan_data/GLMconfusion_",nameID,".rds"))
 saveRDS(coverageResults,file=paste0("Data/AICvsStan_data/coverage_",nameID,".rds"))
+saveRDS(RMSE_modelAvgList,file=paste0("Data/AICvsStan_data/RMSEmodelAvg_",nameID,".rds"))
+saveRDS(modelAvgConfusion,file=paste0("Data/AICvsStan_data/modelAvgConfusion_",nameID,".rds"))
 
 # Save the lists of models for possible future analysis
 # saveRDS(AICmodlist,file=paste0("Data/AICvsStan_data/AICmodlist_",nameID,".rds"))
