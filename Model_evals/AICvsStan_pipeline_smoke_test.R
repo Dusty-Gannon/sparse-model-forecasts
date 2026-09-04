@@ -2,13 +2,14 @@
 # Runs a single simulated trial end-to-end so each step can be verified by hand.
 # Run from the project root: Rscript Model_evals/pipeline_smoke_test.R
 
-source("Simulations/AICvsStanRMSE.R")
+devtools::load_all()
+source(here::here("Simulations/AICvsStanRMSE.R"))
 
 # ---- Parameters ----
-set.seed(42)
-K          <- 10
-n          <- 50
-nfit       <- 30   # train: rows 1-30, test: rows 31-50
+set.seed(260904)
+K <- 10
+n <- 50
+nfit <- 30   # train: rows 1-30, test: rows 31-50
 num_strong <- 3
 
 # ---- Simulate one time series ----
@@ -24,8 +25,8 @@ cat("\n=== TRUE SIMULATION VALUES ===\n")
 cat("strong_ids (1-based driver columns):", ts_raw$strong_ids, "\n")
 cat("beta (intercept + drivers 1-K):\n")
 bdf <- data.frame(
-  index  = 0:K,
-  beta   = round(ts_raw$beta, 4),
+  index = 0:K,
+  beta  = round(ts_raw$beta, 4),
   strong = c(FALSE, seq_len(K) %in% ts_raw$strong_ids)
 )
 print(bdf)
@@ -35,7 +36,7 @@ ts_clean <- cleanTS(ts_raw)
 train    <- splitTS(ts_clean, set="train", n=n, nfit=nfit)
 test     <- splitTS(ts_clean, set="test",  n=n, nfit=nfit)
 
-# ---- AIC stepwise ----
+# ---- AIC model ----
 cat("\n=== AIC STEPWISE ===\n")
 aic_mod  <- AICselect(train)
 rmse_aic <- RMSE_AIC(aic_mod, test)
@@ -65,22 +66,17 @@ cat("TPR:", round(glm_conf[1], 4), "  TNR:", round(glm_conf[2], 4), "\n")
 
 # ---- Stan (RHS) ----
 cat("\n=== STAN (RHS) — sampling, please wait... ===\n")
-stan_mod   <- STANselect(train, test, m0=num_strong, K=K, n=n, nfit=nfit, cores=4)
+stan_mod   <- STANselect(train, test, m0=num_strong, K=K, n=n, nfit=nfit)
 stan_preds <- STANgetpredict(stan_mod)
-rmse_stan  <- sqrt(mean((colMeans(stan_preds) - test$y)^2))
-stan_bp    <- STANbetapost(stan_mod)
+rmse_stan  <- median(RMSE_bayes(test$y, stan_preds[, -(1:nfit)]))
+stan_bp    <- STANbetapost(stan_mod, sd_x = apply(train[,-1], 2, sd))
 stan_conf  <- STANconfusionRates(stan_bp, ts_raw)
 
 cat("RMSE:", round(rmse_stan, 4), "\n")
 cat("TPR:", round(stan_conf$beta_TPR, 4), "  TNR:", round(stan_conf$beta_TNR, 4), "\n")
 cat("FPR:", round(stan_conf$beta_FPR, 4), "  FNR:", round(stan_conf$beta_FNR, 4), "\n")
 
-cat("\nStan posterior summary (drivers 1-K, standardised scale):\n")
-bp_drivers <- stan_bp[2:(K+1), c("mean","median","low","high")]
-bp_drivers$driver <- paste0("driver_", 1:K)
-bp_drivers$strong <- seq_len(K) %in% ts_raw$strong_ids
-bp_drivers$escape_zero <- bp_drivers$low > 0 | bp_drivers$high < 0
-print(round(bp_drivers[, c("driver","strong","mean","low","high","escape_zero")], 4))
+print(stan_bp[, c("mean", "low", "high")])
 
 # ---- Coverage rates ----
 cat("\n=== COVERAGE RATES (95%) ===\n")

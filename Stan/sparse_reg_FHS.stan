@@ -51,7 +51,7 @@ transformed parameters{
   // scale c2: c2 ~ inv_gamma(half_slab_df, half_slab_df * slab_scl2)
   real c2 = slab_scl2 * c2_std;
 
-  // tau ~ cauchy(0, tau0)
+  // tau ~ cauchy(0, tau0 * sigma)
   real tau = tau0 * tau_std * sigma;
 
   // This calculation follows equation 2.8 in Piironen and Vehtari 2017

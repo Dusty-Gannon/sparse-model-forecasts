@@ -3,12 +3,12 @@
 #SBATCH --account=modelscape
 #SBATCH --nodes=1
 #SBATCH --time=72:00:00
-#SBATCH --ntasks-per-node=1
+#SBATCH --ntasks-per-node=3
 #SBATCH --cpus-per-task=1
 #SBATCH --mem-per-cpu=24G
 #SBATCH --mail-type=ALL
 ### please enter your own email address below in order to track the results
-#SBATCH --mail-user=apatte12@uwyo.edu
+#SBATCH --mail-user=dgannon@uwyo.edu
 ### enter any job name that you prefer
 #SBATCH --job-name=AICvsSTANredo
 #SBATCH --array=1-108
