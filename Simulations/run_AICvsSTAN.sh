@@ -14,9 +14,9 @@
 #SBATCH --array=1-108
 
 
-module load arcc/1.0 gcc/14.2.0 r/4.4.0
+module load arcc/1.0 gcc/14.2.0 r/4.4.0 r-mass/7.3-59
 
-cd /project/rangeecoevomodels/apatte12/sparse-model-forecasts
+cd /project/modelscape/analyses/sparse-model-forecasts
 
 config=Simulations/AICvsStanConfig.txt
 
