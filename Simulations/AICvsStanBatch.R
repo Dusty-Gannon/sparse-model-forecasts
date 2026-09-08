@@ -48,13 +48,13 @@ AICmodlist=lapply(ts1train,FUN=function(x) AICselect(x)) # do model selection AI
 RMSEAIClist=mapply(function(x,y) RMSE_AIC(x,y), AICmodlist,ts1test) # get RMSE AIC
 GLMmodlist=lapply(ts1train,FUN=function(x) glm(y~.,data=x)) # get full GLM models
 RMSEGLMlist=mapply(function(x,y) RMSE_GLM(x,y), GLMmodlist,ts1test) # get RMSE GLM
-STANmodlist=mapply(function(x,y) STANselect(x,y,nfit=60,n=n,K=K),ts1train,ts1test) # do model selection STAN
+STANmodlist=mapply(function(x,y) STANselect(x,y,nfit=round(0.6*n),n=n,K=K),ts1train,ts1test) # do model selection STAN
 STANpredlist=lapply(STANmodlist,FUN=function(x) STANgetpredict(x)) # get STAN predictions for y
 STANy=lapply(ts1test,"[",,1)
 
 
 
-RMSESTANlistraw=mapply(function(x, y) RMSE_bayes(x, y[, (ncol(y) - 39):ncol(y)]),STANy, STANpredlist) # just select the last 40 time points (the predicted points)
+RMSESTANlistraw=mapply(function(x, y){RMSE_bayes(x, (y[, (round(ncol(y) * 0.6) + 1):ncol(y)]))},STANy, STANpredlist) # just select the last 40 time points (the predicted points)
 #RMSESTANlistraw=mapply(function(x,y) RMSE_bayes(x,y),STANy,STANpredlist) # get RMSE STAN
 RMSESTANlist=colMeans(RMSESTANlistraw)
 
@@ -73,7 +73,8 @@ modelAvgConfusion=mapply(function(ts,m) modelAvg_confusionRates(ts,m), ts1, AICm
 STANbetalist=mapply(
   STANmodlist,
   ts1train,
-  FUN=function(x, y){ STANbetapost(x, sd_x = apply(y[,-1], 2, sd)) }
+  FUN=function(x, y){ STANbetapost(x, sd_x = apply(y[,-1], 2, sd)) },
+  SIMPLIFY = F
 ) # get summary of stan predictions for beta
 STANconfusion=mapply(function(x,y) STANconfusionRates(x,y), STANbetalist, ts1)
 
