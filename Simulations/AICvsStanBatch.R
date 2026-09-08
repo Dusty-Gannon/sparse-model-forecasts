@@ -70,7 +70,11 @@ mean(AICconfusion[2,])# TNR is 0.498
 RMSE_modelAvgList=mapply(function(m,test) RMSE_modelAvg(m,test), AICmodlist, ts1test)
 modelAvgConfusion=mapply(function(ts,m) modelAvg_confusionRates(ts,m), ts1, AICmodlist)
 
-STANbetalist=lapply(STANmodlist, FUN=function(x) STANbetapost(x)) # get summary of stan predictions for beta
+STANbetalist=mapply(
+  STANmodlist,
+  ts1train,
+  FUN=function(x, y){ STANbetapost(x, sd_x = apply(y[,-1], 2, sd)) }
+) # get summary of stan predictions for beta
 STANconfusion=mapply(function(x,y) STANconfusionRates(x,y), STANbetalist, ts1)
 
 
