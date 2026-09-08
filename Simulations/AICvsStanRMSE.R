@@ -12,11 +12,11 @@ library(MASS)
 library(rstan)
 library(here)
 library(purrr)
-source(here("R/sim1_temporal_drivers.R"))
-source(here("R/tau0_from_data.R"))
+fun_list <- list.files(here("R"), full.names = T, pattern = ".R")
+lapply(fun_list, source)
 
 # compile the stan model
-stanFHS<-stan_model(here("Stan/sparse_reg_FHS.stan"))
+stanFHS <- stan_model(here("Stan/sparse_reg_FHS.stan"))
 
 
 #' Title AIC Stepwise Model Selection
