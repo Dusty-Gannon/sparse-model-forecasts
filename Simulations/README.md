@@ -13,6 +13,8 @@
 
 -   `AICvsStanRMSE.R`: File of R functions we used to run the AIC vs Horsehoe analyses found in AICvsStanBatch.R
 
+-   `combine_AICvsStan_output.R`: Combines the per-array-task .rds output from run_AICvsSTAN.sh with AICvsStanConfig.txt into a single tidy .csv (one row per simulation trial). Takes the data directory, config file, and output csv path as command line args
+
 -   `AR-p_beta_p_model_sims.R`: Amy is unsure what this is
 
 -   `combine_seasonal_ARp_sim_output.R`: Appears to be a file to summarize results from the HPC
@@ -24,6 +26,8 @@
 -   `fit_AR-p_seasonal_model_sims.R`: Amy is unsure what this is
 
 -   `run_AICvsSTAN.sh`: Runs AICvsStanBatch.R on the HPC, requires the config file AICvsStanConfig.txt
+
+-   `run_combine_AICvsStan.sh`: Runs combine_AICvsStan_output.R on the HPC; submit with a `--dependency=afterany` on the run_AICvsSTAN.sh array job so it runs once all array tasks finish
 
 -   `run_ARp_sim_compiler.sh`: Amy is unsure why there are so many compiler versions and if they all need to be kept
 

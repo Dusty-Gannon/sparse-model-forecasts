@@ -41,3 +41,9 @@ nameID=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $18}' $
 
 Rscript Simulations/AICvsStanBatch.R ${numTrials} ${n} ${K} ${num_strong} ${prob_cycle} ${trend_fraction} ${freq} ${sigma} ${probWeakCorr} ${numStrongCorr} ${strongSelf} ${corrLevel} ${corrChange} ${propChange} ${changeSize} ${changeTimeVar} ${nameID} > Data/AICvsStan_data/outputCompareACP1_${nameID}.txt
 
+# Once all array tasks finish, combine the results into a single csv with
+# Simulations/combine_AICvsStan_output.R via Simulations/run_combine_AICvsStan.sh.
+# Submit both together from the login node with:
+#   arrayjob=$(sbatch --parsable Simulations/run_AICvsSTAN.sh)
+#   sbatch --dependency=afterany:${arrayjob} Simulations/run_combine_AICvsStan.sh
+
