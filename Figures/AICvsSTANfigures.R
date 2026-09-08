@@ -3,7 +3,7 @@
 ################################################
 
 library(here)
-library(grid)
+library(tidyverse)
 
 ################################################
 # Figure 1: (Deprecated)
@@ -84,7 +84,7 @@ library(grid)
 ################################################
 # Figure 2:
 ################################################
-corData2=read.csv(here("Simulations/AICvsSTANcorrResults.csv"))
+corData2=read.csv(here("Simulations/AICvsSTANResults.csv"))
 
 # Remove unwanted variables
 # fix strongSelf=F
@@ -109,9 +109,62 @@ colors <- c(
   "steelblue4"
 )
 
-pdf(file=here("Figures/correlated_variable_effects_combined.pdf"), width = 6, height = 4)
+# ---- confusion plots ----
 
-par(mar=c(5,6,2,2))
+conf_res <- corData6 %>% dplyr::select(
+  contains("_TPR") | contains("_TNR")
+)
+
+# pivot long
+conf_long <- conf_res %>% pivot_longer(
+  cols = everything(),
+  values_to = "rate",
+  names_to = "group"
+) %>% mutate(
+  group = case_when(
+    group == "STAN_beta_TNR" ~ "RHS_TNR",
+    group == "STAN_beta_TPR" ~ "RHS_TPR",
+    .default = group
+  )
+) %>% separate_wider_delim(
+  cols = group,
+  delim = "_",
+  names = c("method", "metric")
+) %>% filter(
+  method != "GLM" & method != "modelAvg"
+) %>% mutate(
+  method = factor(
+    method,
+    levels = c("Full model", "AIC", "AIC model avg", "RHS")
+  )
+)
+
+### ---- load pdf device ----
+pdf(file=here("Figures/confusion_rates_AICvRHS.pdf"), width = 5, height = 6)
+
+ggplot(conf_long, aes(x = method, y = rate)) +
+  facet_wrap(vars(metric), ncol = 1) +
+  geom_violin(aes(fill = method, color = method), adjust = 1.5) +
+  stat_summary(
+    aes(color = method),
+    geom = "pointrange",
+    fun = mean,
+    fun.min = \(x){quantile(x, probs = 0.1)},
+    fun.max = \(x){quantile(x, probs = 0.9)},
+    linewidth = 1.5
+  ) +
+  coord_flip() +
+  theme_bw() +
+  scale_fill_manual(values = colors[5:6]) +
+  scale_color_manual(values = c("tan4", "royalblue4")) +
+  theme(
+    legend.position = "none"
+  )
+
+dev.off()
+
+
+
 #par(mfrow=c(3,1))
 
 # ## ---- TPR plot ----

@@ -93,3 +93,13 @@ The general workflow in the repo is:
     - How do we tie all this together from the beginning? reiterate throughout
     
     - 
+    
+##
+
+- No transparency change
+- Same order for colors
+- Shift/no shift
+- Drop the 0.1 and 0.5 from cov shift fig
+- Rotate shift/no shift text
+- Middle plot only
+- 
