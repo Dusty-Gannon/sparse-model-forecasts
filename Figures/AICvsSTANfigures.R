@@ -97,17 +97,8 @@ corData5=corData4[which(corData4$probWeakCorr==0.5),]
 #corData6=corData5[-which(corData5$corrLevel==0.7),]
 corData6=corData5
 
-colors <- c(
-  adjustcolor("green4", alpha.f = 0.5),
-  adjustcolor("tan3", alpha.f = 0.5),
-  adjustcolor("steelblue4", alpha.f = 0.5),
-  adjustcolor("green4", alpha.f = 0.75),
-  adjustcolor("tan3", alpha.f = 0.75),
-  adjustcolor("steelblue4", alpha.f = 0.75),
-  "green4",
-  "tan3",
-  "steelblue4"
-)
+colors <- PNWColors::pnw_palette("Cascades", n = 4)
+fills <- adjustcolor(colors, alpha.f = 0.6)
 
 # ---- confusion plots ----
 
@@ -146,17 +137,38 @@ ggplot(conf_long, aes(x = method, y = rate)) +
   facet_wrap(vars(metric), ncol = 1) +
   geom_violin(aes(fill = method, color = method), adjust = 1.5) +
   stat_summary(
-    aes(color = method),
-    geom = "pointrange",
+    color = "grey3",
+    geom = "errorbar",
+    fun.min = \(x){quantile(x, probs = 0.025)},
+    fun.max = \(x){quantile(x, probs = 0.975)},
+    width = 0,
+    linewidth = 0.5
+  ) +
+  stat_summary(
+    color = "grey3",
+    geom = "errorbar",
     fun = mean,
     fun.min = \(x){quantile(x, probs = 0.1)},
     fun.max = \(x){quantile(x, probs = 0.9)},
-    linewidth = 1.5
+    linewidth = 1,
+    width = 0
+  ) +
+  stat_summary(
+    geom = "point",
+    aes(color = method),
+    fun = mean,
+    size = 1.5
+  ) +
+  stat_summary(
+    geom = "point",
+    fun = mean,
+    color = "white",
+    size = 0.7
   ) +
   coord_flip() +
   theme_bw() +
-  scale_fill_manual(values = colors[5:6]) +
-  scale_color_manual(values = c("tan4", "royalblue4")) +
+  scale_fill_manual(values = fills[c(1, 4)]) +
+  scale_color_manual(values = colors[c(1, 4)]) +
   theme(
     legend.position = "none"
   )
@@ -237,64 +249,201 @@ dev.off()
 # text(-0.275,7,"b)",cex=1.5)
 # par(xpd=F)
 
-## ---- RMSE plot ----
-{
-plot(0, 0, type="n",
-     xlim=c(0, 4), ylim=c(0.5, 9.5),
-     xlab="", ylab="", xaxt="n", yaxt="n", bty="n")
+# ---- RMSE plot ----
 
-rect(xleft=par("usr")[1], ybottom=0.5, xright=par("usr")[2], ytop=3.5,
-     col="grey92", border=NA)
-rect(xleft=par("usr")[1], ybottom=6.5, xright=par("usr")[2], ytop=9.5,
-     col="grey92", border=NA)
+# ---- confusion plots ----
 
-vioplot::vioplot(cbind(
-  GLM1=corData6$RMSEglm[which(corData6$corrLevel==0.1)],
-  AIC1=corData6$RMSEaic[which(corData6$corrLevel==0.1)],
-  STAN1=corData6$RMSEstan[which(corData6$corrLevel==0.1)],
-  GLM5=corData6$RMSEglm[which(corData6$corrLevel==0.5)],
-  AIC5=corData6$RMSEaic[which(corData6$corrLevel==0.5)],
-  STAN5=corData6$RMSEstan[which(corData6$corrLevel==0.5)],
-  GLM9=corData6$RMSEglm[which(corData6$corrLevel==0.9)],
-  AIC9=corData6$RMSEaic[which(corData6$corrLevel==0.9)],
-  STAN9=corData6$RMSEstan[which(corData6$corrLevel==0.9)]
-),
-  xlab="",
-  horizontal=T,
-  names=rep("", 9),
-  las=1,
-  col=colors,
-  pchMed=20,
-  add=T,
-  border=rep(c("darkgreen","tan4","royalblue4"), 3),
-  rectCol=rep(c("darkgreen","tan4","royalblue4"), 3),
-  lineCol=rep(c("darkgreen","tan4","royalblue4"), 3),
-  colMed=rep(c("darkgreen","tan4","royalblue4"), 3),
-  ylab=""
+rmse_res <- corData6 %>% filter(
+  corrLevel == 0.5
+) %>% dplyr::select(
+  contains("RMSE")
 )
-title(ylab="Correlation level",line=5,cex.lab=1.2)
-title(xlab="Prediction Root Mean Square Error (RMSE)",line=3,cex.lab=1.2)
 
-# correcting the axis labels
-axis(1,at=seq(0,4,by=1),labels=seq(0,4,by=1))
+# pivot long
+rmse_long <- rmse_res %>% pivot_longer(
+  cols = everything(),
+  values_to = "RMSE",
+  names_to = "method"
+) %>% mutate(
+  method = case_when(
+    method == "RMSE_AIC" ~ "AIC",
+    method == "RMSE_STAN" ~ "RHS",
+    method == "RMSE_GLM" ~ "Full model",
+    method == "RMSE_modelAvg" ~ "AIC model avg",
+    .default = NA
+  )
+) %>% mutate(
+  method = factor(
+    method,
+    levels = c("Full model", "AIC", "AIC model avg", "RHS")
+  )
+)
 
-axis(2, at = c(2, 5, 8),
-     labels = c(
-       expression(rho == 0.1),
-       expression(rho == 0.5),
-       expression(rho == 0.9)
-     ),
-     las=2)
+pdf(file = here("Figures/pred_rmse_corr_p5.pdf"), width = 5, height = 4)
 
-legend("topright",
-       legend = c("Full model", "Stepwise AIC", "RHS"),
-       fill = c("green4", "tan3", "steelblue4"),
-       border = c("darkgreen", "tan4", "royalblue4"),
-       bty = "n",
-       inset = c(0.01, 0.01))
+ggplot(rmse_long, aes(x = RMSE, y = method)) +
+  geom_violin(aes(color = method, fill = method), adjust = 1.5) +
+  stat_summary(
+    color = "grey3",
+    geom = "errorbar",
+    fun.min = \(x){quantile(x, probs = 0.025)},
+    fun.max = \(x){quantile(x, probs = 0.975)},
+    width = 0,
+    linewidth = 0.5
+  ) +
+  stat_summary(
+    color = "grey3",
+    geom = "errorbar",
+    fun = mean,
+    fun.min = \(x){quantile(x, probs = 0.1)},
+    fun.max = \(x){quantile(x, probs = 0.9)},
+    linewidth = 1,
+    width = 0
+  ) +
+  stat_summary(
+    geom = "point",
+    aes(color = method),
+    fun = mean,
+    size = 1.5
+  ) +
+  stat_summary(
+    geom = "point",
+    fun = mean,
+    color = "white",
+    size = 0.7
+  ) +
+  theme_bw() +
+  scale_fill_manual(values = fills) +
+  scale_color_manual(values = colors) +
+  theme(
+    legend.position = "none"
+  ) +
+  geom_vline(xintercept = 0.5, linetype = "dashed") +
+  xlab("Prediction RMSE")
+
 
 dev.off()
-}
+
+# {
+# plot(0, 0, type="n",
+#      xlim=c(0, 4), ylim=c(0.5, 9.5),
+#      xlab="", ylab="", xaxt="n", yaxt="n", bty="n")
+#
+# rect(xleft=par("usr")[1], ybottom=0.5, xright=par("usr")[2], ytop=3.5,
+#      col="grey92", border=NA)
+# rect(xleft=par("usr")[1], ybottom=6.5, xright=par("usr")[2], ytop=9.5,
+#      col="grey92", border=NA)
+#
+# vioplot::vioplot(cbind(
+#   GLM1=corData6$RMSEglm[which(corData6$corrLevel==0.1)],
+#   AIC1=corData6$RMSEaic[which(corData6$corrLevel==0.1)],
+#   STAN1=corData6$RMSEstan[which(corData6$corrLevel==0.1)],
+#   GLM5=corData6$RMSEglm[which(corData6$corrLevel==0.5)],
+#   AIC5=corData6$RMSEaic[which(corData6$corrLevel==0.5)],
+#   STAN5=corData6$RMSEstan[which(corData6$corrLevel==0.5)],
+#   GLM9=corData6$RMSEglm[which(corData6$corrLevel==0.9)],
+#   AIC9=corData6$RMSEaic[which(corData6$corrLevel==0.9)],
+#   STAN9=corData6$RMSEstan[which(corData6$corrLevel==0.9)]
+# ),
+#   xlab="",
+#   horizontal=T,
+#   names=rep("", 9),
+#   las=1,
+#   col=colors,
+#   pchMed=20,
+#   add=T,
+#   border=rep(c("darkgreen","tan4","royalblue4"), 3),
+#   rectCol=rep(c("darkgreen","tan4","royalblue4"), 3),
+#   lineCol=rep(c("darkgreen","tan4","royalblue4"), 3),
+#   colMed=rep(c("darkgreen","tan4","royalblue4"), 3),
+#   ylab=""
+# )
+# title(ylab="Correlation level",line=5,cex.lab=1.2)
+# title(xlab="Prediction Root Mean Square Error (RMSE)",line=3,cex.lab=1.2)
+#
+# # correcting the axis labels
+# axis(1,at=seq(0,4,by=1),labels=seq(0,4,by=1))
+#
+# axis(2, at = c(2, 5, 8),
+#      labels = c(
+#        expression(rho == 0.1),
+#        expression(rho == 0.5),
+#        expression(rho == 0.9)
+#      ),
+#      las=2)
+#
+# legend("topright",
+#        legend = c("Full model", "Stepwise AIC", "RHS"),
+#        fill = c("green4", "tan3", "steelblue4"),
+#        border = c("darkgreen", "tan4", "royalblue4"),
+#        bty = "n",
+#        inset = c(0.01, 0.01))
+#
+# dev.off()
+# }
+
+# ---- Coverage results ----
+
+coverage <- corData6 %>%
+  select(c(corrLevel, contains("coverage"))) %>%
+  pivot_longer(
+    cols = AIC_coverage:MAvg_coverage_noescape,
+    names_to = "method",
+    values_to = "rate"
+  ) %>%
+  separate_wider_delim(
+    cols = method,
+    delim = "_",
+    names = c("method", "what", "type"),
+    too_few = "align_start"
+  ) %>%
+  filter(
+    !(method == "MAvg" & type == "noescape")
+  ) %>%
+  mutate(
+    type = case_when(is.na(type) ~ "escape", .default = type),
+    method = case_when(
+      method == "GLM" ~ "Full model",
+      method == "Stan" & type == "escape" ~ "RHS active",
+      method == "Stan" & type == "noescape" ~ "RHS inactive",
+      method == "MAvg" ~ "AIC model avg",
+      .default = method
+    )
+  ) %>%
+  select(!what) %>%
+  mutate(
+    method = factor(
+      method,
+      levels = c("Full model", "AIC", "AIC model avg", "RHS active", "RHS inactive")
+    )
+  )
+
+
+## ---- load pdf device ----
+
+pdf(file = here("Figures/coverage_results_sim1.pdf"), width = 5, height = 7)
+
+ggplot(coverage, aes(x = rate, y = method)) +
+  facet_wrap(
+    vars(corrLevel), ncol = 1,
+    labeller = label_bquote(rows = rho == .(corrLevel))
+  ) +
+  stat_summary(
+    aes(color = method, shape = type),
+    geom = "pointrange",
+    fun = mean,
+    fun.min = \(x){quantile(x, probs = 0.025)},
+    fun.max = \(x){quantile(x, probs = 0.975)}
+  ) +
+  geom_vline(xintercept = 0.95, linetype = "dashed") +
+  theme_bw() +
+  theme(legend.position = "none") +
+  xlab("Coverage") +
+  ylab("") +
+  scale_color_manual(values = c(colors, colors[4]))
+
+dev.off()
+
 
 # ---- Covariate shift results ----
 
