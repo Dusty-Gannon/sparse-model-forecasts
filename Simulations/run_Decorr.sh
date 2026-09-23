@@ -8,18 +8,17 @@
 #SBATCH --mem-per-cpu=24G
 #SBATCH --mail-type=ALL
 ### please enter your own email address below in order to track the results
-#SBATCH --mail-user=apatte12@uwyo.edu
-### enter any job name that you prefer
+#SBATCH --mail-user=dgannon@uwyo.edu
 #SBATCH --job-name=AICvsSTANdecorr
 #SBATCH --array=1-120
 
 # Set the locale
-export LC_ALL=en_US.UTF-8
-export LANG=en_US.UTF-8
+# export LC_ALL=en_US.UTF-8
+# export LANG=en_US.UTF-8
 
-module load arcc/1.0 gcc/14.2.0 r/4.4.0
+module load arcc/1.0 gcc/14.2.0 r/4.4.0 r-mass/7.3-59
 
-cd /project/rangeecoevomodels/apatte12/sparse-model-forecasts
+cd /project/modelscape/analyses/sparse-model-forecasts
 
 config=Simulations/DecorrConfig.txt
 
@@ -42,5 +41,5 @@ changeTimeVar=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print 
 nameID=$(awk -v ArrayTaskID=$SLURM_ARRAY_TASK_ID '$1==ArrayTaskID {print $18}' $config)
 
 
-Rscript Simulations/AICvsStanBatch.R ${numTrials} ${n} ${K} ${num_strong} ${prob_cycle} ${trend_fraction} ${freq} ${sigma} ${probWeakCorr} ${numStrongCorr} ${strongSelf} ${corrLevel} ${corrChange} ${propChange} ${changeSize} ${changeTimeVar} ${nameID} > Data/AICvsStan_data/outputCompareACP1_${nameID}.txt
+Rscript Simulations/AICvsStanBatch.R ${numTrials} ${n} ${K} ${num_strong} ${prob_cycle} ${trend_fraction} ${freq} ${sigma} ${probWeakCorr} ${numStrongCorr} ${strongSelf} ${corrLevel} ${corrChange} ${propChange} ${changeSize} ${changeTimeVar} ${nameID} > Data/AICvsStan_data/decorr_job${nameID}.txt
 
