@@ -478,54 +478,58 @@ decor_rmse_long <- decorData %>%
       method,
       levels = c("Full model", "AIC", "AIC model avg", "RHS")
     ),
-    shift = if_else(corrChange, "Decorrelated", "No shift"),
-    shift = factor(shift, levels = c("Decorrelated", "No shift"))
+    shift = if_else(corrChange, "Covariate shift", "No shift"),
+    shift = factor(shift, levels = c("Covariate shift", "No shift"))
   )
 
 pdf(file = here("Figures/decorrelation_comparison.pdf"), width = 8, height = 7)
 
-ggplot(decor_rmse_long, aes(x = RMSE, y = method)) +
-  facet_grid(
-    rows = vars(corrLevel), cols = vars(shift),
-    labeller = labeller(corrLevel = as_labeller(function(x) paste0("rho == ", x), label_parsed))
-  ) +
-  geom_violin(aes(color = method, fill = method), adjust = 1.5) +
-  stat_summary(
-    color = "grey3",
-    geom = "errorbar",
-    fun.min = \(x){quantile(x, probs = 0.025)},
-    fun.max = \(x){quantile(x, probs = 0.975)},
-    width = 0,
-    linewidth = 0.5
-  ) +
-  stat_summary(
-    color = "grey3",
-    geom = "errorbar",
-    fun = mean,
-    fun.min = \(x){quantile(x, probs = 0.1)},
-    fun.max = \(x){quantile(x, probs = 0.9)},
-    linewidth = 1,
-    width = 0
-  ) +
-  stat_summary(
-    geom = "point",
-    aes(color = method),
-    fun = mean,
-    size = 1.5
-  ) +
-  stat_summary(
-    geom = "point",
-    fun = mean,
-    color = "white",
-    size = 0.7
-  ) +
-  theme_bw() +
-  scale_fill_manual(values = fills) +
-  scale_color_manual(values = colors) +
-  theme(
-    legend.position = "none"
-  ) +
-  xlab("Prediction RMSE") +
-  ylab("")
+decor_rmse_long %>% 
+  filter(corrLevel == 0.5) %>%
+  ggplot(., aes(x = RMSE, y = method)) +
+    facet_wrap(
+      vars(shift),
+      ncol = 1
+      #labeller = labeller(corrLevel = as_labeller(function(x) paste0("rho == ", x), label_parsed))
+    ) +
+    geom_violin(aes(color = method, fill = method), adjust = 1.5) +
+    stat_summary(
+      color = "grey3",
+      geom = "errorbar",
+      fun.min = \(x){quantile(x, probs = 0.025)},
+      fun.max = \(x){quantile(x, probs = 0.975)},
+      width = 0,
+      linewidth = 0.5
+    ) +
+    stat_summary(
+      color = "grey3",
+      geom = "errorbar",
+      fun = mean,
+      fun.min = \(x){quantile(x, probs = 0.1)},
+      fun.max = \(x){quantile(x, probs = 0.9)},
+      linewidth = 1,
+      width = 0
+    ) +
+    stat_summary(
+      geom = "point",
+      aes(color = method),
+      fun = mean,
+      size = 1.5
+    ) +
+    stat_summary(
+      geom = "point",
+      fun = mean,
+      color = "white",
+      size = 0.7
+    ) +
+    geom_vline(xintercept = 0.5, linetype = "dashed") +
+    theme_bw() +
+    scale_fill_manual(values = fills) +
+    scale_color_manual(values = colors) +
+    theme(
+      legend.position = "none"
+    ) +
+    xlab("Prediction RMSE") +
+    ylab("")
 
 dev.off()
