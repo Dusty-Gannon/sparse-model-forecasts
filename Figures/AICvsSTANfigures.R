@@ -447,170 +447,85 @@ dev.off()
 
 # ---- Covariate shift results ----
 
-decorData=read.csv(file="Simulations/AICvsSTANdecorrelation.csv")
-corr0.9_change=which(decorData$corrLevel==0.9&decorData$corrChange)
-corr0.9_nochange=which(decorData$corrLevel==0.9&!decorData$corrChange)
-corr0.5_change=which(decorData$corrLevel==0.5&decorData$corrChange)
-corr0.5_nochange=which(decorData$corrLevel==0.5&!decorData$corrChange)
-corr0.1_change=which(decorData$corrLevel==0.1&decorData$corrChange)
-corr0.1_nochange=which(decorData$corrLevel==0.1&!decorData$corrChange)
+decorData <- read.csv(here("Simulations/AICvsSTANdecorrelation.csv"))
 
-{
-pdf(file=here("Figures/decorrelation_comparison.pdf"), width = 7, height = 8)
+required_decor_cols <- c("RMSE_AIC", "RMSE_GLM", "RMSE_STAN", "RMSE_modelAvg")
+if (!all(required_decor_cols %in% names(decorData))) {
+  stop(
+    "Simulations/AICvsSTANdecorrelation.csv is missing ",
+    paste(setdiff(required_decor_cols, names(decorData)), collapse = ", "),
+    " — it predates the standardization/model-averaging changes to STANselect()/AICselect(). ",
+    "Rerun Simulations/run_Decorr.sh and Simulations/run_combine_Decorr.sh on Beartooth to regenerate it."
+  )
+}
 
+decor_rmse_long <- decorData %>%
+  dplyr::select(corrLevel, corrChange, contains("RMSE")) %>%
+  pivot_longer(
+    cols = contains("RMSE"),
+    values_to = "RMSE",
+    names_to = "method"
+  ) %>%
+  mutate(
+    method = case_when(
+      method == "RMSE_AIC" ~ "AIC",
+      method == "RMSE_STAN" ~ "RHS",
+      method == "RMSE_GLM" ~ "Full model",
+      method == "RMSE_modelAvg" ~ "AIC model avg",
+      .default = NA
+    ),
+    method = factor(
+      method,
+      levels = c("Full model", "AIC", "AIC model avg", "RHS")
+    ),
+    shift = if_else(corrChange, "Decorrelated", "No shift"),
+    shift = factor(shift, levels = c("Decorrelated", "No shift"))
+  )
 
-par(mar=c(3,9,3,1))
-par(mfrow=c(3,1))
+pdf(file = here("Figures/decorrelation_comparison.pdf"), width = 8, height = 7)
 
-# plot(1, type = "n", xlim = c(0, 12), ylim = c(0.5, 12.5),
-#      xaxt = "n", yaxt = "n", xlab = "", ylab = "", bty = "n")
-
-## ---- correlation=0.9 ----
-plot(0,0,type="n",ylim=c(0.5,6.5),xlim=c(0.5,40),xlab="",ylab="",xaxt="n",yaxt="n",bty = "n")
-
-rect(xleft=-1.5,ybottom=-0.5,xright=45,ytop=3.5,col="gray",border=F)
-
-vioplot::vioplot(cbind(
-  GLMdecorr9=decorData$RMSEglm[corr0.9_change],
-  AICdecorr9=decorData$RMSEaic[corr0.9_change],
-  STANdecorr9=decorData$RMSEstan[corr0.9_change],
-  GLMnorm9=decorData$RMSEglm[corr0.9_nochange],
-  AICnorm9=decorData$RMSEaic[corr0.9_nochange],
-  STANnorm9=decorData$RMSEstan[corr0.9_nochange]
-),
-  las=1,
-  cex.axis=0.9,
-  names=c(
-    "GLM,\n decorrelated",
-    "Stepwise AIC,\n decorrelated",
-    "RHS,\ndecorrelated",
-    "GLM,\nno shift",
-    "Stepwise AIC,\nno shift",
-    "RHS,\nno shift"
-  ),
-  xlab="",
-  horizontal=T,
-  ylab="",
-  add=T,
-  col=rep(colors[7:9], 2),
-  border=rep(c("darkgreen","tan4","royalblue4"), 2),
-  rectCol=rep(c("darkgreen","tan4","royalblue4"), 2),
-  lineCol=rep(c("darkgreen","tan4","royalblue4"), 2),
-  colMed=rep(c("darkgreen","tan4","royalblue4"), 2)
-)
-
-axis(1,at=seq(0,40,by=5),labels=seq(0,40,by=5))
-
-axis(2, at = 1:6,
-     labels = rep(c("Full model", "Stepwise AIC", "RHS"), 2),
-     las=2)
-
-text(38, 2, "Decorrelated", srt=90, cex=0.9, adj=0.5)
-text(38, 5, "No shift",     srt=90, cex=0.9, adj=0.5)
-
-title(ylab=expression(rho == 0.9),line=7,cex.lab=1.2)
-par(xpd=T)
-title(main="a)",cex=1.5, adj=0)
-par(xpd=F)
-
-## ---- correlation=0.5 ----
-plot(0,0,type="n",ylim=c(0.5,6.5),xlim=c(0.5,40),xlab="",ylab="",xaxt="n",yaxt="n",bty = "n")
-
-rect(xleft=-1.5,ybottom=-0.5,xright=45,ytop=3.5,col="gray",border=F)
-
-vioplot::vioplot(cbind(
-  GLMdecorr5=decorData$RMSEglm[corr0.5_change],
-  AICdecorr5=decorData$RMSEaic[corr0.5_change],
-  STANdecorr5=decorData$RMSEstan[corr0.5_change],
-  GLMnorm5=decorData$RMSEglm[corr0.5_nochange],
-  AICnorm5=decorData$RMSEaic[corr0.5_nochange],
-  STANnorm5=decorData$RMSEstan[corr0.5_nochange]
-),
-  las=1,
-  cex.axis=0.9,
-  names=c(
-    "GLM,\n decorrelated",
-    "Stepwise AIC,\n decorrelated",
-    "RHS,\ndecorrelated",
-    "GLM,\nno shift",
-    "Stepwise AIC,\nno shift",
-    "RHS,\nno shift"
-  ),
-  xlab="",
-  horizontal=T,
-  ylab="",
-  add=T,
-  col=rep(colors[4:6], 2),
-  border=rep(c("darkgreen","tan4","royalblue4"), 2),
-  rectCol=rep(c("darkgreen","tan4","royalblue4"), 2),
-  lineCol=rep(c("darkgreen","tan4","royalblue4"), 2),
-  colMed=rep(c("darkgreen","tan4","royalblue4"), 2)
-)
-
-axis(1,at=seq(0,40,by=5),labels=seq(0,40,by=5))
-
-axis(2, at = 1:6,
-     labels = rep(c("Full model", "Stepwise AIC", "RHS"), 2),
-     las=2)
-
-text(38, 2, "Decorrelated", srt=90, cex=0.9, adj=0.5)
-text(38, 5, "No shift",     srt=90, cex=0.9, adj=0.5)
-
-title(ylab=expression(rho == 0.5),line=7,cex.lab=1.2)
-par(xpd=T)
-title(main = "b)",cex=1.5, adj = 0)
-par(xpd=F)
-
-
-## ---- correlation=0.1 ----
-par(mar = c(5, 9, 3, 2))
-plot(0,0,type="n",ylim=c(0.5,6.5),xlim=c(0.5,40),xlab="",ylab="",xaxt="n",yaxt="n",bty = "n")
-
-rect(xleft=-1.5,ybottom=-0.5,xright=45,ytop=3.5,col="gray",border=F)
-
-vioplot::vioplot(cbind(
-  GLMdecorr1=decorData$RMSEglm[corr0.1_change],
-  AICdecorr1=decorData$RMSEaic[corr0.1_change],
-  STANdecorr1=decorData$RMSEstan[corr0.1_change],
-  GLMnorm1=decorData$RMSEglm[corr0.1_nochange],
-  AICnorm1=decorData$RMSEaic[corr0.1_nochange],
-  STANnorm1=decorData$RMSEstan[corr0.1_nochange]
-),
-  las=1,
-  cex.axis=0.9,
-  names=c(
-    "Stepwise AIC,\n decorrelated",
-    "RHS,\ndecorrelated",
-    "Stepwise AIC,\nno shift",
-    "RHS,\nno shift"
-  ),
-  xlab="",
-  horizontal=T,
-  ylab="",
-  add=T,
-  col=rep(colors[1:3], 2),
-  border=rep(c("darkgreen","tan4","royalblue4"), 2),
-  rectCol=rep(c("darkgreen","tan4","royalblue4"), 2),
-  lineCol=rep(c("darkgreen","tan4","royalblue4"), 2),
-  colMed=rep(c("darkgreen","tan4","royalblue4"), 2)
-)
-
-axis(1,at=seq(0,40,by=5),labels=seq(0,40,by=5))
-
-axis(2, at = 1:6,
-     labels = rep(c("Full model", "Stepwise AIC", "RHS"), 2),
-     las=2)
-
-text(38, 2, "Decorrelated", srt=90, cex=0.9, adj=0.5)
-text(38, 5, "No shift",     srt=90, cex=0.9, adj=0.5)
-
-title(ylab=expression(rho == 0.1), line=7, cex.lab=1.2)
-title(xlab = "Prediction RMSE", cex.lab = 1.2)
-title(main = "c)", adj=0)
-par(xpd=T)
-text(-8,7,"c)",cex=1.5)
-par(xpd=F)
-
+ggplot(decor_rmse_long, aes(x = RMSE, y = method)) +
+  facet_grid(
+    rows = vars(corrLevel), cols = vars(shift),
+    labeller = labeller(corrLevel = as_labeller(function(x) paste0("rho == ", x), label_parsed))
+  ) +
+  geom_violin(aes(color = method, fill = method), adjust = 1.5) +
+  stat_summary(
+    color = "grey3",
+    geom = "errorbar",
+    fun.min = \(x){quantile(x, probs = 0.025)},
+    fun.max = \(x){quantile(x, probs = 0.975)},
+    width = 0,
+    linewidth = 0.5
+  ) +
+  stat_summary(
+    color = "grey3",
+    geom = "errorbar",
+    fun = mean,
+    fun.min = \(x){quantile(x, probs = 0.1)},
+    fun.max = \(x){quantile(x, probs = 0.9)},
+    linewidth = 1,
+    width = 0
+  ) +
+  stat_summary(
+    geom = "point",
+    aes(color = method),
+    fun = mean,
+    size = 1.5
+  ) +
+  stat_summary(
+    geom = "point",
+    fun = mean,
+    color = "white",
+    size = 0.7
+  ) +
+  theme_bw() +
+  scale_fill_manual(values = fills) +
+  scale_color_manual(values = colors) +
+  theme(
+    legend.position = "none"
+  ) +
+  xlab("Prediction RMSE") +
+  ylab("")
 
 dev.off()
-}
