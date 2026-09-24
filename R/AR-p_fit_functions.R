@@ -317,10 +317,13 @@ print(paste0('n_beta = ', n_beta, ';  n = ', n))
 #'
 
 
-fit_seasonal_arima_model <- function(model_pars, K = 12, freq = 365){
+fit_seasonal_arima_model <- function(model_pars, K = NULL, freq = 365){
 
-  # determine how many covariates to include:
-  n_beta <- ncol(model_pars$X)-1
+  # match the number of Fourier terms used to fit the Stan/horseshoe model
+  if(is.null(K)) K <- model_pars$K
+
+  # determine how many measured covariates to include (excludes intercept, trend, and Fourier terms)
+  n_beta <- length(model_pars$beta) - 1
   n <- (length(model_pars$y)-model_pars$holdout)
 
   y <- ts(model_pars$y[1:n], frequency = freq)
@@ -328,10 +331,17 @@ fit_seasonal_arima_model <- function(model_pars, K = 12, freq = 365){
 
   X_fit <- forecast::fourier(y_full,K=K)
   if(n_beta > 0){
-    X = model_pars$X[, 3:(3+n_beta-1)]
+    X = model_pars$X[, 2:(1+n_beta)]
     colnames(X) <- paste0('beta', 1:ncol(X))
     X_fit <- cbind(X, X_fit)
   }
+
+  # standardize design-matrix columns using training-set statistics,
+  # matching fit_seasonal_ARp_models()
+  X_tr <- X_fit[1:n, ]
+  col_means <- colMeans(X_tr)
+  col_sds <- apply(X_tr, 2, sd)
+  X_fit <- scale(X_fit, center = col_means, scale = col_sds)
 
   step_AIC_df <- data.frame(X_fit) %>%
     mutate(y = y_full)

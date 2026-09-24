@@ -541,7 +541,7 @@ summarize_arima_pos_rate <- function(fit_ar, fit_hs, model_pars, threshold = 0.9
       arima = case_when(substr(var, 1,2) %in% c('ar', 'ma') ~ 1,
                         TRUE ~ 0),
       freq = case_when(is.na(cs) ~ NA_real_,
-                       TRUE ~ as.numeric(substr(var, 2,2))),
+                       TRUE ~ as.numeric(stringr::str_match(var, '[CS]([0-9]+)-.*')[, 2])),
       bottom = mean - 1.96*se,
       top = mean + 1.96*se)
 
