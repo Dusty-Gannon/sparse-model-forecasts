@@ -441,20 +441,32 @@ coverageRates <- function(timeseries, trainData, aicModel, stanModel, glmModel,
   true_betas <- timeseries$beta[2:(K + 1)]  # driver betas, original scale
   driver_names <- paste0("driver_", 1:K)
 
+  ## ---- Small-sample (Student-t) CIs from an lm summary ----
+  # returns an n_vars x 2 matrix of (lower, upper) using the exact t
+  # sampling distribution rather than confint()'s profile-likelihood CI.
+  ci_from_summary <- function(msum, names) {
+    ct <- coef(msum)[names, , drop = FALSE]
+    tc <- qt(1 - (1 - conf) / 2, msum$df[2])
+    cbind(lower = ct[, 1] - tc * ct[, 2],
+          upper = ct[, 1] + tc * ct[, 2])
+  }
+
   ## ---- AIC: CI for selected variables only ----
   aic_selected <- setdiff(names(aicModel$coefficients), "(Intercept)")
 
   if (length(aic_selected) == 0) {
     aic_coverage <- NA_real_
   } else {
-    aic_ci <- confint(aicModel, parm = aic_selected, level = conf)
+    msum_aic <- summary(aicModel)
+    aic_ci <- ci_from_summary(msum_aic, aic_selected)
     aic_idx <- as.integer(sub("driver_", "", aic_selected))
     aic_true <- true_betas[aic_idx]
     aic_coverage <- mean(aic_true >= aic_ci[, 1] & aic_true <= aic_ci[, 2])
   }
 
   ## ---- GLM: CI for all K variables ----
-  glm_ci <- confint(glmModel, level = conf)[driver_names, ]
+  msum_glm <- summary(glmModel)
+  glm_ci <- ci_from_summary(msum_glm, driver_names)
   glm_coverage <- mean(true_betas >= glm_ci[, 1] & true_betas <= glm_ci[, 2])
 
   ## ---- Stan: CrI back-transformed to original predictor scale ----
