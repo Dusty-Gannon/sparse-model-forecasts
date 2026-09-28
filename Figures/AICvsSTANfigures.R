@@ -384,49 +384,76 @@ dev.off()
 
 # ---- Coverage results ----
 
-coverage <- corData6 %>%
-  select(c(corrLevel, contains("coverage"))) %>%
-  pivot_longer(
-    cols = AIC_coverage:MAvg_coverage_noescape,
-    names_to = "method",
-    values_to = "rate"
-  ) %>%
-  separate_wider_delim(
-    cols = method,
-    delim = "_",
-    names = c("method", "what", "type"),
-    too_few = "align_start"
-  ) %>%
-  filter(
-    !(method == "MAvg" & type == "noescape")
-  ) %>%
-  mutate(
-    type = case_when(is.na(type) ~ "escape", .default = type),
-    method = case_when(
-      method == "GLM" ~ "Full model",
-      method == "Stan" & type == "escape" ~ "RHS active",
-      method == "Stan" & type == "noescape" ~ "RHS inactive",
-      method == "MAvg" ~ "AIC model avg",
-      .default = method
+# Both coefficient-CI coverage (from coverageRates()) and prediction-interval
+# coverage (from predCoverageRates()) live in the same 10 columns; this
+# reshapes either the AICvsSTAN or the Decorr results into one tidy,
+# facet-ready long data frame, keeping whatever grouping column(s) the
+# caller passes through (e.g. corrLevel, or shift).
+coverage_cols <- c(
+  "AIC_coverage", "GLM_coverage", "Stan_coverage_escape", "Stan_coverage_noescape",
+  "MAvg_coverage_escape", "MAvg_coverage_noescape",
+  "AIC_PIcoverage", "GLM_PIcoverage", "MAvg_PIcoverage", "Stan_PIcoverage"
+)
+
+pivot_coverage_long <- function(df, group_vars) {
+  df %>%
+    select(all_of(c(group_vars, coverage_cols))) %>%
+    pivot_longer(
+      cols = all_of(coverage_cols),
+      names_to = "method",
+      values_to = "rate"
+    ) %>%
+    separate_wider_delim(
+      cols = method,
+      delim = "_",
+      names = c("method", "what", "type"),
+      too_few = "align_start"
+    ) %>%
+    mutate(
+      kind = if_else(what == "PIcoverage", "Prediction interval", "Coefficient CI"),
+      type = case_when(
+        kind == "Prediction interval" ~ "PI",
+        is.na(type) ~ "escape",
+        .default = type
+      )
+    ) %>%
+    filter(
+      # resolve type (above) *before* filtering: otherwise the new
+      # PIcoverage rows still have type == NA at filter time, and
+      # `NA == "noescape"` evaluates to NA, which filter() silently drops
+      !(method == "MAvg" & kind == "Coefficient CI" & type == "noescape")
+    ) %>%
+    mutate(
+      method = case_when(
+        method == "GLM" ~ "Full model",
+        method == "Stan" & type == "escape" ~ "RHS active",
+        method == "Stan" & type == "noescape" ~ "RHS inactive",
+        method == "Stan" & type == "PI" ~ "RHS",
+        method == "MAvg" ~ "AIC model avg",
+        .default = method
+      )
+    ) %>%
+    select(!what) %>%
+    mutate(
+      method = factor(
+        method,
+        levels = c("Full model", "AIC", "AIC model avg", "RHS active", "RHS inactive", "RHS")
+      ),
+      kind = factor(kind, levels = c("Coefficient CI", "Prediction interval"))
     )
-  ) %>%
-  select(!what) %>%
-  mutate(
-    method = factor(
-      method,
-      levels = c("Full model", "AIC", "AIC model avg", "RHS active", "RHS inactive")
-    )
-  )
+}
+
+coverage <- pivot_coverage_long(corData6, "corrLevel")
 
 
 ## ---- load pdf device ----
 
-pdf(file = here("Figures/coverage_results_sim1.pdf"), width = 5, height = 7)
+pdf(file = here("Figures/coverage_results_sim1.pdf"), width = 9, height = 7)
 
 ggplot(coverage, aes(x = rate, y = method)) +
-  facet_wrap(
-    vars(corrLevel), ncol = 1,
-    labeller = label_bquote(rows = rho == .(corrLevel))
+  facet_grid(
+    rows = vars(corrLevel), cols = vars(kind),
+    labeller = labeller(corrLevel = as_labeller(function(x) paste0("rho == ", x), label_parsed))
   ) +
   stat_summary(
     aes(color = method, shape = type),
@@ -440,7 +467,7 @@ ggplot(coverage, aes(x = rate, y = method)) +
   theme(legend.position = "none") +
   xlab("Coverage") +
   ylab("") +
-  scale_color_manual(values = c(colors, colors[4]))
+  scale_color_manual(values = c(colors, colors[4], colors[4]))
 
 dev.off()
 
@@ -533,3 +560,49 @@ decor_rmse_long %>%
     ylab("")
 
 dev.off()
+
+
+# ---- Covariate shift: coverage results ----
+
+required_decor_coverage_cols <- coverage_cols
+
+if (!all(required_decor_coverage_cols %in% names(decorData))) {
+
+  warning(
+    "Simulations/DecorrResults.csv is missing ",
+    paste(setdiff(required_decor_coverage_cols, names(decorData)), collapse = ", "),
+    " — skipping Figures/coverage_results_decorr.pdf. Rerun Simulations/run_Decorr.sh and ",
+    "the combiner on Beartooth to regenerate it with prediction-interval coverage."
+  )
+
+} else {
+
+  decor_coverage <- decorData %>%
+    filter(corrLevel == 0.5) %>%
+    mutate(
+      shift = if_else(corrChange, "Covariate shift", "No shift"),
+      shift = factor(shift, levels = c("Covariate shift", "No shift"))
+    ) %>%
+    pivot_coverage_long("shift")
+
+  pdf(file = here("Figures/coverage_results_decorr.pdf"), width = 9, height = 5)
+
+  ggplot(decor_coverage, aes(x = rate, y = method)) +
+    facet_grid(rows = vars(shift), cols = vars(kind)) +
+    stat_summary(
+      aes(color = method, shape = type),
+      geom = "pointrange",
+      fun = mean,
+      fun.min = \(x){quantile(x, probs = 0.025)},
+      fun.max = \(x){quantile(x, probs = 0.975)}
+    ) +
+    geom_vline(xintercept = 0.95, linetype = "dashed") +
+    theme_bw() +
+    theme(legend.position = "none") +
+    xlab("Coverage") +
+    ylab("") +
+    scale_color_manual(values = c(colors, colors[4], colors[4]))
+
+  dev.off()
+
+}
