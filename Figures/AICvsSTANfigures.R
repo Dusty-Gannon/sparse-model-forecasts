@@ -3,7 +3,9 @@
 ################################################
 
 library(here)
-library(tidyverse)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
 
 ################################################
 # Figure 1: (Deprecated)
