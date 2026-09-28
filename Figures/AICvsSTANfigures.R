@@ -84,7 +84,7 @@ library(tidyverse)
 ################################################
 # Figure 2:
 ################################################
-corData2=read.csv(here("Simulations/AICvsSTANResults.csv"))
+corData2=read.csv(here("Simulations/AICvsStanResults.csv"))
 
 # Remove unwanted variables
 # fix strongSelf=F
@@ -447,12 +447,12 @@ dev.off()
 
 # ---- Covariate shift results ----
 
-decorData <- read.csv(here("Simulations/AICvsSTANdecorrelation.csv"))
+decorData <- read.csv(here("Simulations/DecorrResults.csv"))
 
 required_decor_cols <- c("RMSE_AIC", "RMSE_GLM", "RMSE_STAN", "RMSE_modelAvg")
 if (!all(required_decor_cols %in% names(decorData))) {
   stop(
-    "Simulations/AICvsSTANdecorrelation.csv is missing ",
+    "Simulations/DecorrResults.csv is missing ",
     paste(setdiff(required_decor_cols, names(decorData)), collapse = ", "),
     " — it predates the standardization/model-averaging changes to STANselect()/AICselect(). ",
     "Rerun Simulations/run_Decorr.sh and Simulations/run_combine_Decorr.sh on Beartooth to regenerate it."
