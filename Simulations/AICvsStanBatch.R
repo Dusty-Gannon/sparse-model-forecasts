@@ -46,7 +46,7 @@ ts1test=lapply(ts1clean,FUN=function(x) splitTS(x,set="test",n=n,nfit=round(0.6*
 ts1train=lapply(ts1clean,FUN=function(x) splitTS(x,set="train",n=n,nfit=round(0.6*n))) #training set
 AICmodlist=lapply(ts1train,FUN=function(x) AICselect(x)) # do model selection AIC
 RMSEAIClist=mapply(function(x,y) RMSE_AIC(x,y), AICmodlist,ts1test) # get RMSE AIC
-GLMmodlist=lapply(ts1train,FUN=function(x) glm(y~.,data=x)) # get full GLM models
+GLMmodlist=lapply(ts1train,FUN=function(x) lm(y~.,data=x)) # get full model (lm; always Gaussian/identity, and glm broke predict(..., interval="prediction"))
 RMSEGLMlist=mapply(function(x,y) RMSE_GLM(x,y), GLMmodlist,ts1test) # get RMSE GLM
 STANmodlist=mapply(function(x,y) STANselect(x,y,nfit=round(0.6*n),n=n,K=K),ts1train,ts1test) # do model selection STAN
 STANpredlist=lapply(STANmodlist,FUN=function(x) STANgetpredict(x)) # get STAN predictions for y
@@ -95,6 +95,17 @@ coverageList=mapply(
 )
 coverageResults=do.call(rbind, coverageList)
 
+# Prediction-interval coverage/width (held-out y, not coefficients)
+predCoverageList=mapply(
+  function(test, aic, glm, stanPreds) {
+    holdout_preds <- stanPreds[, (round(ncol(stanPreds) * 0.6) + 1):ncol(stanPreds)]
+    predCoverageRates(test, aic, glm, holdout_preds, conf = 0.95)
+  },
+  ts1test, AICmodlist, GLMmodlist, STANpredlist,
+  SIMPLIFY=FALSE
+)
+predCoverageResults=do.call(rbind, predCoverageList)
+
 # Output- want to save the confusion values, and save the RMSE values
 # Put each into dataframes and save as .csv?
 
@@ -110,6 +121,7 @@ saveRDS(AICconfusion,file=paste0("Data/AICvsStan_data/AICconfusion_",nameID,".rd
 saveRDS(STANconfusion,file=paste0("Data/AICvsStan_data/STANconfusion_",nameID,".rds"))
 saveRDS(GLMconfusion,file=paste0("Data/AICvsStan_data/GLMconfusion_",nameID,".rds"))
 saveRDS(coverageResults,file=paste0("Data/AICvsStan_data/coverage_",nameID,".rds"))
+saveRDS(predCoverageResults,file=paste0("Data/AICvsStan_data/predCoverage_",nameID,".rds"))
 saveRDS(RMSE_modelAvgList,file=paste0("Data/AICvsStan_data/RMSEmodelAvg_",nameID,".rds"))
 saveRDS(modelAvgConfusion,file=paste0("Data/AICvsStan_data/modelAvgConfusion_",nameID,".rds"))
 

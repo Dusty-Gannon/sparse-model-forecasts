@@ -56,9 +56,10 @@ print(round(aic_mod$avg_coef, 4))
 cat("RMSE:", round(rmse_mavg, 4), "\n")
 cat("TPR:", round(mavg_conf["TPR"], 4), "  TNR:", round(mavg_conf["TNR"], 4), "\n")
 
-# ---- Full GLM ----
-cat("\n=== FULL GLM ===\n")
-glm_mod  <- glm(y~., data=train)
+# ---- Full model (lm; Gaussian/identity glm was unnecessary and breaks
+# predict(..., interval="prediction")) ----
+cat("\n=== FULL MODEL ===\n")
+glm_mod  <- lm(y~., data=train)
 rmse_glm <- RMSE_GLM(glm_mod, test)
 glm_conf <- GLMconfusionRates(ts_raw, glm_mod)
 cat("RMSE:", round(rmse_glm, 4), "\n")
@@ -82,5 +83,10 @@ print(stan_bp[, c("mean", "low", "high")])
 cat("\n=== COVERAGE RATES (95%) ===\n")
 cov_rates <- coverageRates(ts_raw, train, aic_mod, stan_mod, glm_mod, K=K)
 print(round(cov_rates, 4))
+
+# ---- Prediction-interval coverage (new) ----
+cat("\n=== PREDICTION-INTERVAL COVERAGE (95%) ===\n")
+pred_cov_rates <- predCoverageRates(test, aic_mod, glm_mod, stan_preds[, -(1:nfit)], conf = 0.95)
+print(round(pred_cov_rates, 4))
 
 cat("\n=== DONE ===\n")

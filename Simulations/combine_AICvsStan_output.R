@@ -45,7 +45,8 @@ for (i in seq_len(nrow(config))) {
     GLMconfusion   = file.path(data_dir, paste0("GLMconfusion_", nameID, ".rds")),
     modelAvgConfusion = file.path(data_dir, paste0("modelAvgConfusion_", nameID, ".rds")),
     STANconfusion  = file.path(data_dir, paste0("STANconfusion_", nameID, ".rds")),
-    coverage       = file.path(data_dir, paste0("coverage_", nameID, ".rds"))
+    coverage       = file.path(data_dir, paste0("coverage_", nameID, ".rds")),
+    predCoverage   = file.path(data_dir, paste0("predCoverage_", nameID, ".rds"))
   )
 
   missing <- files[!file.exists(files)]
@@ -66,12 +67,13 @@ for (i in seq_len(nrow(config))) {
   STANconfusion <- as_numeric_matrix(readRDS(files["STANconfusion"]))
 
   coverage <- readRDS(files["coverage"])
+  predCoverage <- readRDS(files["predCoverage"])
 
   ntrials <- length(RMSEAIC)
   lengths_ok <- c(
     length(RMSEGLM), length(RMSESTAN), length(RMSEmodelAvg),
     ncol(AICconfusion), ncol(GLMconfusion), ncol(modelAvgConfusion),
-    ncol(STANconfusion), nrow(coverage)
+    ncol(STANconfusion), nrow(coverage), nrow(predCoverage)
   ) == ntrials
   if (!all(lengths_ok)) {
     warning(sprintf("nameID '%s': output lengths do not match across files, skipping.",
@@ -107,6 +109,7 @@ for (i in seq_len(nrow(config))) {
   )
 
   trial_df <- cbind(trial_df, coverage)
+  trial_df <- cbind(trial_df, predCoverage)
 
   # attach the config parameters for this array task (repeated for every trial)
   config_row <- config[i, setdiff(names(config), c("ArrayTaskID", "nameID")), drop = FALSE]

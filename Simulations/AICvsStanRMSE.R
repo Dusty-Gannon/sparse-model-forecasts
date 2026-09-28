@@ -401,6 +401,52 @@ modelAvg_uncond_SE <- function(aicModel, all_vars) {
 }
 
 
+#' Compute an unconditional (model-averaged) prediction interval
+#'
+#' Generalizes the same unconditional-variance estimator used by
+#' modelAvg_uncond_SE() (Buckland, Burnham & Augustin 1997; Burnham &
+#' Anderson 2002, eq. 4.9) from a single coefficient to the linear predictor
+#' at each row of newdata, and adds each chain model's own residual
+#' variance so the result is a *prediction* interval for a future y, not a
+#' confidence interval on the mean. Uses a normal critical value, matching
+#' the convention coverageRates() already uses for the model-averaged
+#' coefficient CI.
+#'
+#' @param aicModel AICselect result with $keep and $avg_weights attached
+#' @param newdata Data frame of covariates to predict at (response column ignored)
+#' @param conf Nominal coverage level (default 0.95)
+#'
+#' @return Data frame with one row per row of newdata: fit, lwr, upr
+modelAvg_predInterval <- function(aicModel, newdata, conf = 0.95) {
+  chain_models <- aicModel$keep["model", ]
+  weights      <- aicModel$avg_weights
+  n_test       <- nrow(newdata)
+  n_models     <- length(chain_models)
+
+  pred_mat <- matrix(NA_real_, n_models, n_test)
+  var_mat  <- matrix(NA_real_, n_models, n_test)
+  sigma2   <- numeric(n_models)
+
+  for (i in seq_len(n_models)) {
+    p_i <- predict(chain_models[[i]], newdata = newdata, se.fit = TRUE)
+    pred_mat[i, ] <- p_i$fit
+    var_mat[i, ]  <- p_i$se.fit^2
+    sigma2[i]     <- summary(chain_models[[i]])$sigma^2
+  }
+
+  pred_bar   <- as.numeric(weights %*% pred_mat)
+  spread     <- sweep(pred_mat, 2, pred_bar, "-")^2
+  var_uncond <- as.numeric(weights %*% (var_mat + sigma2 + spread))
+
+  z <- qnorm((1 + conf) / 2)
+  data.frame(
+    fit = pred_bar,
+    lwr = pred_bar - z * sqrt(var_uncond),
+    upr = pred_bar + z * sqrt(var_uncond)
+  )
+}
+
+
 #' Compute interval coverage rates for AIC, Stan, and full-GLM models
 #'
 #' For each model, checks what fraction of the true beta values (from the
@@ -515,6 +561,72 @@ coverageRates <- function(timeseries, trainData, aicModel, stanModel, glmModel,
     Stan_coverage_noescape = stan_coverage_noescape,
     MAvg_coverage_escape   = mavg_coverage_escape,
     MAvg_coverage_noescape = mavg_coverage_noescape
+  )
+}
+
+
+#' Compute prediction-interval coverage and width for held-out y
+#'
+#' For each of the four methods (AIC-select, full model, model-averaged
+#' AIC, and the RHS Stan model), checks what fraction of the true held-out
+#' y values (testData$y) fall inside that method's predicted interval for
+#' y, and reports the mean interval width.
+#'
+#' AIC and GLM (both plain lm fits) use predict(..., interval = "prediction"),
+#' an exact small-sample Student-t interval. Model averaging uses
+#' modelAvg_predInterval() (see its documentation for the unconditional-
+#' variance formula and references). Stan uses empirical quantiles of the
+#' posterior-predictive draws for the held-out rows, which already account
+#' for both parameter uncertainty and observation noise (see the
+#' generated quantities block of Stan/sparse_reg_FHS.stan).
+#'
+#' @param testData Held-out data frame (y in column 1, driver_1...driver_K
+#'   in the remaining columns).
+#' @param aicModel Stepwise-AIC lm model fit returned by AICselect().
+#' @param glmModel Full lm model fit (all K predictors).
+#' @param stanHoldoutPreds Posterior-predictive draws matrix for the
+#'   held-out rows only (draws x nrow(testData)), e.g. the held-out columns
+#'   of STANgetpredict()'s output.
+#' @param conf Nominal coverage level (default 0.95).
+#'
+#' @return A one-row data frame with AIC_PIcoverage, GLM_PIcoverage,
+#'   MAvg_PIcoverage, Stan_PIcoverage, AIC_PIwidth, GLM_PIwidth,
+#'   MAvg_PIwidth, Stan_PIwidth.
+#' @export
+predCoverageRates <- function(testData, aicModel, glmModel, stanHoldoutPreds,
+                               conf = 0.95) {
+
+  y_true <- testData$y
+
+  ## ---- AIC and GLM: exact Student-t prediction intervals ----
+  aic_pi <- predict(aicModel, newdata = testData, interval = "prediction", level = conf)
+  glm_pi <- predict(glmModel, newdata = testData, interval = "prediction", level = conf)
+
+  aic_predCoverage <- mean(y_true >= aic_pi[, "lwr"] & y_true <= aic_pi[, "upr"])
+  glm_predCoverage <- mean(y_true >= glm_pi[, "lwr"] & y_true <= glm_pi[, "upr"])
+  aic_predWidth <- mean(aic_pi[, "upr"] - aic_pi[, "lwr"])
+  glm_predWidth <- mean(glm_pi[, "upr"] - glm_pi[, "lwr"])
+
+  ## ---- Model averaging: unconditional prediction interval ----
+  mavg_pi <- modelAvg_predInterval(aicModel, testData, conf = conf)
+  mavg_predCoverage <- mean(y_true >= mavg_pi$lwr & y_true <= mavg_pi$upr)
+  mavg_predWidth <- mean(mavg_pi$upr - mavg_pi$lwr)
+
+  ## ---- Stan: empirical quantiles of the held-out posterior predictive draws ----
+  probs <- c((1 - conf) / 2, 1 - (1 - conf) / 2)
+  stan_q <- apply(stanHoldoutPreds, 2, quantile, probs = probs)
+  stan_predCoverage <- mean(y_true >= stan_q[1, ] & y_true <= stan_q[2, ])
+  stan_predWidth <- mean(stan_q[2, ] - stan_q[1, ])
+
+  data.frame(
+    AIC_PIcoverage  = aic_predCoverage,
+    GLM_PIcoverage  = glm_predCoverage,
+    MAvg_PIcoverage = mavg_predCoverage,
+    Stan_PIcoverage = stan_predCoverage,
+    AIC_PIwidth  = aic_predWidth,
+    GLM_PIwidth  = glm_predWidth,
+    MAvg_PIwidth = mavg_predWidth,
+    Stan_PIwidth = stan_predWidth
   )
 }
 
