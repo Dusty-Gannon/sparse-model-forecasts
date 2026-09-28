@@ -433,27 +433,55 @@ pivot_coverage_long <- function(df, group_vars) {
         .default = method
       )
     ) %>%
-    select(!what) %>%
-    mutate(
-      method = factor(
-        method,
-        levels = c("Full model", "AIC", "AIC model avg", "RHS active", "RHS inactive", "RHS")
-      ),
-      kind = factor(kind, levels = c("Coefficient CI", "Prediction interval"))
-    )
+    select(!what)
 }
 
 coverage <- pivot_coverage_long(corData6, "corrLevel")
 
 
-## ---- load pdf device ----
+## ---- prediction-interval coverage (main text) ----
 
-pdf(file = here("Figures/coverage_results_sim1.pdf"), width = 9, height = 7)
+pdf(file = here("Figures/pred_interval_coverage_sim1.pdf"), width = 5, height = 7)
 
-ggplot(coverage, aes(x = rate, y = method)) +
-  facet_grid(
-    rows = vars(corrLevel), cols = vars(kind),
-    labeller = labeller(corrLevel = as_labeller(function(x) paste0("rho == ", x), label_parsed))
+coverage %>%
+  filter(kind == "Prediction interval") %>%
+  mutate(method = factor(method, levels = c("Full model", "AIC", "AIC model avg", "RHS"))) %>%
+  ggplot(aes(x = rate, y = method)) +
+  facet_wrap(
+    vars(corrLevel), ncol = 1,
+    labeller = label_bquote(rows = rho == .(corrLevel))
+  ) +
+  stat_summary(
+    aes(color = method),
+    geom = "pointrange",
+    fun = mean,
+    fun.min = \(x){quantile(x, probs = 0.025)},
+    fun.max = \(x){quantile(x, probs = 0.975)}
+  ) +
+  geom_vline(xintercept = 0.95, linetype = "dashed") +
+  theme_bw() +
+  theme(legend.position = "none") +
+  xlab("Prediction interval coverage") +
+  ylab("") +
+  scale_color_manual(values = colors)
+
+dev.off()
+
+
+## ---- coefficient CI coverage (appendix) ----
+
+pdf(file = here("Figures/coef_coverage_sim1_appendix.pdf"), width = 5, height = 7)
+
+coverage %>%
+  filter(kind == "Coefficient CI") %>%
+  mutate(method = factor(
+    method,
+    levels = c("Full model", "AIC", "AIC model avg", "RHS active", "RHS inactive")
+  )) %>%
+  ggplot(aes(x = rate, y = method)) +
+  facet_wrap(
+    vars(corrLevel), ncol = 1,
+    labeller = label_bquote(rows = rho == .(corrLevel))
   ) +
   stat_summary(
     aes(color = method, shape = type),
@@ -467,7 +495,7 @@ ggplot(coverage, aes(x = rate, y = method)) +
   theme(legend.position = "none") +
   xlab("Coverage") +
   ylab("") +
-  scale_color_manual(values = c(colors, colors[4], colors[4]))
+  scale_color_manual(values = c(colors, colors[4]))
 
 dev.off()
 
@@ -585,10 +613,43 @@ if (!all(required_decor_coverage_cols %in% names(decorData))) {
     ) %>%
     pivot_coverage_long("shift")
 
-  pdf(file = here("Figures/coverage_results_decorr.pdf"), width = 9, height = 5)
+  ## ---- prediction-interval coverage (main text) ----
 
-  ggplot(decor_coverage, aes(x = rate, y = method)) +
-    facet_grid(rows = vars(shift), cols = vars(kind)) +
+  pdf(file = here("Figures/pred_interval_coverage_decorr.pdf"), width = 5, height = 5)
+
+  decor_coverage %>%
+    filter(kind == "Prediction interval") %>%
+    mutate(method = factor(method, levels = c("Full model", "AIC", "AIC model avg", "RHS"))) %>%
+    ggplot(aes(x = rate, y = method)) +
+    facet_wrap(vars(shift), ncol = 1) +
+    stat_summary(
+      aes(color = method),
+      geom = "pointrange",
+      fun = mean,
+      fun.min = \(x){quantile(x, probs = 0.025)},
+      fun.max = \(x){quantile(x, probs = 0.975)}
+    ) +
+    geom_vline(xintercept = 0.95, linetype = "dashed") +
+    theme_bw() +
+    theme(legend.position = "none") +
+    xlab("Prediction interval coverage") +
+    ylab("") +
+    scale_color_manual(values = colors)
+
+  dev.off()
+
+  ## ---- coefficient CI coverage (appendix) ----
+
+  pdf(file = here("Figures/coef_coverage_decorr_appendix.pdf"), width = 5, height = 5)
+
+  decor_coverage %>%
+    filter(kind == "Coefficient CI") %>%
+    mutate(method = factor(
+      method,
+      levels = c("Full model", "AIC", "AIC model avg", "RHS active", "RHS inactive")
+    )) %>%
+    ggplot(aes(x = rate, y = method)) +
+    facet_wrap(vars(shift), ncol = 1) +
     stat_summary(
       aes(color = method, shape = type),
       geom = "pointrange",
@@ -601,7 +662,7 @@ if (!all(required_decor_coverage_cols %in% names(decorData))) {
     theme(legend.position = "none") +
     xlab("Coverage") +
     ylab("") +
-    scale_color_manual(values = c(colors, colors[4], colors[4]))
+    scale_color_manual(values = c(colors, colors[4]))
 
   dev.off()
 
