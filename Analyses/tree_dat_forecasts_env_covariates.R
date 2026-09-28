@@ -19,7 +19,7 @@ prism_summer <- readRDS(here::here("SparseTS_prismdata/prism_summer.rds"))
 ## ---- Global variables ----
 
 # compile stan models
-rhs_reg <- rstan::stan_model(here::here("Stan/sparse_reg_FHS.stan"))
+rhs_reg <- rstan::stan_model(here::here("Stan/AR-p_err.stan"))
 
 # set colors
 my_colors <- PNWColors::pnw_palette("Sunset", 7)[c(2,5)]
@@ -32,24 +32,24 @@ forecast_plot <- function(df, horizon, col){
     df,
     aes(x = year, y = y, colour = source)
   ) +
-    geom_line(aes(linewidth = source)) +
     geom_ribbon(
       aes(ymin = low, ymax = high, fill = source, alpha = source),
       linetype = 0,
     ) +
+    geom_line(aes(linewidth = source)) +
     geom_vline(xintercept = horizon, linetype = "dashed", color = "brown") +
     geom_vline(xintercept = 1926, linetype = "dashed", color = "grey") +
     scale_color_manual(
-      values = c("Observed" = "black", "RHS" = col[1], "stepAIC" = col[2])
+      values = c("Observed" = "black", "RHS" = col[1], "stepAIC + auto.arima" = col[2])
     ) +
     scale_fill_manual(
-      values = c("Observed" = "black", "RHS" = col[1], "stepAIC" = col[2])
+      values = c("Observed" = "black", "RHS" = col[1], "stepAIC + auto.arima" = col[2])
     ) +
     scale_alpha_manual(
-      values = c("Observed" = 0, "RHS" = 0.3, "stepAIC" = 0.4),
+      values = c("Observed" = 0, "RHS" = 0.3, "stepAIC + auto.arima" = 0.4),
     ) +
     scale_linewidth_manual(
-      values = c("Observed" = 1, "RHS" = 0.5, "stepAIC" = 0.5)
+      values = c("Observed" = 1, "RHS" = 0.5, "stepAIC + auto.arima" = 0.5)
     ) +
     theme_classic() +
     theme(legend.title = element_blank()) +
@@ -138,15 +138,34 @@ prism <- left_join(
 
 prism <- rename(prism, year = wateryear)
 
-# first, we want to standardize the columns
-prism_std <- prism %>%
-  drop_na() %>%
-  mutate(
-    across(
-     wy_ppt:summer_vpdmax,
-      .fns = ~ scale(.x)[,1]
-    )
-  )
+
+# ---- Model 1: all years ----
+
+train_yrs <- 1895:1990
+test_yrs <- 1991:2013
+
+train_rows <- which(prism$year %in% train_yrs)
+test_rows <- which(prism$year %in% test_yrs)
+
+# first split the data, then use same column
+# standardization across training and testing split
+prism_train <- prism[train_rows, ]
+prism_test <- prism[test_rows, ]
+# compute the sds
+tr_means <- select(prism_train, !year) %>%
+  colMeans()
+tr_sds <- select(prism_train, !year) %>%
+  apply(., 2, sd)
+
+prism_train_std <- prism_train
+prism_test_std <- prism_test
+for(var in names(tr_means)){
+  prism_train_std[var] = (prism_train_std[var] - tr_means[var]) / tr_sds[var]
+  prism_test_std[var] = (prism_test_std[var] - tr_means[var]) / tr_sds[var]
+}
+
+# now recombine
+prism_std <- rbind(prism_train_std, prism_test_std)
 
 # now lag the covariates of interest
 prism_lagged <- lag_covariates(
@@ -154,7 +173,13 @@ prism_lagged <- lag_covariates(
   names = names(prism_std)[-1],
   lags = 5,
   time_col = "year"
-)
+) %>% drop_na()
+
+# reset training and testing years based on dropping some from lagged variables
+train_yrs <- prism_lagged$year[1]:1990
+test_yrs <- 1991:prism_lagged$year[nrow(prism_lagged)]
+train_rows <- which(prism_lagged$year %in% train_yrs)
+test_rows <- which(prism_lagged$year %in% test_yrs)
 
 # average all trees for a given year,
 # then subset for years in the prism data
@@ -166,44 +191,35 @@ tree_dat <- tree_dat %>%
     year %in% prism_lagged$year
   )
 
-
-
-# ---- Model 1: all years ----
-
-train_yrs <- 1900:1990
-test_yrs <- 1991:2012
-
-train_rows <- which(tree_dat$year %in% train_yrs)
-test_rows <- which(tree_dat$year %in% test_yrs)
+X_train <- cbind(
+  1,
+  as.matrix(
+    prism_lagged[train_rows, -which(names(prism_lagged) == "year")]
+  )
+)
+X_test <- cbind(
+  1,
+  as.matrix(
+    prism_lagged[test_rows, -which(names(prism_lagged) == "year")]
+  )
+)
 
 # compile data for stan
 dat_stan <- list(
   N = length(train_yrs),
-  P0 = 1,
-  P = ncol(prism_lagged),
+  P_0 = 1,
+  P = ncol(X_train),
+  p = 10,
   y = tree_dat$mean_rwi[train_rows],
-  X = cbind(
-    1,
-    as.matrix(
-      prism_lagged[train_rows, -which(names(prism_lagged) == "year")]
-    )
-  ),
-  tau0 = tau0(
-    y = tree_dat$mean_rwi[train_rows],
-    m0 = 5,
-    M = ncol(prism_lagged) - 1,
-    N = length(train_yrs),
-    fam = "gaussian"
-  ),
-  slab_scl = 0.5,
-  slab_df = 6,
+  X = X_train,
+  tau0_phi = 1 / (10 - 1) * length(train_rows)^(-0.5),
+  slab_scl_phi = 0.4,
+  slab_df_phi = 10,
+  tau0_beta = (5 / ((ncol(X_train) - 1) - 5)) * length(train_rows)^(-0.5),
+  slab_scl_beta = 0.5,
+  slab_df_beta = 6,
   N_new = length(test_yrs),
-  X_new = cbind(
-    1,
-    as.matrix(
-      prism_lagged[test_rows, -which(names(prism_lagged) == "year")]
-    )
-  )
+  X_new = X_test
 )
 
 # fit the model
@@ -236,30 +252,63 @@ aic_fit_dat_all <- MASS::stepAIC(
   direction = "forward"
 )
 
-preds_aic_dat_all <- predict(aic_fit_dat_all, newdata = aicdat_all, se = T)
+selected_all <- colnames(model.matrix(aic_fit_dat_all))[-1]
+X_test_aarima_all <- X_test[, selected_all]
+# add intercept back
+X_test_aarima_all <- cbind(
+  "(Intercept)" = 1,
+  X_test_aarima_all
+)
+X_train_aic <- X_train[, selected_all]
+
+# add in the ARMA model using package forecast
+aic_aarima_fit_all <- forecast::auto.arima(
+  y = aicdat_all$mean_rwi[train_rows],
+  max.order = 10,
+  stationary = T,
+  xreg = model.matrix(aic_fit_dat_all)
+)
+
+preds_aic_dat_all <- forecast::forecast(
+  aic_aarima_fit_all,
+  h = length(test_rows),
+  xreg = X_test_aarima_all
+)
 
 ## ---- Combine observed and predicted into one dataframe ----
 # extract draws
 y_pred <- rstan::extract(rhs_fit_dat_all, pars = "y_rep")$y_rep
-beta_post <- rstan::extract(rhs_fit_dat_all, pars = "beta")$beta
-
-# compute residual variance
-aic_sigma2 <- summary(aic_fit_dat_all)$sigma^2
 
 df_fcplot_all <- data.frame(
   year = rep(tree_dat$year, 3),
-  y = c(tree_dat$mean_rwi, colMeans(y_pred), preds_aic_dat_all$fit),
+  y = c(
+    tree_dat$mean_rwi,
+    colMeans(y_pred),
+    c(as.vector(preds_aic_dat_all$fitted), as.vector(preds_aic_dat_all$mean))
+  ),
   low = c(
     rep(NA, nrow(tree_dat)),
-    apply(y_pred, 2, quantile, probs = 0.025),
-    preds_aic_dat_all$fit - 2 * sqrt(preds_aic_dat_all$se.fit^2 + aic_sigma2)
+    c(
+      rep(NA, length(train_rows)),
+      apply(y_pred[, test_rows], 2, quantile, probs = 0.025)
+    ),
+    c(
+      rep(NA, length(train_rows)),
+      as.vector(preds_aic_dat_all$lower[, "95%"])
+    )
   ),
   high = c(
     rep(NA, nrow(tree_dat)),
-    apply(y_pred, 2, quantile, probs = 0.975),
-    preds_aic_dat_all$fit + 2 * sqrt(preds_aic_dat_all$se.fit^2 + aic_sigma2)
+    c(
+      rep(NA, length(train_rows)),
+      apply(y_pred[, test_rows], 2, quantile, probs = 0.975)
+    ),
+    c(
+      rep(NA, length(train_rows)),
+      as.vector(preds_aic_dat_all$upper[, "95%"])
+    )
   ),
-  source = rep(c("Observed", "RHS", "stepAIC"), each = nrow(tree_dat))
+  source = rep(c("Observed", "RHS", "stepAIC + auto.arima"), each = nrow(tree_dat))
 )
 
 # # now set the training region to NA
@@ -284,15 +333,25 @@ df_fcplot_all$high[
 # extract coefficient estimates from each method
 beta_post_all <- rstan::extract(rhs_fit_dat_all, pars = "beta")$beta
 
+# # don't need to rescale because AIC mod fit on scaled columns, too
+# beta_post_all <- cbind(
+#   beta_post_all[,1],
+#   sweep(beta_post_all[,-1], 2, tr_sds, FUN = "/")
+# )
+
 # create dataframe from aic approach
-beta_aic <- coef(aic_fit_dat_all)
-ses_aic <- vcov(aic_fit_dat_all) |> diag() |> sqrt()
+beta_aic <- coef(aic_aarima_fit_all)
+ses_aic <- vcov(aic_aarima_fit_all) |> diag() |> sqrt()
+nu_aic <- length(train_rows) - length(beta_aic) -
+  length(aic_aarima_fit_all$model$phi) -
+  length(aic_aarima_fit_all$model$theta)
+t_star_all <- qt(0.975, nu_aic)
 
 df_estims_aic_dat_all <- data.frame(
   var = names(beta_aic),
   estim = beta_aic,
-  low = beta_aic - 2 * ses_aic,
-  high = beta_aic + 2 * ses_aic,
+  low = beta_aic - t_star_all * ses_aic,
+  high = beta_aic + t_star_all * ses_aic,
   method = "AIC"
 )
 df_estims_aic_dat_all$var <- str_remove_all(
@@ -326,41 +385,92 @@ df_estims_plot_all <- rbind(
 
 # ---- Model 2: Analysis for 1926-2012 ----
 
-yrs2 <- 1926:2012
 train_yrs2 <- 1926:1995
 test_yrs2 <- 1996:2012
-rows2 <- which(tree_dat$year %in% yrs2)
+
+train_rows2 <- which(prism$year %in% train_yrs2)
+test_rows2 <- which(prism$year %in% test_yrs2)
+
+# split first, then use the *training-period-specific* means/sds to
+# standardize training and testing data (same approach as Model 1 -- this
+# model's training window (1926-1995) differs from Model 1's (1895-1990),
+# so it needs its own standardization constants rather than reusing
+# tr_means/tr_sds/prism_lagged from Model 1)
+prism_train2 <- prism[train_rows2, ]
+prism_test2 <- prism[test_rows2, ]
+
+tr_means2 <- select(prism_train2, !year) %>%
+  colMeans()
+tr_sds2 <- select(prism_train2, !year) %>%
+  apply(., 2, sd)
+
+prism_train2_std <- prism_train2
+prism_test2_std <- prism_test2
+for(var in names(tr_means2)){
+  prism_train2_std[var] = (prism_train2_std[var] - tr_means2[var]) / tr_sds2[var]
+  prism_test2_std[var] = (prism_test2_std[var] - tr_means2[var]) / tr_sds2[var]
+}
+
+# now recombine
+prism_std2 <- rbind(prism_train2_std, prism_test2_std)
+
+# now lag the covariates of interest
+prism_lagged2 <- lag_covariates(
+  prism_std2,
+  names = names(prism_std2)[-1],
+  lags = 5,
+  time_col = "year"
+) %>% drop_na()
+
+# reset training and testing years based on dropping some rows from the
+# lagged variables (the first few years of the 1926-1995 training window
+# lose their lags, since this split -- unlike Model 1's -- doesn't include
+# the pre-1926 rows needed to compute them)
+train_yrs2 <- max(train_yrs2[1], prism_lagged2$year[1]):1995
+test_yrs2 <- 1996:min(test_yrs2[length(test_yrs2)], prism_lagged2$year[nrow(prism_lagged2)])
+
+# prism_lagged2 and tree_dat do NOT share the same row-to-year
+# correspondence: prism_lagged2 starts wherever the lag trimming above
+# left it (e.g. 1931), while tree_dat/aicdat_all still start from Model
+# 1's much earlier range. So each object needs its own row indices,
+# matched by *year value*, not by row position.
+train_rows2_X <- which(prism_lagged2$year %in% train_yrs2)
+test_rows2_X <- which(prism_lagged2$year %in% test_yrs2)
+
 train_rows2 <- which(tree_dat$year %in% train_yrs2)
 test_rows2 <- which(tree_dat$year %in% test_yrs2)
+rows2 <- which(tree_dat$year %in% c(train_yrs2, test_yrs2))
+yrs2 <- tree_dat$year[rows2]
+
+X_train2 <- cbind(
+  1,
+  as.matrix(
+    prism_lagged2[train_rows2_X, -which(names(prism_lagged2) == "year")]
+  )
+)
+X_test2 <- cbind(
+  1,
+  as.matrix(
+    prism_lagged2[test_rows2_X, -which(names(prism_lagged2) == "year")]
+  )
+)
 
 # compile data for stan
 dat_stan2 <- list(
-  N = length(train_yrs2),
-  P0 = 1,
-  P = ncol(prism_lagged),
+  N = length(train_rows2),
+  P_0 = 1,
+  P = ncol(X_train2),
+  p = 10,
   y = tree_dat$mean_rwi[train_rows2],
-  X = cbind(
-    1,
-    as.matrix(
-      prism_lagged[train_rows2, -which(names(prism_lagged) == "year")]
-    )
-  ),
-  tau0 = tau0(
-    y = tree_dat$mean_rwi[train_rows2],
-    m0 = 5,
-    M = ncol(prism_lagged) - 1,
-    N = length(train_yrs2),
-    fam = "gaussian"
-  ),
-  slab_scl = 0.5,
-  slab_df = 6,
-  N_new = length(test_yrs2),
-  X_new = cbind(
-    1,
-    as.matrix(
-      prism_lagged[test_rows2, -which(names(prism_lagged) == "year")]
-    )
-  )
+  X = X_train2,
+  tau0_phi = 1 / (ncol(X_train2) - 1 - 1) * length(train_rows2)^(-0.5),
+  slab_scl_phi = 0.4,
+  slab_df_phi = 10,
+  tau0_beta = 5 / (ncol(X_train2) - 5) * length(train_rows2)^(-0.5),
+  slab_scl_beta = 0.5,
+  slab_df_beta = 6,
+  N_new = length(test_rows2),
+  X_new = X_test2
 )
 
 # fit the model
@@ -405,7 +515,7 @@ df_fcplot2 <- data.frame(
     apply(y_pred2, 2, quantile, probs = 0.975),
     rep(NA, length(yrs2))
   ),
-  source = rep(c("Observed", "RHS", "stepAIC"), each = length(yrs2))
+  source = rep(c("Observed", "RHS", "stepAIC + auto.arima"), each = length(yrs2))
 )
 
 # replace the training periods with NAs
@@ -426,7 +536,7 @@ beta_post2 <- rstan::extract(rhs_fit2, pars = "beta")$beta
 
 # create dataframe from aic approach
 beta_aic2 <- coef(aic_fit_dat2)
-ses_aic2 <- vcov(aic_fit_dat2) |> diag() |> sqrt()
+ses_aic2 <- rep(NA, length(beta_aic2))
 
 df_estims_aic2 <- data.frame(
   var = names(beta_aic2),
@@ -533,6 +643,7 @@ fc_plot2 <- forecast_plot(df_fcplot2, horizon = 1995, col = my_colors)
 library(patchwork)
 # add a and b panel labels
 
+
 ## ---- Final forecast figures ----
 
 fc_plot_all_final <- fc_plot_all +
@@ -557,10 +668,10 @@ fc_plot2_final <- fc_plot2 +
 fc_plot_all_final / fc_plot2_final
 
 ggsave(
-  filename = here::here("Figures/tree_growth_forecasts_env_covs.png"),
-  width = 6,
+  filename = here::here("Figures/tree_growth_forecasts_env_covs.pdf"),
+  width = 5,
   height = 5,
-  device = "png",
+  device = "pdf",
   units = "in",
   dpi = 300
 )
@@ -594,7 +705,7 @@ coef_plot_rhs2 <- coef_plot(
   df_estims_RHS2,
   xlabs = F
 ) +
-  ggtitle("1926 - 1995", subtitle = "c) RHS sparse model") +
+  ggtitle("1931 - 1995", subtitle = "c) RHS sparse model") +
   ylab(expression(hat(beta)))
 
 coef_plot_aic2 <- coef_plot(
@@ -618,10 +729,10 @@ coef_plot_all_rhs / coef_plot_all_aic /
 
 
 ggsave(
-  filename = here::here("Figures/tree_growth_coefs.png"),
+  filename = here::here("Figures/tree_growth_coefs.pdf"),
   width = 6.5,
   height = 9,
-  device = "png",
+  device = "pdf",
   units = "in",
   dpi = 300
 )
