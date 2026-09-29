@@ -5,6 +5,7 @@
 library(here)
 library(tidyr)
 library(dplyr)
+library(patchwork)
 library(ggplot2)
 
 ################################################
@@ -83,56 +84,89 @@ library(ggplot2)
 # segments(x0=2:51+0.2,y0=apply(betapost, 2, quantile, probs = 0.025),y1=apply(betapost, 2, quantile, probs = 0.975),col="deeppink")
 
 
-################################################
-# Figure 2:
-################################################
-corData2=read.csv(here("Simulations/AICvsStanResults.csv"))
-
-# Remove unwanted variables
-# fix strongSelf=F
-corData3=corData2[-which(corData2$strongSelf),]
-# fix numStrongCorr=3
-corData4=corData3[-which(corData3$numStrongCorr==1),]
-# fix percent of weak covariates to 0.5
-corData5=corData4[which(corData4$probWeakCorr==0.5),]
-# fix correlations to 0.5 and 0.9
-#corData6=corData5[-which(corData5$corrLevel==0.7),]
-corData6=corData5
+simData <- read.csv(here("Simulations/AICvsStanResults.csv"))
 
 colors <- PNWColors::pnw_palette("Cascades", n = 4)
 fills <- adjustcolor(colors, alpha.f = 0.6)
 
+#
 # ---- confusion plots ----
+#
 
-conf_res <- corData6 %>% dplyr::select(
-  contains("_TPR") | contains("_TNR")
+## ---- Option 1: Scatter of TPR vs TNR ----
+
+conf_res <- simData %>%
+  filter(corrLevel == 0.5) %>%
+  dplyr::select(
+    contains("_TPR") | contains("_TNR")
+  )
+
+conf_sub <- conf_res %>% select(
+  contains("AIC") | contains("STAN")
+) %>%
+  rename(
+    "RHS_TNR" = "STAN_beta_TNR",
+    "RHS_TPR" = "STAN_beta_TPR"
+  )
+
+# now stack the columns
+conf_long <- tibble(
+  method = rep(c("stepwise AIC", "RHS"), each = nrow(conf_sub)),
+  tpr = c(conf_sub$AIC_TPR, conf_sub$RHS_TPR),
+  tnr = c(conf_sub$AIC_TNR, conf_sub$RHS_TNR)
 )
+
+ggplot(conf_long, aes(x = tnr, y = tpr, color = method)) +
+  geom_jitter(shape = 1, width = 0.01, height = 0.03, alpha = 0.2) +
+  theme_bw() +
+  scale_color_manual(values = colors[c(2,4)]) +
+  guides(color = guide_legend(override.aes = list(alpha = 1, size = 2))) +
+  theme(legend.title = element_blank()) +
+  xlab("Rate of excluding inactive variables") +
+  ylab("Rate of including active variables") +
+  coord_fixed()
+
+
+ggsave(
+  here("Figures/TPRvsTNR_tradeoff.pdf"),
+  height = 4, width = 5,
+  device = "pdf",
+  dpi = 300
+)
+
+
+## ---- Option 2: violins ----
 
 # pivot long
-conf_long <- conf_res %>% pivot_longer(
-  cols = everything(),
-  values_to = "rate",
-  names_to = "group"
-) %>% mutate(
-  group = case_when(
-    group == "STAN_beta_TNR" ~ "RHS_TNR",
-    group == "STAN_beta_TPR" ~ "RHS_TPR",
-    .default = group
+conf_long2 <- conf_res %>%
+  pivot_longer(
+    cols = everything(),
+    values_to = "rate",
+    names_to = "group"
+  ) %>%
+  mutate(
+    group = case_when(
+      group == "STAN_beta_TNR" ~ "RHS_TNR",
+      group == "STAN_beta_TPR" ~ "RHS_TPR",
+      .default = group
+    )
+  ) %>%
+  separate_wider_delim(
+    cols = group,
+    delim = "_",
+    names = c("method", "metric")
+  ) %>%
+  filter(
+    method != "GLM" & method != "modelAvg"
+  ) %>%
+  mutate(
+    method = factor(
+      method,
+      levels = c("Full model", "AIC", "AIC model avg", "RHS")
+    )
   )
-) %>% separate_wider_delim(
-  cols = group,
-  delim = "_",
-  names = c("method", "metric")
-) %>% filter(
-  method != "GLM" & method != "modelAvg"
-) %>% mutate(
-  method = factor(
-    method,
-    levels = c("Full model", "AIC", "AIC model avg", "RHS")
-  )
-)
 
-### ---- load pdf device ----
+
 pdf(file=here("Figures/confusion_rates_AICvRHS.pdf"), width = 5, height = 6)
 
 ggplot(conf_long, aes(x = method, y = rate)) +
@@ -253,9 +287,7 @@ dev.off()
 
 # ---- RMSE plot ----
 
-# ---- confusion plots ----
-
-rmse_res <- corData6 %>% filter(
+rmse_res <- simData %>% filter(
   corrLevel == 0.5
 ) %>% dplyr::select(
   contains("RMSE")
@@ -397,48 +429,90 @@ coverage_cols <- c(
   "AIC_PIcoverage", "GLM_PIcoverage", "MAvg_PIcoverage", "Stan_PIcoverage"
 )
 
-pivot_coverage_long <- function(df, group_vars) {
-  df %>%
-    select(all_of(c(group_vars, coverage_cols))) %>%
-    pivot_longer(
-      cols = all_of(coverage_cols),
-      names_to = "method",
-      values_to = "rate"
-    ) %>%
-    separate_wider_delim(
-      cols = method,
-      delim = "_",
-      names = c("method", "what", "type"),
-      too_few = "align_start"
-    ) %>%
-    mutate(
-      kind = if_else(what == "PIcoverage", "Prediction interval", "Coefficient CI"),
-      type = case_when(
-        kind == "Prediction interval" ~ "PI",
-        is.na(type) ~ "escape",
-        .default = type
-      )
-    ) %>%
-    filter(
-      # resolve type (above) *before* filtering: otherwise the new
-      # PIcoverage rows still have type == NA at filter time, and
-      # `NA == "noescape"` evaluates to NA, which filter() silently drops
-      !(method == "MAvg" & kind == "Coefficient CI" & type == "noescape")
-    ) %>%
-    mutate(
-      method = case_when(
-        method == "GLM" ~ "Full model",
-        method == "Stan" & type == "escape" ~ "RHS active",
-        method == "Stan" & type == "noescape" ~ "RHS inactive",
-        method == "Stan" & type == "PI" ~ "RHS",
-        method == "MAvg" ~ "AIC model avg",
-        .default = method
-      )
-    ) %>%
-    select(!what)
-}
+## ---- Prediction interval coverage and width ----
+predint_long <- simData %>%
+  filter(corrLevel == 0.5) %>%
+  select(contains("PI", ignore.case = F)) %>%
+  pivot_longer(
+    cols = everything(),
+    names_to = "group",
+    values_to = "value"
+  ) %>%
+  separate_wider_delim(
+    cols = "group",
+    delim = "_",
+    names = c("method", "metric"),
+    too_few = "align_start"
+  ) %>%
+  pivot_wider(
+    names_from = metric,
+    values_from = value,
+    values_fn = list
+  ) %>%
+  unnest_longer(
+    col = c(PIcoverage, PIwidth)
+  ) %>%
+  mutate(
+    method = case_when(
+      method == "GLM" ~ "Full model",
+      method == "MAvg" ~ "AIC model avg",
+      method == "Stan" ~ "RHS",
+      .default = method
+    )
+  ) %>%
+  mutate(
+    method = factor(method, levels = c("Full model", "AIC", "AIC model avg", "RHS"))
+  )
 
-coverage <- pivot_coverage_long(corData6, "corrLevel")
+predcov_plot <- ggplot(predint_long, aes(x = PIcoverage, y = method, color = method)) +
+  stat_summary(
+    geom = "pointrange",
+    fun = mean,
+    fun.min = \(x) quantile(x, probs = 0.025),
+    fun.max = \(x) quantile(x, probs = 0.975)
+  ) +
+  geom_vline(xintercept = 0.95, linetype = "dashed") +
+  theme_bw() +
+  theme(
+    legend.title = element_blank(),
+    plot.title.position = "plot",
+    plot.title = element_text(hjust = 0),
+    plot.subtitle = element_text(hjust = 0)
+  ) +
+  scale_color_manual(values = colors) +
+  xlab("") +
+  ylab("") +
+  ggtitle("a)", subtitle = "Prediction interval coverage")
+
+predwidth_plot <- ggplot(predint_long, aes(x = PIwidth/0.5, y = method, color = method)) +
+  stat_summary(
+    geom = "pointrange",
+    fun = mean,
+    fun.min = \(x) quantile(x, probs = 0.025),
+    fun.max = \(x) quantile(x, probs = 0.975)
+  ) +
+  theme_bw() +
+  theme(
+    legend.title = element_blank(),
+    plot.title.position = "plot",
+    plot.title = element_text(hjust = 0),
+    plot.subtitle = element_text(hjust = 0)
+  ) +
+  scale_color_manual(values = colors) +
+  xlab("") +
+  ylab("") +
+  ggtitle("b)", subtitle = "Prediction interval width")
+
+predint_combined_plot <- predcov_plot + predwidth_plot + plot_layout(guides = "collect")
+
+ggsave(
+  filename = here("Figures/prediction_interval_res_sim1.pdf"),
+  plot = predint_combined_plot,
+  device = "pdf",
+  height = 3,
+  width = 6,
+  dpi = 300
+)
 
 
 ## ---- prediction-interval coverage (main text) ----
@@ -541,7 +615,7 @@ decor_rmse_long <- decorData %>%
 
 pdf(file = here("Figures/decorrelation_comparison.pdf"), width = 8, height = 7)
 
-decor_rmse_long %>% 
+decor_rmse_long %>%
   filter(corrLevel == 0.5) %>%
   ggplot(., aes(x = RMSE, y = method)) +
     facet_wrap(

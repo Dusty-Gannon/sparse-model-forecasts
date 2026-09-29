@@ -103,3 +103,15 @@ The general workflow in the repo is:
 - Rotate shift/no shift text
 - Middle plot only
 - 
+
+## 
+
+*
+
+- [ ] Topher will take intro
+
+- [ ] 
+
+
+
+
