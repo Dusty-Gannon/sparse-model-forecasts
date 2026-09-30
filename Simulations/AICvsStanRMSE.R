@@ -469,16 +469,21 @@ modelAvg_predInterval <- function(aicModel, newdata, conf = 0.95) {
 #' @param K Number of predictor variables.
 #' @param conf Nominal coverage level (default 0.95).
 #'
-#' @return A one-row data frame with four coverage rates:
+#' @return A one-row data frame with four coverage rates and their matching
+#'   mean interval widths:
 #'   \describe{
-#'     \item{AIC_coverage}{Proportion of *selected* variables whose true beta
-#'       falls inside the 95\% CI.}
-#'     \item{GLM_coverage}{Proportion of *all* K variables whose true beta
-#'       falls inside the 95\% CI.}
-#'     \item{Stan_coverage_escape}{Coverage among posteriors whose 95\% CrI
-#'       excludes zero.}
-#'     \item{Stan_coverage_noescape}{Coverage among posteriors whose 95\% CrI
-#'       includes zero.}
+#'     \item{AIC_coverage, AIC_width}{Proportion of *selected* variables whose
+#'       true beta falls inside the 95\% CI, and the CI's mean width.}
+#'     \item{GLM_coverage, GLM_width}{Proportion of *all* K variables whose
+#'       true beta falls inside the 95\% CI, and the CI's mean width.}
+#'     \item{Stan_coverage_escape, Stan_width_escape}{Coverage and mean CrI
+#'       width among posteriors whose 95\% CrI excludes zero.}
+#'     \item{Stan_coverage_noescape, Stan_width_noescape}{Coverage and mean
+#'       CrI width among posteriors whose 95\% CrI includes zero.}
+#'     \item{MAvg_coverage_escape, MAvg_width_escape}{Coverage and mean CI
+#'       width among model-averaged CIs that exclude zero.}
+#'     \item{MAvg_coverage_noescape, MAvg_width_noescape}{Coverage and mean
+#'       CI width among model-averaged CIs that include zero.}
 #'   }
 #' @export
 coverageRates <- function(timeseries, trainData, aicModel, stanModel, glmModel,
@@ -502,18 +507,21 @@ coverageRates <- function(timeseries, trainData, aicModel, stanModel, glmModel,
 
   if (length(aic_selected) == 0) {
     aic_coverage <- NA_real_
+    aic_width <- NA_real_
   } else {
     msum_aic <- summary(aicModel)
     aic_ci <- ci_from_summary(msum_aic, aic_selected)
     aic_idx <- as.integer(sub("driver_", "", aic_selected))
     aic_true <- true_betas[aic_idx]
     aic_coverage <- mean(aic_true >= aic_ci[, 1] & aic_true <= aic_ci[, 2])
+    aic_width <- mean(aic_ci[, 2] - aic_ci[, 1])
   }
 
   ## ---- GLM: CI for all K variables ----
   msum_glm <- summary(glmModel)
   glm_ci <- ci_from_summary(msum_glm, driver_names)
   glm_coverage <- mean(true_betas >= glm_ci[, 1] & true_betas <= glm_ci[, 2])
+  glm_width <- mean(glm_ci[, 2] - glm_ci[, 1])
 
   ## ---- Stan: CrI back-transformed to original predictor scale ----
   # Stan fits on standardised X; dividing by col_sds recovers the original scale.
@@ -525,20 +533,24 @@ coverageRates <- function(timeseries, trainData, aicModel, stanModel, glmModel,
 
   if (sum(escape_zero) == 0) {
     stan_coverage_escape <- NA_real_
+    stan_width_escape <- NA_real_
   } else {
     stan_coverage_escape <- mean(
       true_betas[escape_zero] >= bp$low[escape_zero] &
       true_betas[escape_zero] <= bp$high[escape_zero]
     )
+    stan_width_escape <- mean(bp$high[escape_zero] - bp$low[escape_zero])
   }
 
   if (sum(!escape_zero) == 0) {
     stan_coverage_noescape <- NA_real_
+    stan_width_noescape <- NA_real_
   } else {
     stan_coverage_noescape <- mean(
       true_betas[!escape_zero] >= bp$low[!escape_zero] &
       true_betas[!escape_zero] <= bp$high[!escape_zero]
     )
+    stan_width_noescape <- mean(bp$high[!escape_zero] - bp$low[!escape_zero])
   }
 
   ## ---- Model averaging: unconditional CIs (Burnham & Anderson 2004) ----
@@ -548,11 +560,16 @@ coverageRates <- function(timeseries, trainData, aicModel, stanModel, glmModel,
   mavg_hi <- aicModel$avg_coef[driver_names] + z * mavg_se
   escape_mavg <- mavg_lo > 0 | mavg_hi < 0
   in_ci_mavg  <- true_betas >= mavg_lo & true_betas <= mavg_hi
+  mavg_width  <- mavg_hi - mavg_lo
 
   mavg_coverage_escape <- if (sum(escape_mavg) == 0) NA_real_ else
     mean(in_ci_mavg[escape_mavg])
   mavg_coverage_noescape <- if (sum(!escape_mavg) == 0) NA_real_ else
     mean(in_ci_mavg[!escape_mavg])
+  mavg_width_escape <- if (sum(escape_mavg) == 0) NA_real_ else
+    mean(mavg_width[escape_mavg])
+  mavg_width_noescape <- if (sum(!escape_mavg) == 0) NA_real_ else
+    mean(mavg_width[!escape_mavg])
 
   data.frame(
     AIC_coverage           = aic_coverage,
@@ -560,7 +577,13 @@ coverageRates <- function(timeseries, trainData, aicModel, stanModel, glmModel,
     Stan_coverage_escape   = stan_coverage_escape,
     Stan_coverage_noescape = stan_coverage_noescape,
     MAvg_coverage_escape   = mavg_coverage_escape,
-    MAvg_coverage_noescape = mavg_coverage_noescape
+    MAvg_coverage_noescape = mavg_coverage_noescape,
+    AIC_width              = aic_width,
+    GLM_width              = glm_width,
+    Stan_width_escape      = stan_width_escape,
+    Stan_width_noescape    = stan_width_noescape,
+    MAvg_width_escape      = mavg_width_escape,
+    MAvg_width_noescape    = mavg_width_noescape
   )
 }
 

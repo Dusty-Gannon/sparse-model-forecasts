@@ -475,12 +475,12 @@ predcov_plot <- ggplot(predint_long, aes(x = PIcoverage, y = method, color = met
   theme_bw() +
   theme(
     legend.title = element_blank(),
-    plot.title.position = "plot",
-    plot.title = element_text(hjust = 0),
+    plot.title.position = "panel",
+    plot.title = element_text(hjust = -0.2),
     plot.subtitle = element_text(hjust = 0)
   ) +
   scale_color_manual(values = colors) +
-  xlab("") +
+  xlab("Rate") +
   ylab("") +
   ggtitle("a)", subtitle = "Prediction interval coverage")
 
@@ -494,12 +494,12 @@ predwidth_plot <- ggplot(predint_long, aes(x = PIwidth/0.5, y = method, color = 
   theme_bw() +
   theme(
     legend.title = element_blank(),
-    plot.title.position = "plot",
-    plot.title = element_text(hjust = 0),
+    plot.title.position = "panel",
+    plot.title = element_text(hjust = -0.2),
     plot.subtitle = element_text(hjust = 0)
   ) +
   scale_color_manual(values = colors) +
-  xlab("") +
+  xlab("Units of irreducible error") +
   ylab("") +
   ggtitle("b)", subtitle = "Prediction interval width")
 
@@ -509,26 +509,71 @@ ggsave(
   filename = here("Figures/prediction_interval_res_sim1.pdf"),
   plot = predint_combined_plot,
   device = "pdf",
-  height = 3,
-  width = 6,
-  dpi = 300
+  height = 4,
+  width = 8,
+  dpi = 300,
+  units = "in"
 )
 
 
-## ---- prediction-interval coverage (main text) ----
 
-pdf(file = here("Figures/pred_interval_coverage_sim1.pdf"), width = 5, height = 7)
 
-coverage %>%
-  filter(kind == "Prediction interval") %>%
-  mutate(method = factor(method, levels = c("Full model", "AIC", "AIC model avg", "RHS"))) %>%
-  ggplot(aes(x = rate, y = method)) +
-  facet_wrap(
-    vars(corrLevel), ncol = 1,
-    labeller = label_bquote(rows = rho == .(corrLevel))
-  ) +
+## ---- coefficient CI coverage and width (appendix) ----
+
+ci_cov_long <- simData %>%
+  filter(corrLevel == 0.5) %>%
+  select(matches("^(AIC|GLM|Stan|MAvg)_(coverage|width)(_escape|_noescape)?$")) %>%
+  pivot_longer(
+    cols = everything(),
+    names_to = "group",
+    values_to = "value"
+  ) %>%
+  separate_wider_delim(
+    cols = "group",
+    delim = "_",
+    names = c("method", "metric", "type"),
+    too_few = "align_start"
+  ) %>%
+  pivot_wider(
+    names_from = metric,
+    values_from = value,
+    values_fn = list
+  ) %>%
+  unnest_longer(
+    col = c(coverage, width)
+  ) %>%
+  mutate(
+    method = case_when(
+      method == "GLM" ~ "Full model",
+      method == "MAvg" ~ "AIC model avg",
+      method == "Stan" ~ "RHS",
+      .default = method
+    )
+  ) %>%
+  mutate(
+    method = factor(method, levels = c("Full model", "AIC", "AIC model avg", "RHS")),
+    type2 = case_when(
+      is.na(type) ~ "",
+      type == "escape" ~ "(active)",
+      type == "noescape" ~ "(not active)",
+      .default = ""
+    ),
+    type = case_when(
+      is.na(type) ~ "escape",
+      .default = type
+    ),
+    grp = paste(method, type2) %>%
+      factor(levels = c(
+        "Full model ", "AIC ",
+        "AIC model avg (active)", "AIC model avg (not active)",
+        "RHS (active)", "RHS (not active)"
+      ))
+  )
+
+
+ci_cov_plot <- ggplot(ci_cov_long, aes(x = coverage, y = grp)) +
   stat_summary(
-    aes(color = method),
+    aes(color = grp, shape = type),
     geom = "pointrange",
     fun = mean,
     fun.min = \(x){quantile(x, probs = 0.025)},
@@ -537,43 +582,47 @@ coverage %>%
   geom_vline(xintercept = 0.95, linetype = "dashed") +
   theme_bw() +
   theme(legend.position = "none") +
-  xlab("Prediction interval coverage") +
+  xlab("Rate") +
   ylab("") +
-  scale_color_manual(values = colors)
+  scale_color_manual(values = c(colors[1:2], colors[c(3,3)], colors[c(4,4)])) +
+  ggtitle("a)", subtitle = "CI coverage") +
+  theme(
+    plot.title.position = "panel",
+    plot.title = element_text(hjust = -0.2),
+    plot.subtitle = element_text(hjust = 0)
+  )
 
-dev.off()
-
-
-## ---- coefficient CI coverage (appendix) ----
-
-pdf(file = here("Figures/coef_coverage_sim1_appendix.pdf"), width = 5, height = 7)
-
-coverage %>%
-  filter(kind == "Coefficient CI") %>%
-  mutate(method = factor(
-    method,
-    levels = c("Full model", "AIC", "AIC model avg", "RHS active", "RHS inactive")
-  )) %>%
-  ggplot(aes(x = rate, y = method)) +
-  facet_wrap(
-    vars(corrLevel), ncol = 1,
-    labeller = label_bquote(rows = rho == .(corrLevel))
-  ) +
+ci_width_plot <- ggplot(ci_cov_long, aes(x = width, y = grp)) +
   stat_summary(
-    aes(color = method, shape = type),
+    aes(color = grp, shape = type),
     geom = "pointrange",
     fun = mean,
     fun.min = \(x){quantile(x, probs = 0.025)},
     fun.max = \(x){quantile(x, probs = 0.975)}
   ) +
-  geom_vline(xintercept = 0.95, linetype = "dashed") +
   theme_bw() +
   theme(legend.position = "none") +
-  xlab("Coverage") +
+  xlab("Width") +
   ylab("") +
-  scale_color_manual(values = c(colors, colors[4]))
+  scale_color_manual(values = c(colors[1:2], colors[c(3,3)], colors[c(4,4)])) +
+  ggtitle("b)", subtitle = "CI width") +
+  theme(
+    plot.title.position = "panel",
+    plot.title = element_text(hjust = -0.2),
+    plot.subtitle = element_text(hjust = 0)
+  )
 
-dev.off()
+ci_combined_plot <- ci_cov_plot + ci_width_plot
+
+ggsave(
+  filename = here("Figures/coefficient_CI_res_sim1.pdf"),
+  plot = ci_combined_plot,
+  device = "pdf",
+  height = 4,
+  width = 8,
+  dpi = 300,
+  units = "in"
+)
 
 
 # ---- Covariate shift results ----
@@ -613,7 +662,7 @@ decor_rmse_long <- decorData %>%
     shift = factor(shift, levels = c("Covariate shift", "No shift"))
   )
 
-pdf(file = here("Figures/decorrelation_comparison.pdf"), width = 8, height = 7)
+pdf(file = here("Figures/decorrelation_comparison.pdf"), width = 6, height = 5)
 
 decor_rmse_long %>%
   filter(corrLevel == 0.5) %>%
