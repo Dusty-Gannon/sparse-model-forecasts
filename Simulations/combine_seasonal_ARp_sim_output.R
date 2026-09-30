@@ -20,28 +20,18 @@ for(i in 1:length(filelist)){
 
     up_hs <- paste(out$mod_fits$hs_fit$bad_fits$par_conv$pars, collapse = ', ')
     if(is.null(up_hs)) up_hs <- NA_character_
-    up_gauss <- paste(out$mod_fits$gauss_fit$bad_fits$par_conv$pars, collapse = ', ')
-    if(is.null(up_gauss)) up_gauss <- NA_character_
-    # up_flat <- paste(out$mod_fits$flat_fit$bad_fits$par_conv$pars, collapse = ', ')
-    # if(is.null(up_flat)) up_flat <- NA_character_
-
 
     dd <- data.frame(
-        n = rep(out$model_pars$n, 2),
-        sigma = rep(out$model_pars$sd, 2),
-        betas = rep(out$model_pars$beta_select, 2),
-        model = c('hs', 'gauss'),
-        rmse_forecast = c(mean(out$mod_fits$hs_fit$rmse$rmse_forecast),
-                          mean(out$mod_fits$gauss_fit$rmse$rmse_forecast)),
-        rmse_beta = c(mean(out$mod_fits$hs_fit$rmse$rmse_beta),
-                      mean(out$mod_fits$gauss_fit$rmse$rmse_beta)),
-        rmse_phi = c(mean(out$mod_fits$hs_fit$rmse$rmse_phi),
-                      mean(out$mod_fits$gauss_fit$rmse$rmse_phi)),
-        rmse_sigma = c(mean(out$mod_fits$hs_fit$rmse$rmse_sigma),
-                      mean(out$mod_fits$gauss_fit$rmse$rmse_sigma)),
-        # unconverged_pars = c(up_hs, up_gauss),
-        divergent_trans = c(out$mod_fits$hs_fit$bad_fits$divergent,
-                            out$mod_fits$gauss_fit$bad_fits$divergent)
+        n = out$model_pars$n,
+        sigma = out$model_pars$sd,
+        betas = out$model_pars$beta_select,
+        model = 'hs',
+        rmse_forecast = mean(out$mod_fits$hs_fit$rmse$rmse_forecast),
+        rmse_beta = mean(out$mod_fits$hs_fit$rmse$rmse_beta),
+        rmse_phi = mean(out$mod_fits$hs_fit$rmse$rmse_phi),
+        rmse_sigma = mean(out$mod_fits$hs_fit$rmse$rmse_sigma),
+        # unconverged_pars = up_hs,
+        divergent_trans = out$mod_fits$hs_fit$bad_fits$divergent
     )
 
     tpr <- summarize_pos_rate(out$mod_fits, out$model_pars,
@@ -49,7 +39,7 @@ for(i in 1:length(filelist)){
       select(-model)
 
     dd <- bind_cols(dd, tpr)
-    dd$mod_run <- rep(filelist[i], 2)
+    dd$mod_run <- filelist[i]
 
     print(paste0('simulation ', filelist[i]))
     arima_fit <- fit_arima_model(out$model_pars)

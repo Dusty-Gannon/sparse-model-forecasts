@@ -3,23 +3,24 @@
 library(rstan)
 library(dplyr)
 library(stringr)
-#library(here)
-devtools::load_all()
+library(here)
+flist <- list.files(here("R/"), pattern = ".R", full.names = T)
+lapply(flist, source)
 #rstan_options(auto_write = TRUE)
-setwd("/project/modelscape/analyses/sponges/")
+
 
 # set.seed(1)
 #### Simulate data and run regularized and non-regularized AR-p_beta models ####
 # store data inputs and model fits in a log file
 
 # compile stan models:
-ar_err_gauss <- stan_model("Stan/AR-p_err3_Gauss_DG.stan")
+# ar_err_gauss <- stan_model("Stan/AR-p_err3_Gauss_DG.stan")
 # ar_err_flat <- stan_model("Stan/AR-p_err3_Flat_DG.stan")
-ar_err_hs <- stan_model("Stan/AR-p_err3_FHS2_DG.stan")
+ar_err_hs <- stan_model("Stan/AR-p_err.stan")
 
 beta <- c(0, 2, 4) # how many of the important betas did you measure?
 # sigmas <- c(0.5, 2, 5)
-lengths <- 365 * c(1, 2, 3)
+lengths <- 365
 
 s_df <- expand.grid(lengths, beta)
 colnames(s_df) <- c('length', 'beta')
@@ -43,7 +44,7 @@ ARp_beta_sims <- function(input_pars){
                 # 'beta = ', paste(model_pars$beta, collapse = ',')),
           # paste('out', array_num, '.txt'), append = TRUE)
 
-    out <- fit_seasonal_ARp_models(model_pars, fit_flat = FALSE)
+    out <- fit_seasonal_ARp_models(model_pars, fit_gauss = FALSE, fit_flat = FALSE)
     # write('after runing models', paste('out', array_num, '.txt'), append = TRUE)
 
     sim_list <- unpack_seasonal_ARp_fits(fits = out$fits, model_pars = out$model_pars)

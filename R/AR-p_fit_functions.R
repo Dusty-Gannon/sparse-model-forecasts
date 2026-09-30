@@ -186,7 +186,7 @@ fit_seasonal_ARp_models <- function(model_pars,
 
   # fit the models
   if(!('ar_err_hs' %in% ls(envir = .GlobalEnv))){
-    ar_err_hs <- rstan::stan_model("Stan/AR-p_err3_FHS_DG.stan")
+    ar_err_hs <- rstan::stan_model("Stan/AR-p_err.stan")
   }
   hs_fit <- sampling(
     ar_err_hs,
