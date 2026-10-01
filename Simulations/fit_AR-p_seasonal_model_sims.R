@@ -16,7 +16,7 @@ lapply(flist, source)
 # compile stan models:
 # ar_err_gauss <- stan_model("Stan/AR-p_err3_Gauss_DG.stan")
 # ar_err_flat <- stan_model("Stan/AR-p_err3_Flat_DG.stan")
-ar_err_hs <- stan_model("Stan/AR-p_err.stan")
+ar_err_hs <- stan_model(here("Stan/AR-p_err.stan"))
 
 beta <- c(0, 2, 4) # how many of the important betas did you measure?
 # sigmas <- c(0.5, 2, 5)
@@ -71,7 +71,7 @@ for(i in 1:mods_per_node){
     # add new lines to error and out file identifying which model this is
     write(paste('model number = ', mod_num, ', nsteps = ', nsteps,
                 ', sigma = ', sigma, ', beta = ', beta),
-          paste0('/project/modelscape/analyses/sponges/Simulations/slurmlogs/out', array_num, '.txt'), append = TRUE)
+          paste0(here(),'/Simulations/slurmlogs/out', array_num, '.txt'), append = TRUE)
 
     # simulate AR-p data
     input_pars <- list(
@@ -91,8 +91,8 @@ for(i in 1:mods_per_node){
 
     # Save the results
     fname <- paste0("/simdat_run", mod_num, ".rds")
-    fpath <- paste0("Data/aquatic_sim_data/", outdir, fname)
-    saveRDS(sim_dat, file = paste0("/project/modelscape/analyses/sponges/", fpath))
+    fpath <- paste0("/Data/fourier_sims/", outdir, fname)
+    saveRDS(sim_dat, file = paste0(here(), fpath))
     # saveRDS(sim_dat, file =  fpath)
 
 }
