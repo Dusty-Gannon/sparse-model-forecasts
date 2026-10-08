@@ -288,7 +288,7 @@ dev.off()
 # ---- RMSE plot ----
 
 rmse_res <- simData %>% filter(
-  corrLevel == 0.5
+  corrLevel == 0.5 & numStrongCorr == 3
 ) %>% dplyr::select(
   contains("RMSE")
 )
@@ -357,6 +357,19 @@ ggplot(rmse_long, aes(x = RMSE, y = method)) +
 
 
 dev.off()
+
+## ---- RMSE in-text results ----
+
+writeLines("Estimates of mean prediction error magnitudes, relative to IrredErr")
+colMeans(rmse_res) / 0.5
+
+writeLines("Estimates of the min prediction error magnitudes, relative to IrredErr")
+apply(rmse_res, 2, min) / 0.5
+apply(rmse_res, 2, max) / 0.5
+
+writeLines("Upper quantiles for poor performances")
+apply(rmse_res, 2, \(x) { quantile(x, probs = 0.95) }) / 0.5
+
 
 # {
 # plot(0, 0, type="n",
