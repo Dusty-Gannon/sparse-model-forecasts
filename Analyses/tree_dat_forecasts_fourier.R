@@ -19,12 +19,13 @@ train_yrs <- 1800:1970
 test_yrs <- 1971:tree_dat$year[nrow(tree_dat)]
 
 # now create fourier terms
+# intercept column added later in data construction
 X_train <- forecast::fourier(
   ts(
     tree_dat$mean_rwi[tree_dat$year %in% train_yrs],
     frequency = length(train_yrs)
   ),
-  K = length(train_yrs) / 2
+  K = 30
 )
 
 X_test <- continue_fourier(
@@ -37,7 +38,7 @@ X_test <- continue_fourier(
 
 # compile stan model
 sparse_mod <- rstan::stan_model(
-  here::here("Stan/AR-p_err3_FHS2_DG.stan")
+  here::here("Stan/AR-p_err.stan")
 )
 
 # base_mod <- rstan::stan_model(
@@ -67,13 +68,13 @@ dat_stan <- list(
   P_0 = 1,
   P = ncol(X_train) + 1,
   X = cbind(1, X_train),
-  p = 10,
+  p = 15,
   tau0_phi = tau_0_phi,
-  slab_scl_phi = 1,
-  slab_df_phi = 50,
+  slab_scl_phi = 0.3,
+  slab_df_phi = 15,
   tau0_beta = tau_0_beta,
   slab_scl_beta = 0.1,
-  slab_df_beta = 6,
+  slab_df_beta = 10,
   y = tree_dat$mean_rwi[tree_dat$year %in% train_yrs],
   N_new = nrow(X_test),
   X_new = cbind(1, X_test)
@@ -146,11 +147,13 @@ forecast_plot <- function(df, horizon, col){
 auto_arima_fit <- fit_seasonal_arima_model(
   model_pars = list(
     n = nrow(X_train),
-    p = 10,
+    p = 15,
+    n_beta = 0,
     X = matrix(1, nrow = nrow(X_train), ncol = 1),
     y = tree_dat$mean_rwi,
     holdout = length(test_yrs)
   ),
+  K = 30,
   freq = length(train_yrs)
 )
 

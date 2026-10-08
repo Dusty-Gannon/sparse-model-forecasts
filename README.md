@@ -1,14 +1,10 @@
-
 # Sparse modeling for timeseries and forecasting
 
-## Repo organization ##
+## Repo organization
 
-This repo is organized like an R package in order to facilitate code documentation. To get started, use `devtools::load_all()` to load
-all the existing functions into the environment.
-All user-defined R functions are written in an R script and placed inside the R directory with RoxyGen2 function documentation. 
-This allows others to clone the repo and use the usual R syntax
+This repo is organized like an R package in order to facilitate code documentation. To get started, use `devtools::load_all()` to load all the existing functions into the environment. All user-defined R functions are written in an R script and placed inside the R directory with RoxyGen2 function documentation. This allows others to clone the repo and use the usual R syntax
 
-```r
+``` r
 ?some_function()
 ```
 
@@ -16,27 +12,27 @@ to render the documentation for the function and learn how to use it.
 
 Other directories and files (not common to all R packages) can be added as needed.
 
-### General flow ###
+### General flow
 
 The general workflow in the repo is:
 
-  1. Modular functions for generating data and fitting models are written in `.R`, `.stan`, or `.jags` files and stored in the `/R/`, `/Stan/`, or `/JAGS/` directories (respectively).
-  
-  2. For more complicated simulations, the modular functions are used to generate / simulate data that are then stored in an untracked data directory on Beartooth. The data directory is untracked due to the size of some data files. These wrapper scripts are stored in `/Simulations/`.
-  
-  3. Code used to fit sparse models to simulated data and visualize results are stored in `/Analyses/`.
+1.  Modular functions for generating data and fitting models are written in `.R`, `.stan`, or `.jags` files and stored in the `/R/`, `/Stan/`, or `/JAGS/` directories (respectively).
 
-### Adding functions to the 'package' ###
+2.  For more complicated simulations, the modular functions are used to generate / simulate data that are then stored in an untracked data directory on Beartooth. The data directory is untracked due to the size of some data files. These wrapper scripts are stored in `/Simulations/`.
 
-1. Write a new function in an R script (preferably a new script, but multiple functions can go inside a single script as well).
+3.  Code used to fit sparse models to simulated data and visualize results are stored in `/Analyses/`.
 
-2. RStudio makes it easy to document a function. Placing your cursor inside the function, use the Code dropdown menu, then Insert Roxygen Skeleton. Otherwise, follow the formatting for [Roxygen2](https://cran.r-project.org/web/packages/roxygen2/vignettes/roxygen2.html). 
+### Adding functions to the 'package'
 
-3. Fill out the fields to document the function.
+1.  Write a new function in an R script (preferably a new script, but multiple functions can go inside a single script as well).
 
-4. Inside the R console, use `devtools::document()` to add the function to the man pages.
+2.  RStudio makes it easy to document a function. Placing your cursor inside the function, use the Code dropdown menu, then Insert Roxygen Skeleton. Otherwise, follow the formatting for [Roxygen2](https://cran.r-project.org/web/packages/roxygen2/vignettes/roxygen2.html).
 
-5. Use `devtools::load_all()` to load all the functions in the 'package'
+3.  Fill out the fields to document the function.
+
+4.  Inside the R console, use `devtools::document()` to add the function to the man pages.
+
+5.  Use `devtools::load_all()` to load all the functions in the 'package'
 
 ## Revision 1 notes
 
@@ -46,21 +42,19 @@ The general workflow in the repo is:
 
 - Care around challenge 1
 
-	- Hypothesis generation across the methods, not inference on parameters
+  - Hypothesis generation across the methods, not inference on parameters
 
 - Add sims with full model to all challenges
-
 
 ## Motivation
 
 - Motivate the choice of HS priors right away
 
   - flexibility of the approach to sparse modeling objectives
-  
-  - Less computationally demanding than all-subsets regression or similar
-  
-  - Still requires some adaptation for uses case in time series modeling
 
+  - Less computationally demanding than all-subsets regression or similar
+
+  - Still requires some adaptation for uses case in time series modeling
 
 ## Next steps (by next meeting 25 Aug 2026)
 
@@ -72,29 +66,27 @@ The general workflow in the repo is:
 
 - [ ] Dusty and Topher -- Framing and motivation
 
-
-
 ## Progress 25 Aug 2026
 
 - Simulations still in progress
 
-    - Add full model (just lm or arima) to all simulations
-    
+  - Add full model (just lm or arima) to all simulations
+
 - Concept Figure
 
-    - If we include prior maths, include arrows/colors to highlight connections
-    
-    - Keeping separate panels give an "easy" and "challenge" avenue, which could be nice
-    
+  - If we include prior maths, include arrows/colors to highlight connections
+
+  - Keeping separate panels give an "easy" and "challenge" avenue, which could be nice
+
 - General organization
 
-    - Maybe title includes "with and without covariates"
-    
-    - How do we tie all this together from the beginning? reiterate throughout
-    
-    - 
-    
-##
+  - Maybe title includes "with and without covariates"
+
+  - How do we tie all this together from the beginning? reiterate throughout
+
+  - 
+
+## 
 
 - No transparency change
 - Same order for colors
@@ -106,12 +98,10 @@ The general workflow in the repo is:
 
 ## 
 
-*
+- 
 
 - [ ] Topher will take intro
 
-- [ ] 
+- [ ] harmonize the use of 'prediction' vs 'forecast' throughout
 
-
-
-
+- [ ] Double-check Burnham and Anderson ref and the calculations

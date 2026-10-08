@@ -323,7 +323,11 @@ fit_seasonal_arima_model <- function(model_pars, K = NULL, freq = 365){
   if(is.null(K)) K <- model_pars$K
 
   # determine how many measured covariates to include (excludes intercept, trend, and Fourier terms)
-  n_beta <- length(model_pars$beta) - 1
+  if(is.null(model_pars$beta)){
+    n_beta <- 0
+  } else {
+    n_beta <- length(model_pars$beta) - 1
+  }
   n <- (length(model_pars$y)-model_pars$holdout)
 
   y <- ts(model_pars$y[1:n], frequency = freq)
