@@ -31,7 +31,7 @@ for(i in 1:(reps-1)){
   sim_df <- rbind(sim_df, s_df)
 }
 
-mods_per_node <- 2
+mods_per_node <- 3
 array_size <- nrow(sim_df)/mods_per_node
 write(paste(sim_df), stdout(), append = TRUE)
 
@@ -83,8 +83,8 @@ for(i in 1:mods_per_node){
       beta_p = 0,        # number of lags of covariate 1 to include
       beta_sig = NULL,   # the number of significant betas. NULL defaults to all significant.
       beta_select = beta,# the number of beta terms to keep in the model
-      K = 100,           # number of fourier components to include
-      holdout = 100
+      K = 50,            # number of fourier components to include
+      holdout = 50
     )
 
     sim_dat <- ARp_beta_sims(input_pars)

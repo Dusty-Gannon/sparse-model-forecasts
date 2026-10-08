@@ -3,7 +3,7 @@
 #SBATCH --account=modelscape
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=5
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=dustin.gannon@oregonstate.edu
 #SBATCH --job-name=ARp_sim1
@@ -11,7 +11,7 @@
 #SBATCH --time=01:00:00
 #SBATCH -o slurmlogs/slurm_%A%a.out
 #SBATCH -e slurmlogs/slurm_%A%a.err
-#SBATCH --array=1-2
+#SBATCH --array=1-200
 
 # Set the parameter combination to use and generate names of R scripts and log file
 Rscript=fit_AR-p_seasonal_model_sims.R
