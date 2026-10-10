@@ -40,16 +40,16 @@ forecast_plot <- function(df, horizon, col){
     geom_vline(xintercept = horizon, linetype = "dashed", color = "brown") +
     geom_vline(xintercept = 1926, linetype = "dashed", color = "grey") +
     scale_color_manual(
-      values = c("Observed" = "black", "RHS" = col[1], "stepAIC + auto.arima" = col[2])
+      values = c("Observed" = "black", "RHS" = col[1], "stepAIC + auto-ARIMA" = col[2])
     ) +
     scale_fill_manual(
-      values = c("Observed" = "black", "RHS" = col[1], "stepAIC + auto.arima" = col[2])
+      values = c("Observed" = "black", "RHS" = col[1], "stepAIC + auto-ARIMA" = col[2])
     ) +
     scale_alpha_manual(
-      values = c("Observed" = 0, "RHS" = 0.3, "stepAIC + auto.arima" = 0.4),
+      values = c("Observed" = 0, "RHS" = 0.3, "stepAIC + auto-ARIMA" = 0.4),
     ) +
     scale_linewidth_manual(
-      values = c("Observed" = 1, "RHS" = 0.5, "stepAIC + auto.arima" = 0.5)
+      values = c("Observed" = 1, "RHS" = 0.5, "stepAIC + auto-ARIMA" = 0.5)
     ) +
     theme_classic() +
     theme(legend.title = element_blank()) +
@@ -308,7 +308,7 @@ df_fcplot_all <- data.frame(
       as.vector(preds_aic_dat_all$upper[, "95%"])
     )
   ),
-  source = rep(c("Observed", "RHS", "stepAIC + auto.arima"), each = nrow(tree_dat))
+  source = rep(c("Observed", "RHS", "stepAIC + auto-ARIMA"), each = nrow(tree_dat))
 )
 
 # # now set the training region to NA
@@ -381,6 +381,77 @@ df_estims_plot_all <- rbind(
   df_estims_plot_all,
   df_estims_aic_dat_all
 )
+
+
+## ---- Get RMSE of the forecast ----
+
+rmse_all_aa <- sqrt(
+  mean(
+    (tree_dat$mean_rwi[tree_dat$year %in% test_yrs] -
+       preds_aic_dat_all$mean)^2,
+    na.rm = TRUE
+  )
+)
+
+rmse_all_RHS <- data.frame(
+  rmse = RMSE_bayes(
+    obs = tree_dat$mean_rwi[tree_dat$year %in% test_yrs],
+    ppreds = y_pred[, which(tree_dat$year %in% test_yrs)]
+  )
+)
+
+## ---- make figure for RMSE ----
+
+postprob <- mean(rmse_all_RHS$rmse < rmse_all_aa)
+
+rmse_all_plot <- ggplot(rmse_all_RHS, aes(x = rmse)) +
+  geom_density(fill = PNWColors::pnw_palette("Sunset", 7)[2]) +
+  geom_vline(
+    xintercept = rmse_all_aa,
+    color = PNWColors::pnw_palette("Sunset", 7)[5]) +
+  theme_classic() +
+  xlim(c(0, 1.5)) +
+  annotate(
+    "text",
+    x = 1.5,
+    y = 4,
+    label = paste0("P(R[Bayes] <= r[aa]) == ", round(postprob, 2)),
+    hjust = 1,
+    parse = TRUE,
+    size = 2.5
+  ) +
+  ylab("Density") +
+  xlab("")
+
+
+
+## ---- In-text figures ----
+
+wide_preds_all <- df_fcplot_all %>%
+  filter(year %in% test_yrs) %>%
+  pivot_wider(
+    id_cols = year,
+    names_from = source,
+    values_from = c(y, low, high)
+  )
+
+writeLines(c(
+  "Prediction interval coverage for RHS:",
+  mean(
+    wide_preds_all$low_RHS < wide_preds_all$y_Observed &
+      wide_preds_all$y_Observed < wide_preds_all$high_RHS
+  )
+))
+
+writeLines(c(
+  "Prediction interval coverage for auto-ARIMA:",
+  with(wide_preds_all, {
+    mean(
+      `low_stepAIC + auto-ARIMA` < y_Observed &
+        y_Observed < `high_stepAIC + auto-ARIMA`
+    )
+  })
+))
 
 
 # ---- Model 2: Analysis for 1926-2012 ----
@@ -515,7 +586,7 @@ df_fcplot2 <- data.frame(
     apply(y_pred2, 2, quantile, probs = 0.975),
     rep(NA, length(yrs2))
   ),
-  source = rep(c("Observed", "RHS", "stepAIC + auto.arima"), each = length(yrs2))
+  source = rep(c("Observed", "RHS", "stepAIC + auto-ARIMA"), each = length(yrs2))
 )
 
 # replace the training periods with NAs
@@ -527,6 +598,77 @@ df_fcplot2 <- data.frame(
 df_fcplot2$low[df_fcplot2$year %in% train_yrs2] <- NA
 df_fcplot2$high[df_fcplot2$year %in% train_yrs2] <- NA
 
+## ---- RMSE for fit 2 ----
+rmse2_aa <- sqrt(
+  mean(
+    (tree_dat$mean_rwi[tree_dat$year %in% test_yrs2] -
+       preds_aic2$fit[
+         (length(preds_aic2$fit) - length(test_yrs2) + 1):length(preds_aic2$fit)
+       ])^2,
+    na.rm = TRUE
+  )
+)
+
+rmse2_RHS <- data.frame(
+  rmse = RMSE_bayes(
+    obs = tree_dat$mean_rwi[tree_dat$year %in% test_yrs2],
+    ppreds = y_pred[, which(tree_dat$year %in% test_yrs2)]
+  )
+)
+
+## ---- make figure for RMSE ----
+
+postprob2 <- mean(rmse2_RHS$rmse < rmse2_aa)
+
+rmse2_plot <- ggplot(rmse2_RHS, aes(x = rmse)) +
+  geom_density(fill = PNWColors::pnw_palette("Sunset", 7)[2]) +
+  geom_vline(
+    xintercept = rmse2_aa,
+    color = PNWColors::pnw_palette("Sunset", 7)[5]) +
+  theme_classic() +
+  xlim(c(0, 1.5)) +
+  annotate(
+    "text",
+    x = 1.5,
+    y = 3.5,
+    label = paste0("P(R[Bayes] <= r[aa]) == ", round(postprob2, 2)),
+    hjust = 1,
+    parse = TRUE,
+    size = 2.5
+  ) +
+  ylab("Density") +
+  xlab("")
+
+
+## ---- In-text figures 2----
+
+wide_preds2 <- df_fcplot2 %>%
+  filter(year %in% test_yrs2) %>%
+  pivot_wider(
+    id_cols = year,
+    names_from = source,
+    values_from = c(y, low, high)
+  )
+
+writeLines(c(
+  "Prediction interval coverage for RHS:",
+  with(wide_preds2, {
+    mean(
+      low_RHS < y_Observed &
+      y_Observed < high_RHS
+  )
+  })
+))
+
+writeLines(c(
+  "Prediction interval coverage for auto-ARIMA:",
+  with(wide_preds2, {
+    mean(
+      `low_stepAIC + auto-ARIMA` < y_Observed &
+        y_Observed < `high_stepAIC + auto-ARIMA`
+    )
+  })
+))
 
 
 ## ---- Coefficients plot dataframe for set 2----
@@ -652,7 +794,7 @@ fc_plot_all_final <- fc_plot_all +
     legend.position = "top"
   ) +
   xlab("") +
-  ylim(c(0, 4)) +
+  ylim(c(0, 3)) +
   ggtitle("a)")
 
 fc_plot2_final <- fc_plot2 +
@@ -661,15 +803,21 @@ fc_plot2_final <- fc_plot2 +
     legend.position = "none",
     axis.text.x = element_text(angle = 45, hjust = 1)
   ) +
-  ylim(c(0, 4)) +
+  ylim(c(0, 3)) +
   xlab("") +
   ggtitle("b)")
 
-fc_plot_all_final / fc_plot2_final
+lo_fc <- '
+  111122
+  333344
+'
+
+fc_plot_all_final + rmse_all_plot +
+  fc_plot2_final + rmse2_plot + plot_layout(design = lo_fc)
 
 ggsave(
   filename = here::here("Figures/tree_growth_forecasts_env_covs.pdf"),
-  width = 5,
+  width = 6,
   height = 5,
   device = "pdf",
   units = "in",
