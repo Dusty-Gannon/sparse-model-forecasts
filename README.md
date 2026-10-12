@@ -104,4 +104,11 @@ The general workflow in the repo is:
 
 - [ ] harmonize the use of 'prediction' vs 'forecast' throughout
 
+- [ ] estimates vs predictions
+
 - [ ] Double-check Burnham and Anderson ref and the calculations
+
+- [ ] Double-check the expectation in the bias-variance tradeoff
+
+
+

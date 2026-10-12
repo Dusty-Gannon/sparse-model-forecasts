@@ -317,7 +317,7 @@ print(paste0('n_beta = ', n_beta, ';  n = ', n))
 #'
 
 
-fit_seasonal_arima_model <- function(model_pars, K = NULL, freq = 365){
+fit_seasonal_arima_model <- function(model_pars, K = NULL, freq = 365, xreg = NULL){
 
   # match the number of Fourier terms used to fit the Stan/horseshoe model
   if(is.null(K)) K <- model_pars$K
@@ -334,7 +334,9 @@ fit_seasonal_arima_model <- function(model_pars, K = NULL, freq = 365){
   y_full <- ts(model_pars$y, frequency = freq)
 
   X_fit <- forecast::fourier(y_full,K=K)
-  if(n_beta > 0){
+  if(!is.null(xreg)){
+    X_fit <- cbind(xreg, X_fit)
+  } else if(n_beta > 0){
     X = model_pars$X[, 2:(1+n_beta)]
     colnames(X) <- paste0('beta', 1:ncol(X))
     X_fit <- cbind(X, X_fit)
