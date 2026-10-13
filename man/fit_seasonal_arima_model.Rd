@@ -4,7 +4,7 @@
 \alias{fit_seasonal_arima_model}
 \title{Fit seasonal arima model}
 \usage{
-fit_seasonal_arima_model(model_pars, K = 12, freq = 365)
+fit_seasonal_arima_model(model_pars, K = NULL, freq = 365, xreg = NULL)
 }
 \arguments{
 \item{model_pars}{a list of parameters describing the AR-p time series as well

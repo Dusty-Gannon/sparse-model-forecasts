@@ -19,8 +19,8 @@ fit_seasonal_ARp_models(
 as a matrix of covariates, vectors of beta and phi parameters, and a simulated
 time series. Must include:
 \itemize{
-\item n: length of time series
-\item p: number of AR lags to consider
+\item N: length of time series
+\item P: number of AR lags to consider
 \item tau_0: the prior guess for tau0
 \item X: matrix of covariates arranged with the first column as the intercept,
 columns 2:(nlags covariate + 1) are lagged versions of covariate 1, and the

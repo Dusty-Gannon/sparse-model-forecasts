@@ -39,6 +39,7 @@ for(i in 1:length(filelist)){
       select(-model)
 
     dd <- bind_cols(dd, tpr)
+    dd <- bind_cols(dd, out$mod_fits$hs_fit$pi_coverage)
     dd$mod_run <- filelist[i]
 
     print(paste0('simulation ', filelist[i]))
@@ -57,6 +58,7 @@ for(i in 1:length(filelist)){
                                           out$model_pars)
 
     ar <- bind_cols(ar, tpr_arima)
+    ar <- bind_cols(ar, calculate_arima_pi_coverage(arima_seasonal$ar_forecast, out$model_pars))
     ar_fit <- arima_seasonal$fit_ar
     if('intercept' %in% names(ar_fit$coef)){
       b0 = ar_fit$coef['intercept']

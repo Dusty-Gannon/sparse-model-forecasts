@@ -56,7 +56,9 @@ basic_timeseries(
 }
 \value{
 List with the response, \code{y}, the model matrix, \code{X},
-and the regression coefficients used to construct the response, \code{beta}.
+the regression coefficients used to construct the response, \code{beta},
+and \code{strong_ids}: a integer vector of 1-based driver indices (into
+columns 2:(K+1) of \code{X}) identifying the large-effect predictors.
 }
 \description{
 This function simulates a time series by creating autoregressive and

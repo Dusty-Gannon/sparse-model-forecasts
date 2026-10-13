@@ -146,9 +146,10 @@ unpack_seasonal_ARp_fits <- function(fits, model_pars){
     # calculate rmses
     n_tot <- length(model_pars$y)
     phi <- c(model_pars$phi, rep(0, ncol(phi_post) - length(model_pars$phi)))
+    holdout_idx <- (model_pars$n + 1):n_tot
     rmse_forecast <- RMSE_bayes(
-      as.double(model_pars$y)[(model_pars$n + 1):n_tot],
-      ppreds = y_rep[,(model_pars$n + 1):n_tot]
+      as.double(model_pars$y)[holdout_idx],
+      ppreds = y_rep[,holdout_idx]
     )
 
     rmse_beta = RMSE_bayes(model_pars$beta, beta_post)
@@ -160,12 +161,18 @@ unpack_seasonal_ARp_fits <- function(fits, model_pars){
                  rmse_phi = rmse_phi,
                  rmse_sigma = rmse_sigma)
 
+    # prediction interval coverage on the holdout set
+    y_holdout <- as.double(model_pars$y)[holdout_idx]
+    pi_bounds <- apply(y_rep[, holdout_idx], 2, quantile, probs = c(0.025, 0.975))
+    pi_coverage <- calculate_pi_coverage(pi_bounds[1, ], pi_bounds[2, ], y_holdout)
+
     bad_fits <- stan_psum(fit = fit)
 
     mod_fit <- list(
       par_ests = par_ests,
       forecast = y_rep,
       rmse = rmse,
+      pi_coverage = pi_coverage,
       bad_fits = bad_fits)
 
     return(mod_fit)
@@ -366,6 +373,25 @@ stan_psum <- function(fit){
               divergent = divtrans)
   )
 
+}
+
+#' Calculate prediction interval coverage rate and average width
+#'
+#' @param low vector of lower prediction interval bounds
+#' @param high vector of upper prediction interval bounds
+#' @param y_true vector of true held-out values
+#'
+#' @return a one-row data.frame with PIcoverage (fraction of y_true falling
+#' between low and high) and PIwidth (average interval width)
+#'
+#' @export
+#'
+
+calculate_pi_coverage <- function(low, high, y_true){
+  data.frame(
+    PIcoverage = mean(y_true >= low & y_true <= high),
+    PIwidth = mean(high - low)
+  )
 }
 
 #' Calculate true positives rates for models
@@ -599,4 +625,29 @@ summarize_arima_pos_rate <- function(fit_ar, fit_hs, model_pars, threshold = 0.9
 
   return( pp )
 
+}
+
+#' Calculate prediction interval coverage for the ARIMA/stepAIC comparator
+#'
+#' @param ar_forecast a forecast object, as returned by
+#' fit_arima_model()$ar_forecast or fit_seasonal_arima_model()$ar_forecast
+#'
+#' @param model_pars a list of the parameters used to simulate the series,
+#' including y and holdout
+#'
+#' @param conf confidence level matching one of forecast()'s default
+#' prediction interval levels (default 0.95)
+#'
+#' @return a one-row data.frame with PIcoverage and PIwidth
+#'
+#' @export
+#'
+
+calculate_arima_pi_coverage <- function(ar_forecast, model_pars, conf = 0.95){
+  level_col <- paste0(conf * 100, "%")
+  n <- length(model_pars$y) - model_pars$holdout
+  y_holdout <- model_pars$y[(n + 1):length(model_pars$y)]
+  low  <- ar_forecast$lower[, level_col]
+  high <- ar_forecast$upper[, level_col]
+  calculate_pi_coverage(low, high, y_holdout)
 }
