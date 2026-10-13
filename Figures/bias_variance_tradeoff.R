@@ -110,8 +110,8 @@ fig_theme <- theme_classic() +
     legend.position = "none",
     axis.title      = element_text(size = 8),
     axis.text       = element_text(size = 7),
-    plot.title      = element_text(size = 9),
-    plot.margin     = margin(8, 12, 8, 8)
+    plot.title      = element_text(size = 9, hjust = -0.2),
+    plot.margin     = margin(8, 12, 8, 8),
   )
 
 y_lim <- c(-0.5, 1.5)
@@ -139,7 +139,7 @@ p1 <- ggplot() +
   scale_color_manual(values = pal) +
   coord_cartesian(ylim = y_lim) +
   labs(x = "x", y = "y",
-       title = "a) Low bias,\nhigh variance") +
+       title = "a) Low bias, high variance") +
   fig_theme
 
 ## ---- Panel b ----
@@ -163,7 +163,7 @@ p2 <- ggplot() +
   scale_color_manual(values = pal) +
   coord_cartesian(ylim = y_lim) +
   labs(x = "x", y = "y",
-       title = "b) High bias,\nlow variance") +
+       title = "b) High bias, low variance") +
   fig_theme
 
 ## ---- Panel c ----
@@ -191,19 +191,18 @@ p3 <- ggplot() +
   scale_color_manual(values = pal) +
   coord_cartesian(ylim = y_lim) +
   labs(x = "x", y = "y",
-       title = "c) Balancing bias\nand variance") +
+       title = "c) Balancing bias and variance") +
   fig_theme
 
 
 # ---- Combine and save ----
 
-fig <- p1 + p2 + p3
+p1 + p2 + p3 + plot_layout(axis_titles = 'collect_y')
 
 ggsave(
-  here("Figures/bias_variance_tradeoff.pdf"),
-  plot = fig,
+  file = here("Figures/bias_variance_tradeoff.pdf"),
   width = 6.5,
-  height = 2,
+  height = 3,
   units = "in",
   dpi = 400,
   device = "pdf"

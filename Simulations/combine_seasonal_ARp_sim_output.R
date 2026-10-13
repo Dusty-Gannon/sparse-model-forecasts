@@ -1,16 +1,17 @@
 # concatenate files from batch SLURM runs
 
-library(tidyverse)
+library(tidyr)
+library(dplyr)
+library(here)
 # args <- 'ARp_sims_test'
-devtools::load_all()
-setwd("/project/modelscape/analyses/sponges/")
+rfiles <- list.files(here("R"), pattern = ".R", full.names=T)
+lapply(rfiles, source)
+
 args <- commandArgs(trailingOnly = TRUE)
 # outdir <- 'test_seasonal'
 outdir <- args[1]
 
-filelist <- paste0('Data/aquatic_sim_data/', outdir, '/',
-                   list.files(paste0('Data/aquatic_sim_data/', outdir, '/'))
-                   )
+filelist <- list.files(here('Data/fourier_sims', outdir), full.names = T)
 # df <- read_csv('Data/aquatic_sim_data/ARp_err_sims_9_18_condensed.csv')
 df <- data.frame()
 for(i in 1:length(filelist)){
@@ -100,7 +101,7 @@ for(i in 1:length(filelist)){
 
 }
 
-write.csv(df, paste0('Data/aquatic_sim_data/summary_files/', outdir, '_condensed.csv'),
+write.csv(df, file=here('Data/fourier_sims', paste0(outdir, '_condensed.csv')),
 	  row.names = FALSE)
 
 #glimpse(df)

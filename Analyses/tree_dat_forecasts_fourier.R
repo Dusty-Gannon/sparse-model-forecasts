@@ -495,6 +495,35 @@ rmse2_plot <- ggplot(rmse2_RHS, aes(x = rmse)) +
     size = 2.5
   )
 
+
+## ---- In-text figures ----
+
+wide_preds2 <- plot_df2 %>%
+  filter(year %in% test_yrs2) %>%
+  pivot_wider(
+    id_cols = year,
+    names_from = source,
+    values_from = c(y, low, high)
+  )
+
+writeLines(c(
+  "Prediction interval coverage for RHS:",
+  mean(
+    wide_preds2$low_RHS < wide_preds2$y_Observed &
+      wide_preds2$y_Observed < wide_preds2$high_RHS
+  )
+))
+
+writeLines(c(
+  "Prediction interval coverage for auto-ARIMA:",
+  with(wide_preds2, {
+    mean(
+      `low_stepAIC + auto-ARIMA` < y_Observed &
+        y_Observed < `high_stepAIC + auto-ARIMA`
+    )
+  })
+))
+
 # -------------------------------------------------------------- #
 # -------------------------------------------------------------- #
 # -------------------------------------------------------------- #
@@ -710,6 +739,35 @@ rmse3_plot <- ggplot(rmse3_RHS, aes(x = rmse)) +
     parse = TRUE,
     size = 2.5
   )
+
+
+## ---- In-text figures ----
+
+wide_preds3 <- plot_df3 %>%
+  filter(year %in% test_yrs3) %>%
+  pivot_wider(
+    id_cols = year,
+    names_from = source,
+    values_from = c(y, low, high)
+  )
+
+writeLines(c(
+  "Prediction interval coverage for RHS:",
+  mean(
+    wide_preds3$low_RHS < wide_preds3$y_Observed &
+      wide_preds3$y_Observed < wide_preds3$high_RHS
+  )
+))
+
+writeLines(c(
+  "Prediction interval coverage for auto-ARIMA:",
+  with(wide_preds3, {
+    mean(
+      `low_stepAIC + auto-ARIMA` < y_Observed &
+        y_Observed < `high_stepAIC + auto-ARIMA`
+    )
+  })
+))
 
 
 # ---- Combine all plots ----

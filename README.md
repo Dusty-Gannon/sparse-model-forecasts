@@ -110,5 +110,10 @@ The general workflow in the repo is:
 
 - [ ] Double-check the expectation in the bias-variance tradeoff
 
+### Bookkeeping
 
+- [ ] Fig ref `fig:fourier-rmse-multilength`
 
+  - [ ] Sec04 line 87
+
+  - 
