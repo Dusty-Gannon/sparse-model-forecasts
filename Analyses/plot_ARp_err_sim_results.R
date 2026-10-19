@@ -4,6 +4,7 @@ library(ggplot2)
 library(dplyr)
 library(tidyr)
 library(here)
+library(patchwork)
 
 # ---- load data ----
 arp_err_sims <- readr::read_csv(
@@ -74,12 +75,73 @@ ggsave(
     dpi = 300
 )
 
+# ---- Pred Interval coverage plot ----
+
+pi_cov <- ggplot(arp_err_sims, aes(x = PIcoverage, y = model)) +
+    facet_wrap(vars(betas), ncol = 1, labeller = as_labeller(labs)) +
+    stat_summary(
+        geom = "pointrange",
+        aes(color = model),
+        fun = mean,
+        fun.min = \(x) { quantile(x, probs = 0.025) },
+        fun.max = \(x) { quantile(x, probs = 0.975) }
+    ) +
+    theme_bw() +
+    geom_vline(xintercept = 0.95, linetype = "dashed") +
+    scale_fill_manual(values = fills[c(2,4)]) +
+    scale_color_manual(values = colors[c(2,4)]) +
+    scale_y_discrete(labels = c("stepAIC +\nauto-ARIMA", "RHS")) +
+    theme(
+        legend.position = "none",
+        plot.title = element_text(hjust = -0.1)
+    ) +
+    ylab("") +
+    xlab("Coverage rate") +
+    ggtitle("a) Prediction interval coverage")
+
+pi_width <- ggplot(arp_err_sims, aes(x = PIwidth, y = model)) +
+    facet_wrap(vars(betas), ncol = 1, labeller = as_labeller(labs)) +
+    stat_summary(
+        geom = "pointrange",
+        aes(color = model),
+        fun = mean,
+        fun.min = \(x) { quantile(x, probs = 0.025) },
+        fun.max = \(x) { quantile(x, probs = 0.975) }
+    ) +
+    theme_bw() +
+    scale_fill_manual(values = fills[c(2,4)]) +
+    scale_color_manual(values = colors[c(2,4)]) +
+    scale_y_discrete(labels = c("stepAIC +\nauto-ARIMA", "RHS")) +
+    theme(
+        legend.position = "none",
+        plot.title = element_text(hjust = -0.1)
+    ) +
+    ylab("") +
+    xlab("Width") +
+    ggtitle("b) Prediction interval width")
+
+pi_plot <- pi_cov + pi_width + plot_layout(axes = 'collect_y')
+
+ggsave(
+    pi_plot,
+    file = here("Figures/pred_int_res_fourier.pdf"),
+    width = 7, height = 7,
+    units = "in",
+    device = "pdf",
+    dpi = 300
+)
+
 # ---- In-text figures ----
 
 arp_err_sims %>% 
     group_by(model, betas) %>%
     summarise(
+        n = n(),
         mean = mean(rmse_forecast),
         min = min(rmse_forecast),
-        q95 = quantile(rmse_forecast, probs = 0.95)
+        q95 = quantile(rmse_forecast, probs = 0.95),
+        pi_cov = mean(PIcoverage),
+        width = mean(PIwidth)
     )
+
+

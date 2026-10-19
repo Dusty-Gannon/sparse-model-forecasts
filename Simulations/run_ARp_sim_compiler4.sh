@@ -5,7 +5,7 @@
 #SBATCH --job-name=ARp_sim_compile
 #SBATCH -o slurm_compile4.out
 #SBATCH --mem=30G
-#SBATCH --time=02:00:00
+#SBATCH --time=04:00:00
 
 
 # Set the parameter combination to use and generate names of R scripts and log file
