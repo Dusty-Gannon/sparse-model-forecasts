@@ -661,18 +661,18 @@ decor_rmse_long <- decorData %>%
       levels = c("Full model", "AIC", "AIC model avg", "RHS")
     ),
     shift = if_else(corrChange, "Covariate shift", "No shift"),
-    shift = factor(shift, levels = c("Covariate shift", "No shift"))
+    shift = factor(shift, levels = c("No shift", "Covariate shift"))
   )
 
 pdf(file = here("Figures/decorrelation_comparison.pdf"), width = 6, height = 5)
 
 decor_rmse_long %>%
-  filter(corrLevel == 0.5) %>%
+  filter(corrLevel %in% c(0.1, 0.5)) %>%
   ggplot(., aes(x = RMSE, y = method)) +
-    facet_wrap(
-      vars(shift),
-      ncol = 1
-      #labeller = labeller(corrLevel = as_labeller(function(x) paste0("rho == ", x), label_parsed))
+    facet_grid(
+      rows = vars(shift),
+      cols = vars(corrLevel),
+      labeller = labeller(corrLevel = as_labeller(function(x) paste0("rho == ", x), label_parsed))
     ) +
     geom_violin(aes(color = method, fill = method), adjust = 1.5) +
     stat_summary(
@@ -743,7 +743,7 @@ decor_shift <- decorData %>%
   filter(corrLevel == 0.5) %>%
   mutate(
     shift = if_else(corrChange, "Covariate shift", "No shift"),
-    shift = factor(shift, levels = c("Covariate shift", "No shift"))
+    shift = factor(shift, levels = c("No shift", "Covariate shift"))
   )
 
 ## ---- Prediction interval coverage and width ----
@@ -793,13 +793,13 @@ predcov_decor_plot <- ggplot(predint_decor_long, aes(x = PIcoverage, y = method,
   theme(
     legend.position = "none",
     plot.title.position = "panel",
-    plot.title = element_text(hjust = -0.2),
+    plot.title = element_text(hjust = -0.05),
     plot.subtitle = element_text(hjust = 0)
   ) +
   scale_color_manual(values = colors) +
   xlab("coverage rate") +
   ylab("") +
-  ggtitle("a)", subtitle = "Prediction interval coverage")
+  ggtitle("a) Prediction interval coverage")
 
 predwidth_decor_plot <- ggplot(predint_decor_long, aes(x = PIwidth/0.5, y = method, color = method)) +
   stat_summary(
@@ -813,13 +813,13 @@ predwidth_decor_plot <- ggplot(predint_decor_long, aes(x = PIwidth/0.5, y = meth
   theme(
     legend.position = "none",
     plot.title.position = "panel",
-    plot.title = element_text(hjust = -0.2),
+    plot.title = element_text(hjust = -0.05),
     plot.subtitle = element_text(hjust = 0)
   ) +
   scale_color_manual(values = colors) +
   xlab("width") +
   ylab("") +
-  ggtitle("b)", subtitle = "Prediction interval width")
+  ggtitle("b) Prediction interval width")
 
 predint_decor_combined_plot <- predcov_decor_plot + predwidth_decor_plot +
   plot_layout(axes = "collect_y")

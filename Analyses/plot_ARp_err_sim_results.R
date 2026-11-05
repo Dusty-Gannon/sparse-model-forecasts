@@ -17,9 +17,9 @@ colors <- PNWColors::pnw_palette("Cascades", n = 4)
 fills <- adjustcolor(colors, alpha.f = 0.6)
 
 labs <- c(
-    "0" = "0 environmental features",
-    "2" = "2 environmental features",
-    "4" = "4 environmental features"
+    "0" = "0 covariates",
+    "2" = "2 covariates",
+    "4" = "4 covariates"
 )
 
 p <- ggplot(arp_err_sims, aes(x = rmse_forecast, y = model)) +
