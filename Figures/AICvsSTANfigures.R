@@ -670,9 +670,10 @@ decor_rmse_long %>%
   filter(corrLevel %in% c(0.1, 0.5)) %>%
   ggplot(., aes(x = RMSE, y = method)) +
     facet_grid(
-      rows = vars(shift),
-      cols = vars(corrLevel),
-      labeller = labeller(corrLevel = as_labeller(function(x) paste0("rho == ", x), label_parsed))
+      rows = vars(corrLevel),
+      cols = vars(shift),
+      labeller = labeller(corrLevel = as_labeller(function(x) paste0("rho == ", x), label_parsed)),
+      scales = "free_x"
     ) +
     geom_violin(aes(color = method, fill = method), adjust = 1.5) +
     stat_summary(
