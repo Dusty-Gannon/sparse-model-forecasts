@@ -3,7 +3,7 @@
 # covariate shift with a simple, 2 covariate example.
 #
 # AUTHOR: Dusty Gannon
-# LAST UPDATED: 12 Sept 2025
+# LAST UPDATED: 5 Nov 2026
 ################################################################
 
 # Load required libraries
@@ -80,26 +80,28 @@ ts_data <- data.frame(
   time = 1:n %>% rep(3)
 )
 
+# create themed colors
+colors <- PNWColors::pnw_palette("Cascades", 8)
+
 # Plot the time series with plot annotations
 (ts_plot <- ggplot(ts_data, aes(time, x, color = x_var)) +
     annotate(
       geom = "rect",
       xmin = 0, xmax = round(n * 0.75), ymin = min(ts_data$x), ymax = 3.5,
-      fill = "darkgreen", alpha = 0.2, color = NA
+      fill = colors[1], alpha = 0.4, color = NA
     ) +
     annotate(
       geom = "rect",
       xmin = round(n * 0.75) + 1, xmax = n, ymin = min(ts_data$x), ymax = 3.5,
-      fill = "darkorange4", color = NA, alpha = 0.2
+      fill = colors[6], color = NA, alpha = 0.4
     ) +
     geom_line() +
     theme_classic() +
     scale_color_manual(
-      values = c("black", PNWColors::pnw_palette("Bay", 5)[c(1, 5)]),
+      values = c("black", colors[c(4,7)]),
       labels = expression(x[1], x[2], x[3])
     ) +
     theme(
-      text = element_text(family = "Arial"),
       legend.title = element_text(size = 10)
     ) +
     guides(color = guide_legend(override.aes = list(linewidth = 1))) +
@@ -136,48 +138,48 @@ dens_post <- data.frame(
 ################################################################
 
 (dplot_grad_pre <- ggplot(dens_pre, aes(x, y1)) +
-   geom_density2d(color = "darkgreen", bins = 7) +
+   geom_density2d(color = colors[1], bins = 7) +
    theme_classic() +
    theme(axis.text = element_blank()) +
    xlab(expression(x[1])) +
    ylab(expression(x[2])) +
    theme(
-     axis.title.y = element_text(color = PNWColors::pnw_palette("Bay", 5)[1])
+     axis.title.y = element_text(color = colors[4])
    ) +
    ggtitle("b)")
 )
 
 (dplot_grad_post <- ggplot(dens_post, aes(x, y1)) +
-    geom_density2d(color = "darkorange4", bins = 7) +
+    geom_density2d(color = colors[6], bins = 7) +
     theme_classic() +
     theme(axis.text = element_blank()) +
     xlab(expression(x[1])) +
     ylab(expression(x[2])) +
     theme(
-      axis.title.y = element_text(color = PNWColors::pnw_palette("Bay", 5)[1])
+      axis.title.y = element_text(color = colors[4])
     ) +
     ggtitle("c)")
 )
 
 (dplot_abrupt_pre <- ggplot(dens_pre, aes(x, y2)) +
-    geom_density2d(color = "darkgreen", bins = 7) +
+    geom_density2d(color = colors[1], bins = 7) +
     theme_classic() +
     theme(axis.text = element_blank()) +
     xlab(expression(x[1])) +
     ylab(expression(x[3])) +
     theme(
-      axis.title.y = element_text(color = PNWColors::pnw_palette("Bay", 5)[5])
+      axis.title.y = element_text(color = colors[7])
     )
 )
 
 (dplot_abrupt_post <- ggplot(dens_post, aes(x, y2)) +
-    geom_density2d(color = "darkorange4", bins = 7) +
+    geom_density2d(color = colors[6], bins = 7) +
     theme_classic() +
     theme(axis.text = element_blank()) +
     xlab(expression(x[1])) +
     ylab(expression(x[3])) +
     theme(
-      axis.title.y = element_text(color = PNWColors::pnw_palette("Bay", 5)[5])
+      axis.title.y = element_text(color = colors[7])
     )
 )
 
@@ -193,7 +195,7 @@ l1 <- grid::textGrob(
 )
 
 l2 <- grid::textGrob(
-  label = "Joint densities during\ntesting period",
+  label = "Joint densities over\nforecast horizon",
   x = unit(0.4, "npc"), y = unit(0.9, "npc"),
   gp = grid::gpar(fontsize = 10),
   vjust = 1
@@ -215,8 +217,8 @@ FFFF#GGGG
 
 # Save the plot as a PNG file
 ggsave(
-  here::here("Figures/covariate_shift_concept.jpg"),
-  device = "jpeg",
+  here::here("Figures/covariate_shift_concept.pdf"),
+  device = "pdf",
   width = 6, height = 4.5,
   units = "in", dpi = "retina"
 )
