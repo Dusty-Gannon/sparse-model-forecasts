@@ -136,7 +136,7 @@ plot_df_allyrs$low[plot_df_allyrs$source == "RHS" & plot_df_allyrs$year <= max(t
 plot_df_allyrs$high[plot_df_allyrs$source == "RHS" & plot_df_allyrs$year <= max(train_yrs)] <- NA
 
 # colors: RHS, stepAIC + auto-ARIMA
-my_colors <- PNWColors::pnw_palette("Sunset", 7)[c(2, 5)]
+my_colors <- PNWColors::pnw_palette("Cascades", 5)[c(5, 3)]
 
 # Create forecasting plot function
 forecast_plot <- function(df, horizon, col){
@@ -150,7 +150,6 @@ forecast_plot <- function(df, horizon, col){
       linewidth = NA
     ) +
     geom_vline(xintercept = horizon, linetype = "dashed", color = "brown") +
-    geom_vline(xintercept = 1926, linetype = "dashed", color = "grey") +
     scale_color_manual(
       values = c("Observed" = "black", "RHS" = col[1], "stepAIC + auto-ARIMA" = col[2])
     ) +
@@ -209,10 +208,11 @@ all_dat_plot <- forecast_plot(
   col = my_colors
 ) +
   xlab("Year") +
-  ylim(c(0.5, 2.2)) +
+  ylim(c(0.5, 2.7)) +
   theme(
-    legend.position = "top"
-  )
+    legend.position = "none"
+  ) +
+  ggtitle("b) Endogenous only")
 
 
 ## ---- Get RMSE of the forecast ----
@@ -237,20 +237,21 @@ postprob <- mean(rmse_all_RHS$rmse < rmse_all_aa)
 
 rmse_all_plot <- ggplot(rmse_all_RHS, aes(x = rmse)) +
   geom_density(fill = my_colors[1]) +
-  geom_vline(xintercept = rmse_all_aa, color = my_colors[2]) +
+  geom_vline(xintercept = rmse_all_aa, color = my_colors[2], linewidth = 1.2) +
   theme_classic() +
   xlim(c(0, 1.5)) +
+  ylim(c(0, 5.5)) +
   annotate(
     "text",
     x = 1.5,
-    y = 5.5,
+    y = 4.2,
     label = paste0("P(R[Bayes] <= r[aa]) == ", round(postprob, 2)),
     hjust = 1,
     parse = TRUE,
     size = 2.5
   ) +
   ylab("Density") +
-  xlab("RMSE")
+  xlab("Prediction RMSE")
 
 ## ---- In-text figures ----
 

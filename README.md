@@ -108,7 +108,7 @@ The general workflow in the repo is:
 
 - [ ] Double-check Burnham and Anderson ref and the calculations
 
-- [ ] Double-check the expectation in the bias-variance tradeoff
+- [x] Double-check the expectation in the bias-variance tradeoff
 
 ### Bookkeeping
 
@@ -117,3 +117,90 @@ The general workflow in the repo is:
   - [ ] Sec04 line 87
 
   - 
+  
+## Notes, coworking session Nov 6
+
+### Section 3
+
+- [ ] Issue with collinearity and relation to BV-tradeoff in 3.0 (currently in 3.1 lines 238 - 244).
+
+- [ ] How collinearity and variable selection interacts with covariate shifts
+
+- [ ] Make phenomenon of selected variable effect inflation clearer
+
+- [ ] Introduce covariate shift methods at line 268, after correlation description
+
+- Move lines 277 - 281 elsewhere (maybe discussion?)
+
+- Cut some of intro text in 3.2, keep line 318 and 322 - 328, but move to 3.0
+
+- Cut almost all of lines 329 - 348, but keep 339 - 342 and move to line 268
+
+### Section 4
+
+- Introduce using endogenous ideas -> AR errors -> methods development
+
+- Move ARMA details to appendix
+
+- 
+
+## Notes coworking Nov 10
+
+- [ ] Section 2.1 needs a concluding/transition sentence or two
+
+- [ ] Section 3 methods needs info on PredInt calculations
+
+- [ ] Coverage up to section 3.0
+
+
+## Notes 17 Nov
+
+- [ ] Tree figure colors
+
+- [ ] Tree fig Thicker vert lines
+
+- [ ] 
+
+- [ ] annotations for pre- and post-shift
+
+- [ ] Change labels
+
+### Discussion ideas
+
+- Remind about the new stuff
+
+- Plain language recommendations/summary of costs and benefits
+
+- Forecasting is critical for ecology
+
+    - Global change is inherently a future-looking idea
+    
+    - Covariate shifts are inevitable
+
+- Exogenous vs. endogenous. What can we do and what can't we?
+
+- Tree results in the context of the literature
+
+    - Bring back the ecology
+    
+    - Really big picture
+    
+- Bias-variance trade-off circle back
+
+    - For trees as well
+    
+    - Higher weight on the variance?
+
+- 
+
+
+
+
+
+
+
+
+
+
+
+

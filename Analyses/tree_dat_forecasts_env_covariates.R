@@ -27,7 +27,7 @@ prism_summer <- readRDS(here::here("SparseTS_prismdata/prism_summer.rds"))
 rhs_reg <- rstan::stan_model(here::here("Stan/AR-p_err.stan"))
 
 # set colors
-my_colors <- PNWColors::pnw_palette("Sunset", 7)[c(2,5)]
+my_colors <- PNWColors::pnw_palette("Cascades", n = 5)[c(5, 3)]
 
 # ---- User-defined functions ----
 
@@ -43,7 +43,6 @@ forecast_plot <- function(df, horizon, col){
     ) +
     geom_line(aes(linewidth = source)) +
     geom_vline(xintercept = horizon, linetype = "dashed", color = "brown") +
-    geom_vline(xintercept = 1926, linetype = "dashed", color = "grey") +
     scale_color_manual(
       values = c("Observed" = "black", "RHS" = col[1], "stepAIC + auto-ARIMA" = col[2])
     ) +
@@ -454,23 +453,25 @@ rmse_all_RHS <- data.frame(
 postprob <- mean(rmse_all_RHS$rmse < rmse_all_aa)
 
 rmse_all_plot <- ggplot(rmse_all_RHS, aes(x = rmse)) +
-  geom_density(fill = PNWColors::pnw_palette("Sunset", 7)[2]) +
+  geom_density(fill = my_colors[1]) +
   geom_vline(
     xintercept = rmse_all_aa,
-    color = PNWColors::pnw_palette("Sunset", 7)[5]) +
+    color = my_colors[2],
+    linewidth = 1.2) +
   theme_classic() +
   xlim(c(0, 1.5)) +
+  ylim(c(0, 5.5)) +
   annotate(
     "text",
     x = 1.5,
-    y = 4,
+    y = 4.5,
     label = paste0("P(R[Bayes] <= r[aa]) == ", round(postprob, 2)),
     hjust = 1,
     parse = TRUE,
     size = 2.5
   ) +
   ylab("Density") +
-  xlab("Prediction RMSE")
+  xlab("")
 
 
 
@@ -509,8 +510,9 @@ fc_plot_all <- forecast_plot(df_fcplot_all, horizon = 1990, col = my_colors)
 
 fc_plot_all_final <- fc_plot_all +
   theme(legend.position = "top") +
-  ylim(c(0, 3)) +
-  xlab("Year")
+  ylim(c(0.5, 2.75)) +
+  xlab("") +
+  ggtitle("a) Exogenous variables")
 
 ## ---- Final forecast + RMSE figure ----
 
