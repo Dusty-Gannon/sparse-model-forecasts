@@ -193,6 +193,7 @@ The general workflow in the repo is:
 
 - 
 
+Separate Shrinkage Priors for regression and pARtial Correlations
 
 
 
