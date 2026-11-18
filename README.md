@@ -155,15 +155,13 @@ The general workflow in the repo is:
 
 ## Notes 17 Nov
 
-- [ ] Tree figure colors
+- [x] Tree figure colors
 
-- [ ] Tree fig Thicker vert lines
+- [x] Tree fig Thicker vert lines
 
-- [ ] 
+- [x] Shift concept fig: annotations for pre- and post-shift
 
-- [ ] annotations for pre- and post-shift
-
-- [ ] Change labels
+- [x] Shift concept fig: Change labels
 
 ### Discussion ideas
 

@@ -87,13 +87,25 @@ colors <- PNWColors::pnw_palette("Cascades", 8)
 (ts_plot <- ggplot(ts_data, aes(time, x, color = x_var)) +
     annotate(
       geom = "rect",
-      xmin = 0, xmax = round(n * 0.75), ymin = min(ts_data$x), ymax = 3.5,
+      xmin = 0, xmax = 80, ymin = min(ts_data$x), ymax = 3.5,
       fill = colors[1], alpha = 0.4, color = NA
     ) +
     annotate(
+      geom = "text",
+      label = "Before shift",
+      x = 40, y = 3.5,
+      vjust = 1.5
+    ) +
+    annotate(
       geom = "rect",
-      xmin = round(n * 0.75) + 1, xmax = n, ymin = min(ts_data$x), ymax = 3.5,
+      xmin = 80.5, xmax = n, ymin = min(ts_data$x), ymax = 3.5,
       fill = colors[6], color = NA, alpha = 0.4
+    ) +
+    annotate(
+      geom = "text",
+      label = "After shift",
+      x = 100, y = 3.5,
+      vjust = 1.5
     ) +
     geom_line() +
     theme_classic() +
@@ -101,6 +113,7 @@ colors <- PNWColors::pnw_palette("Cascades", 8)
       values = c("black", colors[c(4,7)]),
       labels = expression(x[1], x[2], x[3])
     ) +
+    scale_x_continuous(breaks = seq(0, 120, by = 20))+
     theme(
       legend.title = element_text(size = 10)
     ) +
@@ -138,7 +151,7 @@ dens_post <- data.frame(
 ################################################################
 
 (dplot_grad_pre <- ggplot(dens_pre, aes(x, y1)) +
-   geom_density2d(color = colors[1], bins = 7) +
+   geom_density2d(color = colors[1], bins = 7, alpha = 0.6) +
    theme_classic() +
    theme(axis.text = element_blank()) +
    xlab(expression(x[1])) +
@@ -162,7 +175,7 @@ dens_post <- data.frame(
 )
 
 (dplot_abrupt_pre <- ggplot(dens_pre, aes(x, y2)) +
-    geom_density2d(color = colors[1], bins = 7) +
+    geom_density2d(color = colors[1], bins = 7, alpha = 0.6) +
     theme_classic() +
     theme(axis.text = element_blank()) +
     xlab(expression(x[1])) +
@@ -188,14 +201,14 @@ dens_post <- data.frame(
 ################################################################
 
 l1 <- grid::textGrob(
-  label = "Joint densities during\ntraining period",
+  label = "Joint densities before\ncovariate shift",
   x = unit(0.55, "npc"), y = unit(0.9, "npc"),
   gp = grid::gpar(fontsize = 10),
   vjust = 1
 )
 
 l2 <- grid::textGrob(
-  label = "Joint densities over\nforecast horizon",
+  label = "Joint densities after\ncovariate shift",
   x = unit(0.4, "npc"), y = unit(0.9, "npc"),
   gp = grid::gpar(fontsize = 10),
   vjust = 1
